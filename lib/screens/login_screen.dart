@@ -113,7 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextField(
                         controller: _employeeNoController,
                         decoration: const InputDecoration(labelText: '사번'),
-                        keyboardType: TextInputType.number,
+                        keyboardType: TextInputType.text,
+                        textCapitalization: TextCapitalization.characters,
                       ),
                       const SizedBox(height: 12),
                       TextField(
