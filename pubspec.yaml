@@ -33,8 +33,11 @@ dependencies:
   provider: ^6.1.2
   dio: ^5.7.0
   flutter_secure_storage: ^9.2.2
-  intl: ^0.19.0
+  intl: ^0.20.2
   google_fonts: ^6.2.1
+  table_calendar: ^3.1.2
+  flutter_localizations:
+    sdk: flutter
 
 
   # The following adds the Cupertino Icons font to your application.
