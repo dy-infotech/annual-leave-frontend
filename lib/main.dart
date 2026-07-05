@@ -9,6 +9,7 @@ import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
+import 'screens/my_leave_requests_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -44,10 +45,11 @@ class MyApp extends StatelessWidget {
         home: const SplashScreen(),
         navigatorObservers: [routeObserver],
         routes: {
-          '/login': (context) => const LoginScreen(),
-          '/signup': (context) => const SignupScreen(),
-          '/dashboard': (context) => const DashboardScreen(),
-          '/leave-request': (context) => const LeaveRequestScreen(),
+          '/login': (context) => const LoginScreen(),                         // 로그인 화면
+          '/signup': (context) => const SignupScreen(),                       // 사용 등록 화면
+          '/dashboard': (context) => const DashboardScreen(),                 // 대시보드 화면
+          '/leave-request': (context) => const LeaveRequestScreen(),          // 휴가 신청 화면
+          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),   // 내 휴가 신청 목록 화면
         },
       ),
 
