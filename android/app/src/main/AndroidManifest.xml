@@ -1,6 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
-        android:label="annual_leave_frontend"
+        android:label="근태관리"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
