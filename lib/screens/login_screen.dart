@@ -29,28 +29,30 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _errorMessage = '사번과 비밀번호를 입력해주세요.');
       return;
     }
+
     setState(() {
       _isLoading = true;
       _errorMessage = null;
     });
+
     try {
       await context.read<AuthProvider>().login(
         _employeeNoController.text.trim(),
         _passwordController.text,
       );
 
-      // TODO: 대시보드 화면 구현 후, 변경하기
-      // if (mounted) Navigator.pushReplacementNamed(context, '/dashboard');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('로그인 성공 (대시보드 화면 미구현)')),
-        );
+        Navigator.pushReplacementNamed(context, '/dashboard');
       }
+
     } catch (e) {
-      setState(() => _errorMessage = e.toString());  // 임시로 실제 에러 내용 확인
-      // setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다.');
+      // setState(() => _errorMessage = e.toString());  // 임시로 실제 에러 내용 확인
+      setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다.');
+
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

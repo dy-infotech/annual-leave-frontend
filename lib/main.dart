@@ -2,8 +2,10 @@ import 'package:annual_leave_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
+import 'providers/dashboard_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
+import 'screens/dashboard_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -17,7 +19,9 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
+
       child: MaterialApp(
         title: '연차 관리',
         theme: AppTheme.theme,
@@ -25,9 +29,10 @@ class MyApp extends StatelessWidget {
         routes: {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignupScreen(),
-          // '/dashboard' 는 Issue 4에서 추가
+          '/dashboard': (context) => const DashboardScreen(),
         },
       ),
+
     );
   }
 }
@@ -52,8 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    // TODO: 대시보드 화면 구현 후, 두 번째 인수를 auth.isLoggedIn ? '/dashboard' : '/login' 으로 변경하기
-    Navigator.pushReplacementNamed(context, '/login');
+    Navigator.pushReplacementNamed(context, auth.isLoggedIn ? '/dashboard' : '/login');
   }
 
   @override
