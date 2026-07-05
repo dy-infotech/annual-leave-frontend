@@ -10,6 +10,7 @@ import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
 import 'screens/my_leave_requests_screen.dart';
+import 'screens/all_leave_requests_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
           '/dashboard': (context) => const DashboardScreen(),                 // 대시보드 화면
           '/leave-request': (context) => const LeaveRequestScreen(),          // 휴가 신청 화면
           '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),   // 내 휴가 신청 목록 화면
+          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(), // 전직원 휴가 신청 목록 화면
         },
       ),
 
