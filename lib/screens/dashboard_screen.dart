@@ -1,0 +1,195 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/dashboard_provider.dart';
+import '../theme/app_theme.dart';
+import '../widgets/app_drawer.dart';
+
+class DashboardScreen extends StatefulWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<DashboardProvider>().fetchDashboard();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dashboard = context.watch<DashboardProvider>();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('대시보드'),
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: const _MenuGlyph(),
+            onPressed: () => Scaffold.of(context).openDrawer(),
+          ),
+        ),
+      ),
+      drawer: const AppDrawer(),
+      body: RefreshIndicator(
+        onRefresh: () => context.read<DashboardProvider>().fetchDashboard(),
+        child: _buildBody(dashboard),
+      ),
+    );
+  }
+
+  Widget _buildBody(DashboardProvider dashboard) {
+    if (dashboard.isLoading && dashboard.data == null) {
+      return const Center(child: CircularProgressIndicator(color: AppColors.slate));
+    }
+    if (dashboard.errorMessage != null && dashboard.data == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(dashboard.errorMessage!, style: const TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: () => context.read<DashboardProvider>().fetchDashboard(),
+              child: const Text('다시 시도'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final data = dashboard.data;
+    if (data == null) return const SizedBox.shrink();
+
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+      children: [
+        const _SectionLabel('내 휴가 정보'),
+        _StatRow(items: [
+          _StatItem('배정', data.myLeaveInfo.totalLeaveDays, AppColors.slate),
+          _StatItem('사용', data.myLeaveInfo.usedLeaveDays, AppColors.amber),
+          _StatItem('잔여', data.myLeaveInfo.remainingLeaveDays, AppColors.sage),
+        ]),
+        const SizedBox(height: 28),
+
+        const _SectionLabel('내 휴가 신청 현황'),
+        _StatRow(items: [
+          _StatItem('대기', data.myRequestSummary.pendingCount.toDouble(), AppColors.amber, isCount: true),
+          _StatItem('승인', data.myRequestSummary.approvedCount.toDouble(), AppColors.sage, isCount: true),
+          _StatItem('반려', data.myRequestSummary.rejectedCount.toDouble(), AppColors.coral, isCount: true),
+        ]),
+
+        if (data.allEmployeeRequestSummary != null) ...[
+          const SizedBox(height: 28),
+          Row(
+            children: [
+              const _SectionLabel('전직원 휴가 신청 현황'),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.slate.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text('관리자',
+                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.slate)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _StatRow(items: [
+            _StatItem('대기', data.allEmployeeRequestSummary!.pendingCount.toDouble(), AppColors.amber, isCount: true),
+            _StatItem('승인', data.allEmployeeRequestSummary!.approvedCount.toDouble(), AppColors.sage, isCount: true),
+            _StatItem('반려', data.allEmployeeRequestSummary!.rejectedCount.toDouble(), AppColors.coral, isCount: true),
+          ]),
+        ],
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+    );
+  }
+}
+
+class _StatItem {
+  final String label;
+  final double value;
+  final Color color;
+  final bool isCount;
+  _StatItem(this.label, this.value, this.color, {this.isCount = false});
+}
+
+class _StatRow extends StatelessWidget {
+  final List<_StatItem> items;
+  const _StatRow({required this.items});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: items.map((item) {
+          final displayValue = item.isCount
+              ? item.value.toInt().toString()
+              : item.value.toStringAsFixed(item.value % 1 == 0 ? 0 : 1);
+          return Expanded(
+            child: Column(
+              children: [
+                Container(
+                  width: 28, height: 3,
+                  decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
+                ),
+                const SizedBox(height: 10),
+                Text(displayValue,
+                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                const SizedBox(height: 4),
+                Text(item.label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+              ],
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _MenuGlyph extends StatelessWidget {
+  const _MenuGlyph();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 20,
+      height: 14,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(width: 20, height: 2, color: AppColors.textPrimary),
+          Container(width: 14, height: 2, color: AppColors.textPrimary),
+          Container(width: 20, height: 2, color: AppColors.textPrimary),
+        ],
+      ),
+    );
+  }
+}
