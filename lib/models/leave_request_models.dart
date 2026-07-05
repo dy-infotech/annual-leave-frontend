@@ -60,3 +60,38 @@ class LeaveRequestListItem {
     );
   }
 }
+
+class PendingLeaveRequest {
+  final int requestId;
+  final String employeeNo;
+  final String employeeName;
+  final String department;
+  final String startDate;
+  final String endDate;
+  final double useDays;
+  final String createdAt;
+
+  PendingLeaveRequest({
+    required this.requestId,
+    required this.employeeNo,
+    required this.employeeName,
+    required this.department,
+    required this.startDate,
+    required this.endDate,
+    required this.useDays,
+    required this.createdAt,
+  });
+
+  factory PendingLeaveRequest.fromJson(Map<String, dynamic> json) {
+    return PendingLeaveRequest(
+      requestId: json['requestId'],
+      employeeNo: json['employeeNo'],
+      employeeName: json['employeeName'],
+      department: json['department'] ?? '',
+      startDate: json['startDate'],
+      endDate: json['endDate'],
+      useDays: (json['useDays'] as num).toDouble(),
+      createdAt: json['createdAt'],
+    );
+  }
+}

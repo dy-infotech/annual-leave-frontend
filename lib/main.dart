@@ -11,6 +11,7 @@ import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
 import 'screens/my_leave_requests_screen.dart';
 import 'screens/all_leave_requests_screen.dart';
+import 'screens/pending_approval_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -46,15 +47,21 @@ class MyApp extends StatelessWidget {
         home: const SplashScreen(),
         navigatorObservers: [routeObserver],
         routes: {
-          '/login': (context) => const LoginScreen(),                         // 로그인 화면
-          '/signup': (context) => const SignupScreen(),                       // 사용 등록 화면
-          '/dashboard': (context) => const DashboardScreen(),                 // 대시보드 화면
-          '/leave-request': (context) => const LeaveRequestScreen(),          // 휴가 신청 화면
-          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),   // 내 휴가 신청 목록 화면
-          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(), // 전직원 휴가 신청 목록 화면
-        },
-      ),
-
+          // 로그인 화면
+          '/login': (context) => const LoginScreen(),
+          // 사용 등록 화면
+          '/signup': (context) => const SignupScreen(),
+          // 대시보드 화면
+          '/dashboard': (context) => const DashboardScreen(),
+          // 휴가 신청 화면
+          '/leave-request': (context) => const LeaveRequestScreen(),
+          // 내 휴가 신청 목록 화면
+          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
+          // 전직원 휴가 신청 목록 화면
+          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
+          // 승인 대기 목록 화면
+          '/pending-approval': (context) => const PendingApprovalScreen(),
+        }),
     );
   }
 }
