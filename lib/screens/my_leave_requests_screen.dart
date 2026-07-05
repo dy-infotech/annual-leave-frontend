@@ -16,6 +16,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
+  final Set<int> _processingIds = {};
 
   @override
   void initState() {
@@ -25,7 +26,6 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
-
     try {
       final response = await ApiClient().dio.get(
         '/api/leave-requests/my',
@@ -36,7 +36,6 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
             .map((json) => LeaveRequestListItem.fromJson(json))
             .toList();
       });
-
     } finally {
       setState(() => _isLoading = false);
     }
@@ -45,6 +44,63 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   void _setFilter(String? status) {
     setState(() => _statusFilter = status);
     _fetch();
+  }
+
+  bool _isCancelable(LeaveRequestListItem item) {
+    if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
+
+    final startDate = DateTime.parse(item.startDate);
+    final today = DateTime.now();
+    final todayDateOnly = DateTime(today.year, today.month, today.day);
+
+    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
+    return startDate.isAfter(todayDateOnly);
+  }
+
+  Future<void> _confirmCancel(LeaveRequestListItem item) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
+        content: Text(
+          '${item.startDate} — ${item.endDate} (${item.useDays}일)\n신청을 취소하시겠습니까?',
+          style: const TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('아니오', style: TextStyle(color: AppColors.textMuted)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('취소하기', style: TextStyle(color: AppColors.coral, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await _cancel(item.requestId);
+    }
+  }
+
+  Future<void> _cancel(int requestId) async {
+    setState(() => _processingIds.add(requestId));
+    try {
+      await ApiClient().dio.delete('/api/leave-requests/$requestId');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
+      }
+      await _fetch();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
+      }
+    } finally {
+      setState(() => _processingIds.remove(requestId));
+    }
   }
 
   @override
@@ -64,6 +120,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                   _FilterChip(label: '대기', selected: _statusFilter == 'PENDING', onTap: () => _setFilter('PENDING')),
                   _FilterChip(label: '승인', selected: _statusFilter == 'APPROVED', onTap: () => _setFilter('APPROVED')),
                   _FilterChip(label: '반려', selected: _statusFilter == 'REJECTED', onTap: () => _setFilter('REJECTED')),
+                  _FilterChip(label: '취소', selected: _statusFilter == 'CANCELLED', onTap: () => _setFilter('CANCELLED')),
                 ],
               ),
             ),
@@ -81,6 +138,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                 final isRejected = item.status == 'REJECTED' &&
                     item.rejectReason != null &&
                     item.rejectReason!.isNotEmpty;
+                final isProcessing = _processingIds.contains(item.requestId);
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -89,7 +147,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isRejected ? AppColors.coral.withValues(alpha: 0.35) : AppColors.divider,
+                      color: isRejected ? AppColors.coral.withOpacity(0.35) : AppColors.divider,
                     ),
                   ),
                   child: Column(
@@ -107,14 +165,13 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                       Text('${item.useDays}일',
                           style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
 
-                      // 반려 사유 (반려 상태이고 사유가 있을 때만 표시)
                       if (isRejected) ...[
                         const SizedBox(height: 12),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.coral.withValues(alpha: 0.08),
+                            color: AppColors.coral.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Column(
@@ -126,6 +183,39 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                               Text(item.rejectReason!,
                                   style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                             ],
+                          ),
+                        ),
+                      ],
+
+                      // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
+                      if (_isCancelable(item)) ...[
+                        const SizedBox(height: 12),
+                        const Divider(height: 1, color: AppColors.divider),
+                        const SizedBox(height: 4),
+                        Align(
+                          alignment: Alignment.centerRight,
+                          child: TextButton(
+                            onPressed: isProcessing ? null : () => _confirmCancel(item),
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: isProcessing
+                                ? const SizedBox(
+                              width: 14, height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+                            )
+                                : const Text(
+                              '신청 취소',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textMuted,
+                                decoration: TextDecoration.underline,
+                                decorationColor: AppColors.textMuted,
+                              ),
+                            ),
                           ),
                         ),
                       ],
