@@ -10,6 +10,8 @@ import 'screens/signup_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
 
+final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);  // 한글 날짜 포맷 초기화
@@ -40,6 +42,7 @@ class MyApp extends StatelessWidget {
           Locale('ko', 'KR'),
         ],
         home: const SplashScreen(),
+        navigatorObservers: [routeObserver],
         routes: {
           '/login': (context) => const LoginScreen(),
           '/signup': (context) => const SignupScreen(),
