@@ -12,12 +12,13 @@ import 'screens/leave_request_screen.dart';
 import 'screens/my_leave_requests_screen.dart';
 import 'screens/all_leave_requests_screen.dart';
 import 'screens/pending_approval_screen.dart';
+import 'screens/my_info_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('ko_KR', null);  // 한글 날짜 포맷 초기화
+  await initializeDateFormatting('ko_KR', null);
   runApp(const MyApp());
 }
 
@@ -61,6 +62,8 @@ class MyApp extends StatelessWidget {
           '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
           // 승인 대기 목록 화면
           '/pending-approval': (context) => const PendingApprovalScreen(),
+          // 내 정보 화면
+          '/my-info': (context) => const MyInfoScreen(),
         }),
     );
   }
