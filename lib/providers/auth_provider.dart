@@ -19,9 +19,20 @@ class AuthProvider extends ChangeNotifier {
   // 앱 시작 시 저장된 JWT가 있을 경우 로그인 상태로 간주
   Future<void> tryAutoLogin() async {
     final token = await _apiClient.getToken();
-    if (token != null) {
+    if (token == null) {
+      return;
+    }
+
+    try {
       _isLoggedIn = true;
       await fetchMyInfo();
+      notifyListeners();
+
+    } catch (e) {
+      // 저장된 JWT가 만료됐거나 서버 응답 실패 시,
+      // JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
+      await _apiClient.clearToken();
+      _isLoggedIn = false;
       notifyListeners();
     }
   }
