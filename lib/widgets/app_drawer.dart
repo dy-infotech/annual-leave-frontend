@@ -50,8 +50,8 @@ class AppDrawer extends StatelessWidget {
             const SizedBox(height: 8),
             _NavItem(label: '대시보드', onTap: () => _navigate(context, '/dashboard', replace: true)),
             _NavItem(label: '휴가 신청', onTap: () => _navigate(context, '/leave-request')),
-            _NavItem(label: '내 휴가 신청 목록', onTap: () => _navigate(context, '/my-leave-requests')),
-            _NavItem(label: '전체 휴가 신청 목록', onTap: () => _navigate(context, '/all-leave-requests')),
+            _NavItem(label: '내 신청 목록', onTap: () => _navigate(context, '/my-leave-requests')),
+            _NavItem(label: '전체 신청 목록', onTap: () => _navigate(context, '/all-leave-requests')),
             if (auth.isAdmin)
               _NavItem(label: '승인 대기 목록', onTap: () => _navigate(context, '/pending-approval')),
             const Spacer(),
