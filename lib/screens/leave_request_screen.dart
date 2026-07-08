@@ -140,22 +140,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           children: [
             // 사용자 정보 카드
             Container(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
               decoration: BoxDecoration(
                 color: AppColors.slate,
                 borderRadius: BorderRadius.circular(20),
               ),
-              child: Column(
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    info != null ? '${info.name} ${info.position}' : '',
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Colors.white),
+                    info != null ? '${info.name} ${info.position}  ' : '',
+                    style: const TextStyle(
+                      fontSize: 18, 
+                      fontWeight: FontWeight.w800, 
+                      color: Colors.white
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '${info?.department ?? ''} · ${info?.employeeNo ?? ''}',
-                    style: TextStyle(fontSize: 13, color: Colors.white.withValues(alpha: 0.8)),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 7), // 이 부분이 상단 패딩임
+                    child: Text(
+                      '${info?.department ?? ''} · ${info?.employeeNo ?? ''}',
+                      style: TextStyle(
+                        fontSize: 13, 
+                        color: Colors.white.withValues(alpha: 0.8),
+                      ),
+                    ),
                   ),
                 ],
               ),
