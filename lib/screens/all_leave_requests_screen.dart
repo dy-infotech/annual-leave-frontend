@@ -150,7 +150,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                           final item = _items[index];
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(16),
@@ -164,16 +164,23 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                                   children: [
                                     Text('${item.employeeName} ${item.position}',
                                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                                    Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                                     LeaveStatusBadge(status: item.status),
                                   ],
                                 ),
-                                Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                const SizedBox(height: 10),
-                                Text('신청일 ${item.requestedAt.substring(0, 10)}',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                                Text('${item.startDate} — ${item.endDate}',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('${item.useDays}일', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,   
+                                  textBaseline: TextBaseline.alphabetic,   
+                                  children: [
+                                    const SizedBox(height: 10),
+                                    //Text('신청일 ${item.requestedAt.substring(0, 10)}',
+                                    //    style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                    Text('${item.startDate} — ${item.endDate}',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 12),  // 여기 간격 넓힘!
+                                    Text('(${item.useDays}일)', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                                  ]
+                                )
                               ],
                             ),
                           );

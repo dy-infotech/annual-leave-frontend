@@ -20,7 +20,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
   @override
   void initState() {
-    super.initState();
+    super.initState(); 
     _fetch();
   }
 
@@ -83,7 +83,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
     if (confirmed == true) {
       await _cancel(item.requestId);
-    }
+    } 
   }
 
   Future<void> _cancel(int requestId) async {
@@ -142,7 +142,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                   decoration: BoxDecoration(
                     color: AppColors.surface,
                     borderRadius: BorderRadius.circular(16),
@@ -158,13 +158,11 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                         children: [
                           Text('${item.startDate} — ${item.endDate}',
                               style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                          Text('${item.useDays}일',
+                              style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
                           LeaveStatusBadge(status: item.status),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text('${item.useDays}일',
-                          style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
-
                       if (isRejected) ...[
                         const SizedBox(height: 12),
                         Container(
@@ -174,12 +172,13 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                             color: AppColors.coral.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.baseline,   
+                            textBaseline: TextBaseline.alphabetic,             
                             children: [
                               const Text('반려 사유',
                                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.coral)),
-                              const SizedBox(height: 4),
+                              const SizedBox(width: 12),
                               Text(item.rejectReason!,
                                   style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
                             ],
