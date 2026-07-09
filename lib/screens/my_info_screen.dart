@@ -96,7 +96,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               ),
               child: Column(
                 children: [
-                  _InfoRow(label: '사번', value: info?.employeeNo ?? '-'),
+                  _InfoRow(label: '사번', value: info?.employeeNumber ?? '-'),
                   const _InfoDivider(),
                   _InfoRow(label: '이름', value: info?.name ?? '-'),
                   const _InfoDivider(),

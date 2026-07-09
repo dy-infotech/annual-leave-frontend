@@ -151,18 +151,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   Text(
                     info != null ? '${info.name} ${info.position}  ' : '',
                     style: const TextStyle(
-                      fontSize: 18, 
-                      fontWeight: FontWeight.w800, 
-                      color: Colors.white
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white
                     ),
                   ),
                   Padding(
                     padding: const EdgeInsets.only(top: 7), // 이 부분이 상단 패딩임
                     child: Text(
-                      '${info?.department ?? ''} · ${info?.employeeNo ?? ''}',
+                      '${info?.department ?? ''} · ${info?.employeeNumber ?? ''}',
                       style: TextStyle(
-                        fontSize: 13, 
-                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 13,
+                        color: Colors.white.withOpacity(0.8),
                       ),
                     ),
                   ),
@@ -219,7 +219,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       return Container(
                         margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: isEdge ? AppColors.slate : AppColors.slate.withValues(alpha: 0.15),
+                          color: isEdge ? AppColors.slate : AppColors.slate.withOpacity(0.15),
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,

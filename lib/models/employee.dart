@@ -1,5 +1,5 @@
 class Employee {
-  final String employeeNo;
+  final String employeeNumber;
   final String name;
   final String position;
   final String department;
@@ -7,7 +7,7 @@ class Employee {
   final String? role;
 
   Employee({
-    required this.employeeNo,
+    required this.employeeNumber,
     required this.name,
     required this.position,
     required this.department,
@@ -17,7 +17,7 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
-      employeeNo: json['employeeNo'],
+      employeeNumber: json['employeeNumber'],
       name: json['name'],
       position: json['position'] ?? '',
       department: json['department'] ?? '',
