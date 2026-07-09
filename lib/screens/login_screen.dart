@@ -12,20 +12,20 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _employeeNoController = TextEditingController();
+  final _employeeNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   String? _errorMessage;
 
   @override
   void dispose() {
-    _employeeNoController.dispose();
+    _employeeNumberController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLogin() async {
-    if (_employeeNoController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_employeeNumberController.text.isEmpty || _passwordController.text.isEmpty) {
       setState(() => _errorMessage = '사번과 비밀번호를 입력해주세요.');
       return;
     }
@@ -37,7 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await context.read<AuthProvider>().login(
-        _employeeNoController.text.trim(),
+        _employeeNumberController.text.trim(),
         _passwordController.text,
       );
 
@@ -111,7 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       TextField(
-                        controller: _employeeNoController,
+                        controller: _employeeNumberController,
                         decoration: const InputDecoration(labelText: '사번'),
                         keyboardType: TextInputType.text,
                         textCapitalization: TextCapitalization.characters,

@@ -210,7 +210,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${req.employeeName} (${req.employeeNo})',
+                  Text('${req.employeeName} (${req.employeeNumber})',
                       style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
                   Text(req.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
                 ],

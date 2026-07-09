@@ -1,11 +1,11 @@
 class LoginRequest {
-  final String employeeNo;
+  final String employeeNumber;
   final String password;
 
-  LoginRequest({required this.employeeNo, required this.password});
+  LoginRequest({required this.employeeNumber, required this.password});
 
   Map<String, dynamic> toJson() => {
-        'employeeNo': employeeNo,
+        'employeeNumber': employeeNumber,
         'password': password,
       };
 }
@@ -36,13 +36,13 @@ class LoginResponse {
 }
 
 class SignUpRequest {
-  final String employeeNo;
+  final String employeeNumber;
   final String password;
 
-  SignUpRequest({required this.employeeNo, required this.password});
+  SignUpRequest({required this.employeeNumber, required this.password});
 
   Map<String, dynamic> toJson() => {
-        'employeeNo': employeeNo,
+        'employeeNumber': employeeNumber,
         'password': password,
       };
 }

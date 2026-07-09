@@ -63,7 +63,7 @@ class LeaveRequestListItem {
 
 class PendingLeaveRequest {
   final int requestId;
-  final String employeeNo;
+  final String employeeNumber;
   final String employeeName;
   final String department;
   final String startDate;
@@ -73,7 +73,7 @@ class PendingLeaveRequest {
 
   PendingLeaveRequest({
     required this.requestId,
-    required this.employeeNo,
+    required this.employeeNumber,
     required this.employeeName,
     required this.department,
     required this.startDate,
@@ -85,7 +85,7 @@ class PendingLeaveRequest {
   factory PendingLeaveRequest.fromJson(Map<String, dynamic> json) {
     return PendingLeaveRequest(
       requestId: json['requestId'],
-      employeeNo: json['employeeNo'],
+      employeeNumber: json['employeeNumber'],
       employeeName: json['employeeName'],
       department: json['department'] ?? '',
       startDate: json['startDate'],
