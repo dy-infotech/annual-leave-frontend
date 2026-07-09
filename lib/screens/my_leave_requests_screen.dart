@@ -16,6 +16,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
+  DateTimeRange? _dateRange;
   final Set<int> _processingIds = {};
 
   @override
@@ -27,9 +28,18 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
+      final queryParams = <String, dynamic>{};
+      if (_statusFilter != null) {
+        queryParams['status'] = _statusFilter;
+      }
+      if (_dateRange != null) {
+        queryParams['startDate'] = _formatDate(_dateRange!.start);
+        queryParams['endDate'] = _formatDate(_dateRange!.end);
+      }
+
       final response = await ApiClient().dio.get(
         '/api/leave-requests/my',
-        queryParameters: _statusFilter != null ? {'status': _statusFilter} : null,
+        queryParameters: queryParams.isEmpty ? null : queryParams,
       );
       setState(() {
         _items = (response.data as List)
@@ -103,28 +113,105 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
     }
   }
 
+  String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 1),
+      initialDateRange: _dateRange,
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.slate),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => _dateRange = picked);
+      _fetch();
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, String?>> statusOptions = [
+      {'label': '전체', 'value': null},
+      {'label': '대기', 'value': 'PENDING'},
+      {'label': '승인', 'value': 'APPROVED'},
+      {'label': '반려', 'value': 'REJECTED'},
+      {'label': '취소', 'value': 'CANCELLED'},
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('내 신청 목록')),
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
+          SizedBox(
+            height: 60, 
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  _FilterChip(label: '전체', selected: _statusFilter == null, onTap: () => _setFilter(null)),
-                  _FilterChip(label: '대기', selected: _statusFilter == 'PENDING', onTap: () => _setFilter('PENDING')),
-                  _FilterChip(label: '승인', selected: _statusFilter == 'APPROVED', onTap: () => _setFilter('APPROVED')),
-                  _FilterChip(label: '반려', selected: _statusFilter == 'REJECTED', onTap: () => _setFilter('REJECTED')),
-                  _FilterChip(label: '취소', selected: _statusFilter == 'CANCELLED', onTap: () => _setFilter('CANCELLED')),
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.3,
+                    child: DropdownButton<String?>(
+                      value: _statusFilter,
+                      items: statusOptions.map((option) {
+                        return DropdownMenuItem<String?>(
+                          value: option['value'],
+                          child: Text(option['label']!),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        _setFilter(value);
+                      },
+                      underline: Container(height: 1, color: Colors.grey),
+                      isExpanded: true,
+                    ),
+                  ),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _pickDateRange();  
+                    },
+                    icon: const Icon(Icons.calendar_today, size: 20),
+                    label: const Text(
+                      '기간 선택',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(100, 36),
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
+          if (_dateRange != null)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text('${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
+                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  const SizedBox(width: 6),
+                  InkWell(
+                    onTap: () {
+                      setState(() => _dateRange = null);
+                      _fetch();
+                    },
+                    child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
+                  ),
+                ],
+              ),
+            ),
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
