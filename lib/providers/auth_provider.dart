@@ -16,6 +16,10 @@ class AuthProvider extends ChangeNotifier {
   String? get name => _name;
   Employee? get employeeInfo => _employeeInfo;
 
+  AuthProvider() {
+    _apiClient.onUnauthorized = _handleUnauthorized;
+  }
+
   // 앱 시작 시 저장된 JWT가 있을 경우 로그인 상태로 간주
   Future<void> tryAutoLogin() async {
     final token = await _apiClient.getToken();
@@ -31,8 +35,7 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       // 저장된 JWT가 만료됐거나 서버 응답 실패 시,
       // JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
-      await _apiClient.clearToken();
-      _isLoggedIn = false;
+      await _clearSession();
       notifyListeners();
     }
   }
@@ -46,12 +49,16 @@ class AuthProvider extends ChangeNotifier {
     final loginResponse = LoginResponse.fromJson(response.data);
     await _apiClient.saveToken(loginResponse.token);
 
-    _isLoggedIn = true;
-    _role = loginResponse.role;
-    _name = loginResponse.name;
-
-    await fetchMyInfo();
-    notifyListeners();
+    try {
+      _isLoggedIn = true;
+      _role = loginResponse.role;
+      _name = loginResponse.name;
+      await fetchMyInfo();
+      notifyListeners();
+    } catch (e) {
+      await _clearSession();
+      rethrow;
+    }
   }
 
   Future<void> signUp(String employeeNumber, String password) async {
@@ -64,14 +71,29 @@ class AuthProvider extends ChangeNotifier {
   Future<void> fetchMyInfo() async {
     final response = await _apiClient.dio.get('/api/employees/me');
     _employeeInfo = Employee.fromJson(response.data);
+    _role = _employeeInfo?.role ?? _role;
+    _name = _employeeInfo?.name;
   }
 
   Future<void> logout() async {
+    await _clearSession();
+    notifyListeners();
+  }
+
+  Future<void> _handleUnauthorized() async {
+    _resetState();
+    notifyListeners();
+  }
+
+  Future<void> _clearSession() async {
     await _apiClient.clearToken();
+    _resetState();
+  }
+
+  void _resetState() {
     _isLoggedIn = false;
     _role = null;
     _name = null;
     _employeeInfo = null;
-    notifyListeners();
   }
 }

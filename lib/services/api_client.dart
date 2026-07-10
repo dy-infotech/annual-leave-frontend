@@ -9,6 +9,7 @@ class ApiClient {
   late final Dio dio;
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
+  Future<void> Function()? onUnauthorized;
 
   ApiClient._internal() {
     dio = Dio(BaseOptions(
@@ -26,7 +27,12 @@ class ApiClient {
         }
         return handler.next(options);
       },
-      onError: (DioException error, handler) {
+      onError: (DioException error, handler) async {
+        if (error.response?.statusCode == 401) {
+          await clearToken();
+          await onUnauthorized?.call();
+        }
+
         // 공통 에러 메시지 추출
         final message = error.response?.data is Map
             ? error.response?.data['message'] ?? '알 수 없는 오류가 발생했습니다.' : '네트워크 오류가 발생했습니다.';

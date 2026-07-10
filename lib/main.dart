@@ -47,24 +47,101 @@ class MyApp extends StatelessWidget {
         ],
         home: const SplashScreen(),
         navigatorObservers: [routeObserver],
-        routes: {
-          // 로그인 화면
-          '/login': (context) => const LoginScreen(),
-          // 사용 등록 화면
-          '/signup': (context) => const SignupScreen(),
-          // 대시보드 화면
-          '/dashboard': (context) => const DashboardScreen(),
-          // 휴가 신청 화면
-          '/leave-request': (context) => const LeaveRequestScreen(),
-          // 내 휴가 신청 목록 화면
-          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
-          // 전직원 휴가 신청 목록 화면
-          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
-          // 승인 대기 목록 화면
-          '/pending-approval': (context) => const PendingApprovalScreen(),
-          // 내 정보 화면
-          '/my-info': (context) => const MyInfoScreen(),
-        }),
+        onGenerateRoute: _generateRoute,
+      ),
+    );
+  }
+}
+
+Route<dynamic>? _generateRoute(RouteSettings settings) {
+  final Widget child;
+  var requiresAuthentication = true;
+  var requiresAdmin = false;
+
+  switch (settings.name) {
+    case '/login':
+      child = const LoginScreen();
+      requiresAuthentication = false;
+      break;
+    case '/signup':
+      child = const SignupScreen();
+      requiresAuthentication = false;
+      break;
+    case '/dashboard':
+      child = const DashboardScreen();
+      break;
+    case '/leave-request':
+      child = const LeaveRequestScreen();
+      break;
+    case '/my-leave-requests':
+      child = const MyLeaveRequestsScreen();
+      break;
+    case '/all-leave-requests':
+      child = const AllLeaveRequestsScreen();
+      break;
+    case '/pending-approval':
+      child = const PendingApprovalScreen();
+      requiresAdmin = true;
+      break;
+    case '/my-info':
+      child = const MyInfoScreen();
+      break;
+    default:
+      return null;
+  }
+
+  return MaterialPageRoute(
+    settings: settings,
+    builder: (context) => _AuthorizedRoute(
+      requiresAuthentication: requiresAuthentication,
+      requiresAdmin: requiresAdmin,
+      child: child,
+    ),
+  );
+}
+
+class _AuthorizedRoute extends StatelessWidget {
+  final bool requiresAuthentication;
+  final bool requiresAdmin;
+  final Widget child;
+
+  const _AuthorizedRoute({
+    required this.requiresAuthentication,
+    required this.requiresAdmin,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+
+    if (requiresAuthentication && !auth.isLoggedIn) {
+      return const LoginScreen();
+    }
+    if (requiresAdmin && !auth.isAdmin) {
+      return const _AccessDeniedScreen();
+    }
+    return child;
+  }
+}
+
+class _AccessDeniedScreen extends StatelessWidget {
+  const _AccessDeniedScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('접근 권한 없음')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/dashboard',
+            (route) => false,
+          ),
+          child: const Text('대시보드로 이동'),
+        ),
+      ),
     );
   }
 }

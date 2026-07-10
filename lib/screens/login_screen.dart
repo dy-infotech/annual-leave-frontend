@@ -114,12 +114,17 @@ class _LoginScreenState extends State<LoginScreen> {
                         controller: _employeeNumberController,
                         decoration: const InputDecoration(labelText: '사번'),
                         keyboardType: TextInputType.text,
+                        maxLength: 64,
                         textCapitalization: TextCapitalization.characters,
                       ),
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,
-                        decoration: const InputDecoration(labelText: '비밀번호'),
+                        decoration: const InputDecoration(
+                          labelText: '비밀번호',
+                          counterText: '',
+                        ),
+                        maxLength: 128,
                         obscureText: true,
                         onSubmitted: (_) => _handleLogin(),
                       ),

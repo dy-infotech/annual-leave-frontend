@@ -92,8 +92,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return;
     }
 
-    if (_useDays <= 0) {
-      setState(() => _errorMessage = '사용일수를 입력해주세요.');
+    final useDays = _useDays;
+    if (!useDays.isFinite || useDays <= 0 || useDays > _weekdayCount) {
+      setState(() => _errorMessage = '선택한 평일 범위 안에서 사용일수를 입력해주세요.');
       return;
     }
 
@@ -106,7 +107,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       final request = LeaveRequestCreate(
         startDate: _startDate!,
         endDate: _endDate ?? _startDate!,
-        useDays: _useDays,
+        useDays: useDays,
       );
 
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());

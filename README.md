@@ -17,3 +17,23 @@ For help getting started with Flutter development, view the
 samples, guidance on mobile development, and a full API reference.
 
 test
+
+## API configuration
+
+Debug builds use the local API (`localhost:8080`, or `10.0.2.2:8080` on the
+Android emulator). Profile and release builds require an HTTPS endpoint:
+
+```sh
+flutter build appbundle \
+  --dart-define=API_BASE_URL=https://api.example.com
+```
+
+`API_BASE_URL` is public build configuration. Do not place API keys or other
+secrets in it.
+
+## Android release signing
+
+Release builds are never signed with the Android debug key. Copy
+`android/key.properties.example` to `android/key.properties`, replace the
+placeholder values, and keep the keystore outside version control before
+building a signed release.

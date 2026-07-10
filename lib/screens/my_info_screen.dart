@@ -127,20 +127,32 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                 children: [
                   TextField(
                     controller: _currentPasswordController,
+                    maxLength: 128,
                     obscureText: true,
-                    decoration: const InputDecoration(labelText: '현재 비밀번호'),
+                    decoration: const InputDecoration(
+                      labelText: '현재 비밀번호',
+                      counterText: '',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _newPasswordController,
+                    maxLength: 128,
                     obscureText: true,
-                    decoration: const InputDecoration(labelText: '새 비밀번호'),
+                    decoration: const InputDecoration(
+                      labelText: '새 비밀번호',
+                      counterText: '',
+                    ),
                   ),
                   const SizedBox(height: 12),
                   TextField(
                     controller: _newPasswordConfirmController,
+                    maxLength: 128,
                     obscureText: true,
-                    decoration: const InputDecoration(labelText: '새 비밀번호 확인'),
+                    decoration: const InputDecoration(
+                      labelText: '새 비밀번호 확인',
+                      counterText: '',
+                    ),
                     onSubmitted: (_) => _handleChangePassword(),
                   ),
                   if (_errorMessage != null) ...[

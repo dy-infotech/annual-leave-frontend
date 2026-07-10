@@ -114,6 +114,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
             TextField(
               controller: controller,
               decoration: const InputDecoration(hintText: '반려 사유 (선택 입력)'),
+              maxLength: 500,
               maxLines: 3,
             ),
           ],
