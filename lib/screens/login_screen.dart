@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../widgets/loading.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -133,10 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _handleLogin,
                           child: _isLoading
-                              ? const SizedBox(
-                            width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
+                              ? const ButtonSpinner()
                               : const Text('로그인'),
                         ),
                       ),

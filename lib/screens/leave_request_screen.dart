@@ -5,7 +5,11 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
+import '../utils/ui_helpers.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/loading.dart';
+import '../widgets/surface_card.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({super.key});
@@ -67,23 +71,19 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   void _addFullDay() {
     setState(() {
       final current = _useDays + 1.0;
-      _useDaysController.text = _formatDays(current);
+      _useDaysController.text = formatDays(current);
     });
   }
 
   void _addHalfDay() {
     setState(() {
       final current = _useDays + 0.5;
-      _useDaysController.text = _formatDays(current);
+      _useDaysController.text = formatDays(current);
     });
   }
 
   void _resetDays() {
     setState(() => _useDaysController.text = '0');
-  }
-
-  String _formatDays(double value) {
-    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
   }
 
   Future<void> _handleSubmit() async {
@@ -112,7 +112,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
+        showSnackBarMessage(context, '휴가 신청이 완료되었습니다.');
         Navigator.pop(context);
       }
 
@@ -123,9 +123,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       if (mounted) setState(() => _isSubmitting = false);
     }
   }
-
-  String _formatDate(DateTime date) =>
-      '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
@@ -174,12 +171,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             // 인라인 캘린더
             const Text('신청 기간', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 10),
-            Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
+            SurfaceCard(
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: TableCalendar(
                 locale: 'ko_KR',
@@ -244,8 +236,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 padding: const EdgeInsets.only(top: 10, left: 4),
                 child: Text(
                   _endDate == null
-                      ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                      : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (평일 $_weekdayCount일)',
+                      ? '${formatDateDotted(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                      : '${formatDateDotted(_startDate!)} — ${formatDateDotted(_endDate!)}  (평일 $_weekdayCount일)',
                   style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                 ),
               ),
@@ -302,9 +294,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _handleSubmit,
                 child: _isSubmitting
-                    ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const ButtonSpinner()
                     : const Text('신청하기'),
               ),
             ),

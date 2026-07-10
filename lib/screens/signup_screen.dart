@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/ui_helpers.dart';
+import '../widgets/loading.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -38,9 +40,7 @@ class _SignupScreenState extends State<SignupScreen> {
         _passwordController.text,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('사용 등록이 완료되었습니다. 로그인해 주세요.')),
-        );
+        showSnackBarMessage(context, '사용 등록이 완료되었습니다. 로그인해 주세요.');
         Navigator.pop(context);
       }
     } catch (e) {
@@ -98,10 +98,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _handleSignup,
                     child: _isLoading
-                        ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
+                        ? const ButtonSpinner(size: 20)
                         : const Text('등록하기'),
                   ),
                 ),

@@ -3,7 +3,9 @@ import 'package:provider/provider.dart';
 import '../main.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/formatters.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/loading.dart';
 import '../screens/my_leave_requests_screen.dart';
 import '../screens/all_leave_requests_screen.dart';
 
@@ -67,9 +69,13 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
     );
   }
 
+  void _openList(Widget screen) {
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
+  }
+
   Widget _buildBody(DashboardProvider dashboard) {
     if (dashboard.isLoading && dashboard.data == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.slate));
+      return const AppLoadingIndicator();
     }
     if (dashboard.errorMessage != null && dashboard.data == null) {
       return Center(
@@ -108,36 +114,21 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             data.myRequestSummary.pendingCount.toDouble(),
             AppColors.amber,
             isCount: true,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'PENDING')),
-              );
-            },
+            onTap: () => _openList(const MyLeaveRequestsScreen(status: 'PENDING')),
           ),
           _StatItem(
             '승인',
             data.myRequestSummary.approvedCount.toDouble(),
             AppColors.sage,
             isCount: true,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'APPROVED')),
-              );
-            },
+            onTap: () => _openList(const MyLeaveRequestsScreen(status: 'APPROVED')),
           ),
           _StatItem(
             '반려',
             data.myRequestSummary.rejectedCount.toDouble(),
             AppColors.coral,
             isCount: true,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'REJECTED')),
-              );
-            },
+            onTap: () => _openList(const MyLeaveRequestsScreen(status: 'REJECTED')),
           ),
         ]),
         if (data.allEmployeeRequestSummary != null) ...[
@@ -163,36 +154,21 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               data.myRequestSummary.pendingCount.toDouble(),
               AppColors.amber,
               isCount: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING')),
-                );
-              },
+              onTap: () => _openList(const AllLeaveRequestsScreen(status: 'PENDING')),
             ),
             _StatItem(
               '승인',
               data.myRequestSummary.approvedCount.toDouble(),
               AppColors.sage,
               isCount: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED')),
-                );
-              },
+              onTap: () => _openList(const AllLeaveRequestsScreen(status: 'APPROVED')),
             ),
             _StatItem(
               '반려',
               data.myRequestSummary.rejectedCount.toDouble(),
               AppColors.coral,
               isCount: true,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED')),
-                );
-              },
+              onTap: () => _openList(const AllLeaveRequestsScreen(status: 'REJECTED')),
             ),
           ]),
         ],
@@ -271,7 +247,7 @@ class _StatRow extends StatelessWidget {
         children: items.map((item) {
           final displayValue = item.isCount
               ? item.value.toInt().toString()
-              : item.value.toStringAsFixed(item.value % 1 == 0 ? 0 : 1);
+              : formatDays(item.value);
 
           // 터치 가능하게 GestureDetector로 감싸기 (onTap이 있으면 반응)
           return Expanded(

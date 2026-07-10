@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../utils/ui_helpers.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/loading.dart';
+import '../widgets/surface_card.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -57,9 +60,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
         },
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('비밀번호가 변경되었습니다.')),
-        );
+        showSnackBarMessage(context, '비밀번호가 변경되었습니다.');
         _currentPasswordController.clear();
         _newPasswordController.clear();
         _newPasswordConfirmController.clear();
@@ -87,13 +88,9 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             // 기본 정보 (읽기 전용)
             const Text('기본 정보', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 10),
-            Container(
+            SurfaceCard(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.divider),
-              ),
+              borderRadius: 18,
               child: Column(
                 children: [
                   _InfoRow(label: '사번', value: info?.employeeNumber ?? '-'),
@@ -116,13 +113,9 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
             // 비밀번호 변경 (수정 가능)
             const Text('비밀번호 변경', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
             const SizedBox(height: 10),
-            Container(
+            SurfaceCard(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.divider),
-              ),
+              borderRadius: 18,
               child: Column(
                 children: [
                   TextField(
@@ -156,10 +149,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                     child: ElevatedButton(
                       onPressed: _isSubmitting ? null : _handleChangePassword,
                       child: _isSubmitting
-                          ? const SizedBox(
-                        width: 18, height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
+                          ? const ButtonSpinner()
                           : const Text('비밀번호 변경'),
                     ),
                   ),

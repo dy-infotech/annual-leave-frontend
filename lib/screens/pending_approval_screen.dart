@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/ui_helpers.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/loading.dart';
+import '../widgets/surface_card.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});
@@ -46,30 +49,18 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
 
   // 승인 전 확인 다이얼로그
   Future<void> _confirmApprove(PendingLeaveRequest req) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('승인 확인', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Text(
-          '${req.employeeName}님의 휴가 신청\n(${req.startDate} — ${req.endDate}, ${req.useDays}일)을\n승인하시겠습니까?',
-          style: const TextStyle(fontSize: 14, height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소', style: TextStyle(color: AppColors.textMuted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('승인', style: TextStyle(color: AppColors.sage, fontWeight: FontWeight.w700)),
-          ),
-        ],
+    final confirmed = await showConfirmDialog(
+      context,
+      title: '승인 확인',
+      content: Text(
+        '${req.employeeName}님의 휴가 신청\n(${req.startDate} — ${req.endDate}, ${req.useDays}일)을\n승인하시겠습니까?',
+        style: const TextStyle(fontSize: 14, height: 1.5),
       ),
+      confirmLabel: '승인',
+      confirmColor: AppColors.sage,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       await _approve(req.requestId);
     }
   }
@@ -79,13 +70,13 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     try {
       await ApiClient().dio.post('/api/admin/leave-requests/$requestId/approve');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('승인 처리되었습니다.')));
+        showSnackBarMessage(context, '승인 처리되었습니다.');
       }
       await _fetchPendingList();
 
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('승인 처리에 실패했습니다.')));
+        showSnackBarMessage(context, '승인 처리에 실패했습니다.');
       }
 
     } finally {
@@ -96,42 +87,30 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
   // 반려 사유 입력 + 반려 확인을 하나의 다이얼로그에서 처리 (사유는 선택사항)
   Future<void> _showRejectDialog(PendingLeaveRequest req) async {
     final controller = TextEditingController();
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('반려 확인', style: TextStyle(fontWeight: FontWeight.w800)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '${req.employeeName}님의 휴가 신청\n(${req.startDate} — ${req.endDate}, ${req.useDays}일)을\n반려하시겠습니까?',
-              style: const TextStyle(fontSize: 14, height: 1.5),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              decoration: const InputDecoration(hintText: '반려 사유 (선택 입력)'),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소', style: TextStyle(color: AppColors.textMuted)),
+    final confirmed = await showConfirmDialog(
+      context,
+      title: '반려 확인',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${req.employeeName}님의 휴가 신청\n(${req.startDate} — ${req.endDate}, ${req.useDays}일)을\n반려하시겠습니까?',
+            style: const TextStyle(fontSize: 14, height: 1.5),
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('반려', style: TextStyle(color: AppColors.coral, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 16),
+          TextField(
+            controller: controller,
+            decoration: const InputDecoration(hintText: '반려 사유 (선택 입력)'),
+            maxLines: 3,
           ),
         ],
       ),
+      confirmLabel: '반려',
+      confirmColor: AppColors.coral,
     );
 
-    if (confirmed == true) {
+    if (confirmed) {
       await _reject(req.requestId, controller.text.trim());
     }
   }
@@ -145,13 +124,13 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         data: {'rejectReason': reason.isEmpty ? null : reason},
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('반려 처리되었습니다.')));
+        showSnackBarMessage(context, '반려 처리되었습니다.');
       }
       await _fetchPendingList();
 
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('반려 처리에 실패했습니다.')));
+        showSnackBarMessage(context, '반려 처리에 실패했습니다.');
       }
 
     } finally {
@@ -173,7 +152,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.slate));
+      return const AppLoadingIndicator();
     }
 
     if (_errorMessage != null) {
@@ -196,14 +175,10 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         final req = _requests[index];
         final isProcessing = _processingIds.contains(req.requestId);
 
-        return Container(
+        return SurfaceCard(
           margin: const EdgeInsets.only(bottom: 14),
           padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.divider),
-          ),
+          borderRadius: 18,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -226,10 +201,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                     child: ElevatedButton(
                       onPressed: isProcessing ? null : () => _confirmApprove(req),
                       child: isProcessing
-                          ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
+                          ? const ButtonSpinner(size: 16)
                           : const Text('승인'),
                     ),
                   ),

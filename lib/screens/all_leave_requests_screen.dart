@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
+import '../services/leave_request_service.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/ui_helpers.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
+import '../widgets/leave_filter_bar.dart';
+import '../widgets/loading.dart';
+import '../widgets/surface_card.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   
@@ -36,52 +40,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final queryParams = <String, dynamic>{};
-      if (_statusFilter != null) {
-        queryParams['status'] = _statusFilter;
-      }
-      if(widget.status != null){
+      if (widget.status != null) {
         _statusFilter = widget.status;
-        queryParams['status'] = _statusFilter;
       }
-      if (_dateRange != null) {
-        queryParams['startDate'] = _formatDate(_dateRange!.start);
-        queryParams['endDate'] = _formatDate(_dateRange!.end);
-      }
-
-      final response = await ApiClient().dio.get(
+      final items = await fetchLeaveRequestList(
         '/api/leave-requests/all',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
+        status: _statusFilter,
+        dateRange: _dateRange,
       );
-      setState(() {
-        _items = (response.data as List)
-            .map((json) => LeaveRequestListItem.fromJson(json))
-            .toList();
-      });
-
+      setState(() => _items = items);
     } finally {
       setState(() => _isLoading = false);
     }
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
   Future<void> _pickDateRange() async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 1),
-      initialDateRange: _dateRange,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.slate),
-        ),
-        child: child!,
-      ),
-    );
-
+    final picked = await pickLeaveDateRange(context, initialRange: _dateRange);
     if (picked != null) {
       setState(() => _dateRange = picked);
       _fetch();
@@ -106,70 +80,20 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          SizedBox(
-            height: 60, 
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.3,
-                    child: DropdownButton<String?>(
-                      value: _statusFilter,
-                      items: statusOptions.map((option) {
-                        return DropdownMenuItem<String?>(
-                          value: option['value'],
-                          child: Text(option['label']!),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        _setFilter(value);
-                      },
-                      underline: Container(height: 1, color: Colors.grey),
-                      isExpanded: true,
-                    ),
-                  ),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _pickDateRange();  
-                    },
-                    icon: const Icon(Icons.calendar_today, size: 20),
-                    label: const Text(
-                      '기간 선택',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      minimumSize: const Size(100, 36),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          LeaveFilterBar(
+            statusOptions: statusOptions,
+            selectedStatus: _statusFilter,
+            onStatusChanged: _setFilter,
+            dateRange: _dateRange,
+            onPickDateRange: _pickDateRange,
+            onClearDateRange: () {
+              setState(() => _dateRange = null);
+              _fetch();
+            },
           ),
-          if (_dateRange != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text('${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () {
-                      setState(() => _dateRange = null);
-                      _fetch();
-                    },
-                    child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
-                  ),
-                ],
-              ),
-            ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
+                ? const AppLoadingIndicator()
                 : _items.isEmpty
                     ? const Center(child: Text('조회된 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
                     : ListView.builder(
@@ -177,14 +101,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                         itemCount: _items.length,
                         itemBuilder: (context, index) {
                           final item = _items[index];
-                          return Container(
+                          return SurfaceCard(
                             margin: const EdgeInsets.only(bottom: 12),
                             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.divider),
-                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -217,41 +136,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                       ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.slate : AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? AppColors.slate : AppColors.divider),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : AppColors.textMuted,
-            ),
-          ),
-        ),
       ),
     );
   }
