@@ -5,6 +5,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 import '../widgets/app_drawer.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
@@ -116,8 +117,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         Navigator.pop(context);
       }
 
-    } catch (e) {
-      setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해주세요.');
+    } catch (e, s) {
+      logError('LeaveRequestScreen._handleSubmit', e, s);
+      if (mounted) {
+        setState(() => _errorMessage = messageFromError(e,
+            fallback: '신청 중 오류가 발생했습니다. 입력값을 확인해주세요.'));
+      }
 
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/dashboard_models.dart';
 import '../services/api_client.dart';
+import '../utils/error_utils.dart';
 
 class DashboardProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -21,8 +22,9 @@ class DashboardProvider extends ChangeNotifier {
     try {
       final response = await _apiClient.dio.get('/api/dashboard');
       _data = DashboardData.fromJson(response.data);
-    } catch (e) {
-      _errorMessage = '대시보드 정보를 불러오지 못했습니다.';
+    } catch (e, s) {
+      logError('DashboardProvider.fetchDashboard', e, s);
+      _errorMessage = messageFromError(e, fallback: '대시보드 정보를 불러오지 못했습니다.');
     } finally {
       _isLoading = false;
       notifyListeners();

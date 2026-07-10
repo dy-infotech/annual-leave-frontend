@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -45,9 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
 
-    } catch (e) {
-      // setState(() => _errorMessage = e.toString());  // 임시로 실제 에러 내용 확인
-      setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다.');
+    } catch (e, s) {
+      logError('LoginScreen._handleLogin', e, s);
+      if (mounted) {
+        setState(() => _errorMessage =
+            messageFromError(e, fallback: '사번 또는 비밀번호가 일치하지 않습니다.'));
+      }
 
     } finally {
       if (mounted) {

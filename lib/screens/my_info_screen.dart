@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 import '../widgets/app_drawer.dart';
 
 class MyInfoScreen extends StatefulWidget {
@@ -65,8 +66,12 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
         _newPasswordConfirmController.clear();
       }
 
-    } catch (e) {
-      setState(() => _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.');
+    } catch (e, s) {
+      logError('MyInfoScreen._handleChangePassword', e, s);
+      if (mounted) {
+        setState(() => _errorMessage = messageFromError(e,
+            fallback: '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.'));
+      }
 
     } finally {
       if (mounted) setState(() => _isSubmitting = false);

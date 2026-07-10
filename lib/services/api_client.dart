@@ -27,13 +27,38 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (DioException error, handler) {
-        // 공통 에러 메시지 추출
-        final message = error.response?.data is Map
-            ? error.response?.data['message'] ?? '알 수 없는 오류가 발생했습니다.' : '네트워크 오류가 발생했습니다.';
-        error = error.copyWith(message: message);
-        return handler.next(error);
+        // 공통 에러 메시지 추출 후 원본 예외에 실어 상위로 전달
+        return handler.next(error.copyWith(message: _extractErrorMessage(error)));
       },
     ));
+  }
+
+  // 서버가 내려준 메시지를 우선 사용하고, 없으면 예외 유형에 맞는
+  // 사람이 읽을 수 있는 메시지로 대체한다.
+  static String _extractErrorMessage(DioException error) {
+    final data = error.response?.data;
+    if (data is Map && data['message'] is String) {
+      final serverMessage = (data['message'] as String).trim();
+      if (serverMessage.isNotEmpty) {
+        return serverMessage;
+      }
+    }
+
+    switch (error.type) {
+      case DioExceptionType.connectionTimeout:
+      case DioExceptionType.sendTimeout:
+      case DioExceptionType.receiveTimeout:
+        return '서버 응답이 지연되고 있습니다. 잠시 후 다시 시도해주세요.';
+      case DioExceptionType.connectionError:
+      case DioExceptionType.badCertificate:
+        return '네트워크 연결을 확인해주세요.';
+      default:
+        final statusCode = error.response?.statusCode;
+        if (statusCode != null) {
+          return '요청을 처리하지 못했습니다. (오류 코드: $statusCode)';
+        }
+        return '알 수 없는 오류가 발생했습니다.';
+    }
   }
 
   Future<void> saveToken(String token) async {

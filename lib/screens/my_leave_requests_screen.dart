@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/error_retry.dart';
 import '../widgets/leave_status_badge.dart';
 
 class MyLeaveRequestsScreen extends StatefulWidget {
@@ -19,6 +21,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
+  String? _errorMessage;
   String? _statusFilter; // null = 전체
   DateTimeRange? _dateRange;
   final Set<int> _processingIds = {};   
@@ -37,7 +40,10 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   }
 
   Future<void> _fetch() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final queryParams = <String, dynamic>{};
       if (_statusFilter != null) {
@@ -56,13 +62,18 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
         '/api/leave-requests/my',
         queryParameters: queryParams.isEmpty ? null : queryParams,
       );
-      setState(() {
-        _items = (response.data as List)
-            .map((json) => LeaveRequestListItem.fromJson(json))
-            .toList();
-      });
+      final items = (response.data as List)
+          .map((json) => LeaveRequestListItem.fromJson(json))
+          .toList();
+      if (mounted) setState(() => _items = items);
+    } catch (e, s) {
+      logError('MyLeaveRequestsScreen._fetch', e, s);
+      if (mounted) {
+        setState(() => _errorMessage =
+            messageFromError(e, fallback: '신청 내역을 불러오지 못했습니다.'));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -119,12 +130,15 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
       }
       await _fetch();
-    } catch (e) {
+    } catch (e, s) {
+      logError('MyLeaveRequestsScreen._cancel', e, s);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(messageFromError(e, fallback: '취소 처리에 실패했습니다.'))),
+        );
       }
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) setState(() => _processingIds.remove(requestId));
     }
   }
 
@@ -230,6 +244,8 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
+                : _errorMessage != null
+                ? ErrorRetry(message: _errorMessage!, onRetry: _fetch)
                 : _items.isEmpty
                 ? const Center(child: Text('신청 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
                 : ListView.builder(

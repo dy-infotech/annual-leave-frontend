@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 import '../widgets/app_drawer.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
@@ -34,13 +35,17 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       final list = (response.data as List)
           .map((json) => PendingLeaveRequest.fromJson(json))
           .toList();
-      setState(() => _requests = list);
+      if (mounted) setState(() => _requests = list);
 
-    } catch (e) {
-      setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
+    } catch (e, s) {
+      logError('PendingApprovalScreen._fetchPendingList', e, s);
+      if (mounted) {
+        setState(() => _errorMessage =
+            messageFromError(e, fallback: '목록을 불러오지 못했습니다.'));
+      }
 
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -83,13 +88,16 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       }
       await _fetchPendingList();
 
-    } catch (e) {
+    } catch (e, s) {
+      logError('PendingApprovalScreen._approve', e, s);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('승인 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(messageFromError(e, fallback: '승인 처리에 실패했습니다.'))),
+        );
       }
 
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) setState(() => _processingIds.remove(requestId));
     }
   }
 
@@ -149,13 +157,16 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       }
       await _fetchPendingList();
 
-    } catch (e) {
+    } catch (e, s) {
+      logError('PendingApprovalScreen._reject', e, s);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('반려 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(messageFromError(e, fallback: '반려 처리에 실패했습니다.'))),
+        );
       }
 
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) setState(() => _processingIds.remove(requestId));
     }
   }
 

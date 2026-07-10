@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import '../utils/error_utils.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -43,10 +44,12 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         Navigator.pop(context);
       }
-    } catch (e) {
-      setState(() => _errorMessage = e.toString().contains('DioException')
-          ? '등록되지 않은 사번이거나 이미 가입된 사번입니다.'
-          : '사용 등록에 실패했습니다.');
+    } catch (e, s) {
+      logError('SignupScreen._handleSignup', e, s);
+      if (mounted) {
+        setState(() => _errorMessage = messageFromError(e,
+            fallback: '등록되지 않은 사번이거나 이미 가입된 사번입니다.'));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

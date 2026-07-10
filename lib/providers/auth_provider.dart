@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import '../models/auth_models.dart';
 import '../models/employee.dart';
 import '../services/api_client.dart';
+import '../utils/error_utils.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
@@ -28,11 +29,15 @@ class AuthProvider extends ChangeNotifier {
       await fetchMyInfo();
       notifyListeners();
 
-    } catch (e) {
-      // 저장된 JWT가 만료됐거나 서버 응답 실패 시,
-      // JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
-      await _apiClient.clearToken();
-      _isLoggedIn = false;
+    } catch (e, s) {
+      logError('AuthProvider.tryAutoLogin', e, s);
+
+      // 인증 오류(401/403)일 때만 JWT를 지우고 로그인 화면으로 유도한다.
+      // 네트워크 일시 장애로 세션을 잃지 않도록 그 외 오류는 세션을 유지한다.
+      if (isAuthError(e)) {
+        await _apiClient.clearToken();
+        _isLoggedIn = false;
+      }
       notifyListeners();
     }
   }
