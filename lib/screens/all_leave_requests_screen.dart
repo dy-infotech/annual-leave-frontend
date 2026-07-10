@@ -6,7 +6,10 @@ import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
-  const AllLeaveRequestsScreen({super.key});
+  
+  final String? status;
+  
+  const AllLeaveRequestsScreen({super.key, this.status});
 
   @override
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
@@ -21,6 +24,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    if(widget.status != null){
+      _statusFilter = widget.status;
+      _setFilter(widget.status);
+    }
+
     _fetch();
   }
 
@@ -29,6 +38,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     try {
       final queryParams = <String, dynamic>{};
       if (_statusFilter != null) {
+        queryParams['status'] = _statusFilter;
+      }
+      if(widget.status != null){
+        _statusFilter = widget.status;
         queryParams['status'] = _statusFilter;
       }
       if (_dateRange != null) {
