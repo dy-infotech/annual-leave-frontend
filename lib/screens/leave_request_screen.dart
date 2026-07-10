@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../models/enums/LeaveType.dart';
 import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
@@ -16,13 +17,22 @@ class LeaveRequestScreen extends StatefulWidget {
 
 class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   DateTime _focusedDay = DateTime.now();
+  LeaveType _selectedLeaveType = LeaveType.full;
   DateTime? _startDate;
   DateTime? _endDate;
   final _useDaysController = TextEditingController(text: '0');
+  final _reasonController = TextEditingController();
   bool _isSubmitting = false;
   String? _errorMessage;
 
   double get _useDays => double.tryParse(_useDaysController.text) ?? 0;
+
+  // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
+  bool get _needsReason => ![
+    LeaveType.full,
+    LeaveType.amHalf,
+    LeaveType.pmHalf,
+  ].contains(_selectedLeaveType);
 
   int get _weekdayCount {
     if (_startDate == null || _endDate == null) return 0;
@@ -64,28 +74,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return !day.isBefore(_startDate!) && !day.isAfter(end);
   }
 
-  void _addFullDay() {
-    setState(() {
-      final current = _useDays + 1.0;
-      _useDaysController.text = _formatDays(current);
-    });
-  }
-
-  void _addHalfDay() {
-    setState(() {
-      final current = _useDays + 0.5;
-      _useDaysController.text = _formatDays(current);
-    });
-  }
-
-  void _resetDays() {
-    setState(() => _useDaysController.text = '0');
-  }
-
-  String _formatDays(double value) {
-    return value % 1 == 0 ? value.toStringAsFixed(0) : value.toStringAsFixed(1);
-  }
-
   Future<void> _handleSubmit() async {
     if (_startDate == null) {
       setState(() => _errorMessage = '날짜를 선택해주세요.');
@@ -104,6 +92,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
     try {
       final request = LeaveRequestCreate(
+        leaveType: _selectedLeaveType.code,
         startDate: _startDate!,
         endDate: _endDate ?? _startDate!,
         useDays: _useDays,
@@ -169,6 +158,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ],
               ),
             ),
+
             const SizedBox(height: 24),
 
             // 인라인 캘린더
@@ -239,57 +229,132 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 onPageChanged: (focusedDay) => _focusedDay = focusedDay,
               ),
             ),
-            if (_startDate != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 10, left: 4),
-                child: Text(
-                  _endDate == null
-                      ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                      : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (평일 $_weekdayCount일)',
-                  style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                ),
+
+            const SizedBox(height: 8),
+
+            Padding(
+              padding: const EdgeInsets.only(top: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // 선택된 날짜 범위 텍스트
+                  if (_startDate != null)
+                    Text(
+                      _endDate == null
+                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (평일 $_weekdayCount일)',
+                      style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                    ),
+
+                  const Spacer(),
+
+                  // 휴가 정보 (남은/총 휴가일수)
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: '3',
+                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.slate),
+                        ),
+                        TextSpan(
+                          text: ' / 15 일',
+                          style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-
-            const SizedBox(height: 28),
-
-            // 연차/반차 버튼 + 직접 입력
-            const Text('사용할 연차 개수', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: _DayButton(label: '연차 +1.0', onTap: _addFullDay),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: _DayButton(label: '반차 +0.5', onTap: _addHalfDay, filled: false),
-                ),
-              ],
             ),
-            const SizedBox(height: 10),
+
+            const SizedBox(height: 16),
+
+            // 휴가 종류 및 사용할 연차 개수
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 휴가 종류 셀렉트 박스
                 Expanded(
-                  child: TextField(
-                    controller: _useDaysController,
-                    textAlign: TextAlign.center,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                    decoration: const InputDecoration(suffixText: '일'),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('휴가 종류', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<LeaveType>(
+                            value: _selectedLeaveType,
+                            isExpanded: true,
+                            icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted),
+                            items: LeaveType.values.map((type) {
+                              return DropdownMenuItem(
+                                value: type,
+                                child: Text(
+                                  type.label,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null) {
+                                setState(() => _selectedLeaveType = value);
+                              }
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                TextButton(
-                  onPressed: _resetDays,
-                  child: const Text('초기화', style: TextStyle(color: AppColors.textMuted)),
+
+                const SizedBox(width: 16),
+
+                // 사용할 연차 개수
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('사용할 연차 개수', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: _useDaysController,
+                        textAlign: TextAlign.right,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                        decoration: const InputDecoration(suffixText: '일'),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const Padding(
-              padding: EdgeInsets.only(top: 6, left: 4),
-              child: Text('버튼으로 더하거나, 직접 숫자를 입력할 수 있습니다.',
-                  style: TextStyle(fontSize: 11.5, color: AppColors.textMuted)),
-            ),
+
+            // 사유 입력란 (연차/반차 외 항목 선택 시에만 표시)
+            if (_needsReason) ...[
+              const SizedBox(height: 16),
+              const Text('사유', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _reasonController,
+                maxLines: 3,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: '휴가 사유를 입력해주세요',
+                  hintStyle: TextStyle(color: AppColors.textMuted.withOpacity(0.6)),
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide(color: AppColors.divider),
+                  ),
+                ),
+              ),
+            ],
 
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
@@ -309,39 +374,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _DayButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-  final bool filled;
-
-  const _DayButton({required this.label, required this.onTap, this.filled = true});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        decoration: BoxDecoration(
-          color: filled ? AppColors.slate : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.slate, width: 1.3),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w700,
-            color: filled ? Colors.white : AppColors.slate,
-          ),
         ),
       ),
     );
