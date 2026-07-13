@@ -22,6 +22,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   DateTime? _endDate;
   final _useDaysController = TextEditingController(text: '0');
   final _reasonController = TextEditingController();
+  final _scrollController = ScrollController();
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -43,6 +44,14 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       cursor = cursor.add(const Duration(days: 1));
     }
     return count;
+  }
+
+  @override
+  void dispose() {
+    _useDaysController.dispose();
+    _reasonController.dispose();
+    _scrollController.dispose();
+    super.dispose();
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
@@ -125,6 +134,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       drawer: const AppDrawer(),
       body: SafeArea(
         child: ListView(
+          controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
             // 사용자 정보 카드
@@ -303,7 +313,24 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
+                                final willShowReason = ![
+                                  LeaveType.full,
+                                  LeaveType.amHalf,
+                                  LeaveType.pmHalf,
+                                ].contains(value);
+
                                 setState(() => _selectedLeaveType = value);
+
+                                if (willShowReason) {
+                                  // 위젯 트리가 리빌드된 다음 프레임에 스크롤 실행
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    _scrollController.animateTo(
+                                      _scrollController.position.maxScrollExtent,
+                                      duration: const Duration(milliseconds: 300),
+                                      curve: Curves.easeOut,
+                                    );
+                                  });
+                                }
                               }
                             },
                           ),
