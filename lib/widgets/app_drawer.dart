@@ -6,7 +6,11 @@ import '../theme/app_theme.dart';
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
-  void _navigate(BuildContext context, String routeName, {bool replace = false}) {
+  void _navigate(
+    BuildContext context,
+    String routeName, {
+    bool replace = false,
+  }) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
     Navigator.pop(context); // Drawer 닫기
 
@@ -35,13 +39,22 @@ class AppDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    info != null ? '${info.name} ${info.position}' : (auth.name ?? ''),
-                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                    info != null
+                        ? '${info.name} ${info.position}'
+                        : (auth.name ?? ''),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${info?.department ?? ''} · ${info?.employeeNumber ?? ''}',
-                    style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted),
+                    style: const TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textMuted,
+                    ),
                   ),
                 ],
               ),
@@ -49,15 +62,33 @@ class AppDrawer extends StatelessWidget {
             const Divider(height: 1, color: AppColors.divider),
             const SizedBox(height: 8),
 
-            _NavItem(label: '대시보드', onTap: () => _navigate(context, '/dashboard', replace: true)),
-            _NavItem(label: '휴가 신청', onTap: () => _navigate(context, '/leave-request')),
-            _NavItem(label: '내 신청 목록', onTap: () => _navigate(context, '/my-leave-requests')),
-            _NavItem(label: '전체 신청 목록', onTap: () => _navigate(context, '/all-leave-requests')),
+            _NavItem(
+              label: '대시보드',
+              onTap: () => _navigate(context, '/dashboard', replace: true),
+            ),
+            _NavItem(
+              label: '휴가 신청',
+              onTap: () => _navigate(context, '/leave-request'),
+            ),
+            _NavItem(
+              label: '내 신청 목록',
+              onTap: () => _navigate(context, '/my-leave-requests'),
+            ),
+            _NavItem(
+              label: '전체 신청 목록',
+              onTap: () => _navigate(context, '/all-leave-requests'),
+            ),
 
             if (auth.isAdmin)
-              _NavItem(label: '승인 대기 목록', onTap: () => _navigate(context, '/pending-approval')),
+              _NavItem(
+                label: '승인 대기 목록',
+                onTap: () => _navigate(context, '/pending-approval'),
+              ),
 
-            _NavItem(label: '내 정보', onTap: () => _navigate(context, '/my-info')),
+            _NavItem(
+              label: '내 정보',
+              onTap: () => _navigate(context, '/my-info'),
+            ),
 
             const Spacer(),
             const Divider(height: 1, color: AppColors.divider),
@@ -68,7 +99,11 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
                 await context.read<AuthProvider>().logout();
                 if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 }
               },
             ),
