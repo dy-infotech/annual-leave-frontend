@@ -10,10 +10,10 @@ class LeaveRequestCreate {
   });
 
   Map<String, dynamic> toJson() => {
-        'startDate': _formatDate(startDate),
-        'endDate': _formatDate(endDate),
-        'useDays': useDays,
-      };
+    'startDate': _formatDate(startDate),
+    'endDate': _formatDate(endDate),
+    'useDays': useDays,
+  };
 
   static String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -30,7 +30,7 @@ class LeaveRequestListItem {
   final String endDate;
   final double useDays;
   final String status;
-  final String? rejectReason;   // 반려 시에만 값 존재
+  final String? rejectReason; // 반려 시에만 값 존재
 
   LeaveRequestListItem({
     required this.requestId,
@@ -63,7 +63,7 @@ class LeaveRequestListItem {
 
 class PendingLeaveRequest {
   final int requestId;
-  final String employeeNo;
+  final String employeeNumber;
   final String employeeName;
   final String department;
   final String startDate;
@@ -73,7 +73,7 @@ class PendingLeaveRequest {
 
   PendingLeaveRequest({
     required this.requestId,
-    required this.employeeNo,
+    required this.employeeNumber,
     required this.employeeName,
     required this.department,
     required this.startDate,
@@ -85,7 +85,7 @@ class PendingLeaveRequest {
   factory PendingLeaveRequest.fromJson(Map<String, dynamic> json) {
     return PendingLeaveRequest(
       requestId: json['requestId'],
-      employeeNo: json['employeeNo'],
+      employeeNumber: json['employeeNumber'],
       employeeName: json['employeeName'],
       department: json['department'] ?? '',
       startDate: json['startDate'],
