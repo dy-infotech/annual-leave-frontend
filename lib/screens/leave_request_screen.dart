@@ -151,9 +151,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   Text(
                     info != null ? '${info.name} ${info.position}  ' : '',
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white
                     ),
                   ),
                   Padding(

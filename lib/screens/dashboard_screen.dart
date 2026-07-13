@@ -4,6 +4,8 @@ import '../main.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
+import '../screens/my_leave_requests_screen.dart';
+import '../screens/all_leave_requests_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,6 +15,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
+  String? flagTest; // null = 전체
+
   @override
   void initState() {
     super.initState();
@@ -99,11 +103,43 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
 
         const _SectionLabel('내 휴가 신청 현황'),
         _StatRow(items: [
-          _StatItem('대기', data.myRequestSummary.pendingCount.toDouble(), AppColors.amber, isCount: true),
-          _StatItem('승인', data.myRequestSummary.approvedCount.toDouble(), AppColors.sage, isCount: true),
-          _StatItem('반려', data.myRequestSummary.rejectedCount.toDouble(), AppColors.coral, isCount: true),
+          _StatItem(
+            '대기',
+            data.myRequestSummary.pendingCount.toDouble(),
+            AppColors.amber,
+            isCount: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'PENDING')),
+              );
+            },
+          ),
+          _StatItem(
+            '승인',
+            data.myRequestSummary.approvedCount.toDouble(),
+            AppColors.sage,
+            isCount: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'APPROVED')),
+              );
+            },
+          ),
+          _StatItem(
+            '반려',
+            data.myRequestSummary.rejectedCount.toDouble(),
+            AppColors.coral,
+            isCount: true,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'REJECTED')),
+              );
+            },
+          ),
         ]),
-
         if (data.allEmployeeRequestSummary != null) ...[
           const SizedBox(height: 28),
           Row(
@@ -114,18 +150,50 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.slate.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(6), 
                 ),
                 child: const Text('관리자',
                     style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.slate)),
               ),
             ],
           ),
-          const SizedBox(height: 12),
           _StatRow(items: [
-            _StatItem('대기', data.allEmployeeRequestSummary!.pendingCount.toDouble(), AppColors.amber, isCount: true),
-            _StatItem('승인', data.allEmployeeRequestSummary!.approvedCount.toDouble(), AppColors.sage, isCount: true),
-            _StatItem('반려', data.allEmployeeRequestSummary!.rejectedCount.toDouble(), AppColors.coral, isCount: true),
+            _StatItem(
+              '대기',
+              data.myRequestSummary.pendingCount.toDouble(),
+              AppColors.amber,
+              isCount: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING')),
+                );
+              },
+            ),
+            _StatItem(
+              '승인',
+              data.myRequestSummary.approvedCount.toDouble(),
+              AppColors.sage,
+              isCount: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED')),
+                );
+              },
+            ),
+            _StatItem(
+              '반려',
+              data.myRequestSummary.rejectedCount.toDouble(),
+              AppColors.coral,
+              isCount: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED')),
+                );
+              },
+            ),
           ]),
         ],
       ],
@@ -146,12 +214,43 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-class _StatItem {
+class _StatItem extends StatelessWidget {
   final String label;
   final double value;
   final Color color;
   final bool isCount;
-  _StatItem(this.label, this.value, this.color, {this.isCount = false});
+  final VoidCallback? onTap;  // 클릭 시 실행할 함수
+
+  const _StatItem(
+    this.label,
+    this.value,
+    this.color, {
+    this.isCount = false,
+    this.onTap,   // optional parameter로 추가!
+    Key? key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    Widget content = Column(
+      children: [
+        Text(label),
+        Text(
+          value.toString(),
+          style: TextStyle(color: color),
+        ),
+      ],
+    );
+
+    if (onTap != null) {
+      return GestureDetector(
+        onTap: onTap,
+        child: content,
+      );
+    }
+
+    return content;
+  }
 }
 
 class _StatRow extends StatelessWidget {
@@ -173,19 +272,25 @@ class _StatRow extends StatelessWidget {
           final displayValue = item.isCount
               ? item.value.toInt().toString()
               : item.value.toStringAsFixed(item.value % 1 == 0 ? 0 : 1);
+
+          // 터치 가능하게 GestureDetector로 감싸기 (onTap이 있으면 반응)
           return Expanded(
-            child: Column(
-              children: [
-                Container(
-                  width: 28, height: 3,
-                  decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
-                ),
-                const SizedBox(height: 10),
-                Text(displayValue,
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                const SizedBox(height: 4),
-                Text(item.label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-              ],
+            child: GestureDetector(
+              onTap: item.onTap,
+              child: Column(
+                children: [
+                  Container(
+                    width: 28,
+                    height: 3,
+                    decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
+                  ),
+                  const SizedBox(height: 10),
+                  Text(displayValue,
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                  const SizedBox(height: 4),
+                  Text(item.label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                ],
+              ),
             ),
           );
         }).toList(),

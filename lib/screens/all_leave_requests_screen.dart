@@ -6,7 +6,10 @@ import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
-  const AllLeaveRequestsScreen({super.key});
+  
+  final String? status;
+  
+  const AllLeaveRequestsScreen({super.key, this.status});
 
   @override
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
@@ -21,6 +24,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   @override
   void initState() {
     super.initState();
+    
+    if(widget.status != null){
+      _statusFilter = widget.status;
+      _setFilter(widget.status);
+    }
+
     _fetch();
   }
 
@@ -29,6 +38,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     try {
       final queryParams = <String, dynamic>{};
       if (_statusFilter != null) {
+        queryParams['status'] = _statusFilter;
+      }
+      if(widget.status != null){
+        _statusFilter = widget.status;
         queryParams['status'] = _statusFilter;
       }
       if (_dateRange != null) {
@@ -82,42 +95,58 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final List<Map<String, String?>> statusOptions = [
+      {'label': '전체', 'value': null},
+      {'label': '대기', 'value': 'PENDING'},
+      {'label': '승인', 'value': 'APPROVED'},
+      {'label': '반려', 'value': 'REJECTED'}
+    ];
     return Scaffold(
       appBar: AppBar(title: const Text('전체 신청 목록')),
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      children: [
-                        _FilterChip(label: '전체', selected: _statusFilter == null, onTap: () => _setFilter(null)),
-                        _FilterChip(label: '대기', selected: _statusFilter == 'PENDING', onTap: () => _setFilter('PENDING')),
-                        _FilterChip(label: '승인', selected: _statusFilter == 'APPROVED', onTap: () => _setFilter('APPROVED')),
-                        _FilterChip(label: '반려', selected: _statusFilter == 'REJECTED', onTap: () => _setFilter('REJECTED')),
-                      ],
+          SizedBox(
+            height: 60, 
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.3,
+                    child: DropdownButton<String?>(
+                      value: _statusFilter,
+                      items: statusOptions.map((option) {
+                        return DropdownMenuItem<String?>(
+                          value: option['value'],
+                          child: Text(option['label']!),
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        _setFilter(value);
+                      },
+                      underline: Container(height: 1, color: Colors.grey),
+                      isExpanded: true,
                     ),
                   ),
-                ),
-                InkWell(
-                  onTap: _pickDateRange,
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-                    margin: const EdgeInsets.only(bottom: 8),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.divider),
-                      borderRadius: BorderRadius.circular(20),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _pickDateRange();  
+                    },
+                    icon: const Icon(Icons.calendar_today, size: 20),
+                    label: const Text(
+                      '기간 선택',
+                      style: TextStyle(fontSize: 14),
                     ),
-                    child: const Text('기간', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textMuted)),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      minimumSize: const Size(100, 36),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
           if (_dateRange != null)
@@ -150,7 +179,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                           final item = _items[index];
                           return Container(
                             margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
                             decoration: BoxDecoration(
                               color: AppColors.surface,
                               borderRadius: BorderRadius.circular(16),
@@ -164,16 +193,23 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                                   children: [
                                     Text('${item.employeeName} ${item.position}',
                                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                                    Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                                     LeaveStatusBadge(status: item.status),
                                   ],
                                 ),
-                                Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                const SizedBox(height: 10),
-                                Text('신청일 ${item.requestedAt.substring(0, 10)}',
-                                    style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
-                                Text('${item.startDate} — ${item.endDate}',
-                                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                Text('${item.useDays}일', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.baseline,   
+                                  textBaseline: TextBaseline.alphabetic,   
+                                  children: [
+                                    const SizedBox(height: 10),
+                                    //Text('신청일 ${item.requestedAt.substring(0, 10)}',
+                                    //    style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                                    Text('${item.startDate} — ${item.endDate}',
+                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                    const SizedBox(width: 12),  // 여기 간격 넓힘!
+                                    Text('(${item.useDays}일)', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                                  ]
+                                )
                               ],
                             ),
                           );

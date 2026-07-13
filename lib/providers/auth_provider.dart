@@ -39,10 +39,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> login(String employeeNumber, String password) async {
     final response = await _apiClient.dio.post(
       '/api/auth/signin',
-      data: LoginRequest(
-        employeeNumber: employeeNumber,
-        password: password,
-      ).toJson(),
+      data: LoginRequest(employeeNumber: employeeNumber, password: password).toJson(),
     );
 
     final loginResponse = LoginResponse.fromJson(response.data);
@@ -59,10 +56,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> signUp(String employeeNumber, String password) async {
     await _apiClient.dio.post(
       '/api/auth/signup',
-      data: SignUpRequest(
-        employeeNumber: employeeNumber,
-        password: password,
-      ).toJson(),
+      data: SignUpRequest(employeeNumber: employeeNumber, password: password).toJson(),
     );
   }
 
