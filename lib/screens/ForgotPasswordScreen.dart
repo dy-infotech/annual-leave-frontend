@@ -1,0 +1,112 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
+import '../theme/app_theme.dart';
+
+class ForgotPasswordScreen extends StatefulWidget {
+  const ForgotPasswordScreen({super.key});
+
+  @override
+  State<ForgotPasswordScreen> createState() => _ForgotPasswordScreenState();
+}
+
+class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
+  final _employeeNoController = TextEditingController();
+  final _emailController = TextEditingController(); // 이메일 컨트롤러로 변경
+  bool _isLoading = false;
+  String? _errorMessage;
+
+  // 비밀번호 찾기(이메일 발송) 요청 처리
+  Future<void> _handleForgotPassword() async {
+    if (_employeeNoController.text.isEmpty || _emailController.text.isEmpty) {
+      setState(() => _errorMessage = '사번과 이메일을 모두 입력해 주세요.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 💡 AuthProvider에 sendPasswordResetEmail 기능을 새로 만들어 호출합니다.
+      await context.read<AuthProvider>().sendPasswordResetEmail(
+        _employeeNoController.text.trim(),
+        _emailController.text.trim(),
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('비밀번호 재설정 이메일이 발송되었습니다.')));
+        Navigator.pop(context); // 성공 시 이전 로그인 화면으로 돌아감
+      }
+    } catch (e) {
+      print("비밀번호 찾기 에러 발생: $e");
+      setState(() => _errorMessage = '등록된 정보가 일치하지 않거나 발송에 실패했습니다.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('비밀번호 찾기')), // 타이틀 변경
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text(
+                  '등록된 사번과 이메일을 입력하시면\n임시 비밀번호(또는 링크)를 발송해 드립니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _employeeNoController,
+                  decoration: const InputDecoration(labelText: '사번'),
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.characters,
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: _emailController, // 이메일 연결
+                  decoration: const InputDecoration(labelText: '이메일 주소'),
+                  keyboardType: TextInputType.emailAddress, // 이메일 키보드 타입
+                ),
+                if (_errorMessage != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.red),
+                  ),
+                ],
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _handleForgotPassword,
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
+                          )
+                        : const Text('이메일 전송'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
