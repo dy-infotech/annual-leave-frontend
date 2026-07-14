@@ -359,13 +359,28 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
+                                final wasHalfDay = _selectedLeaveType == LeaveType.amHalf ||
+                                    _selectedLeaveType == LeaveType.pmHalf;
+                                final isHalfDay = value == LeaveType.amHalf || value == LeaveType.pmHalf;
+
                                 final willShowReason = ![
                                   LeaveType.full,
                                   LeaveType.amHalf,
                                   LeaveType.pmHalf,
                                 ].contains(value);
 
-                                setState(() => _selectedLeaveType = value);
+                                setState(() {
+                                  _selectedLeaveType = value;
+
+                                  if (isHalfDay) {
+                                    // 반차 선택 시 → 0.5로 설정
+                                    _useDaysController.text = '0.5';
+                                  } else if (wasHalfDay) {
+                                    // 반차였다가 반차 아닌 휴가로 변경된 경우 → 0으로 초기화
+                                    _useDaysController.text = '0';
+                                  }
+                                  // 반차가 아닌 휴가 간 변경 → 그대로 유지
+                                });
 
                                 if (willShowReason) {
                                   // 위젯 트리가 리빌드된 다음 프레임에 스크롤 실행
