@@ -63,10 +63,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         // 새로 범위 선택 시작
         _startDate = selectedDay;
         _endDate = null;
+        _useDaysController.text = '0';
 
       } else if (selectedDay.isBefore(_startDate!)) {
         // 시작일보다 이전 날짜를 누르면 시작일 갱신
         _startDate = selectedDay;
+        _useDaysController.text = '0';
 
       } else {
         _endDate = selectedDay;
