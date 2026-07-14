@@ -1,18 +1,24 @@
 class LeaveRequestCreate {
+  final String leaveType;
   final DateTime startDate;
   final DateTime endDate;
   final double useDays;
+  final String? leaveReason;  // 연차, 반차 제외한 휴가만 값 존재
 
   LeaveRequestCreate({
+    required this.leaveType,
     required this.startDate,
     required this.endDate,
     required this.useDays,
+    required this.leaveReason,
   });
 
   Map<String, dynamic> toJson() => {
+    'leaveType': leaveType,
     'startDate': _formatDate(startDate),
     'endDate': _formatDate(endDate),
     'useDays': useDays,
+    'leaveReason': leaveReason,
   };
 
   static String _formatDate(DateTime date) {
