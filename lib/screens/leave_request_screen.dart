@@ -20,6 +20,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   LeaveType _selectedLeaveType = LeaveType.full;
   DateTime? _startDate;
   DateTime? _endDate;
+  String? _leaveReason;
   final _useDaysController = TextEditingController(text: '0');
   final _reasonController = TextEditingController();
   final _scrollController = ScrollController();
@@ -105,6 +106,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         startDate: _startDate!,
         endDate: _endDate ?? _startDate!,
         useDays: _useDays,
+        leaveReason: _leaveReason,
       );
 
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
@@ -214,25 +216,67 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
                     if (_isInRange(day)) {
-                      final isEdge = (_startDate != null && isSameDay(day, _startDate)) ||
-                          (_endDate != null && isSameDay(day, _endDate));
+                      final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+
                       return Container(
                         margin: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: isEdge ? AppColors.slate : AppColors.slate.withOpacity(0.15),
+                          color: isWeekend                      // 주말인지 확인
+                              ? Colors.grey.withOpacity(0.3)    // 주말이면 회색
+                              : AppColors.slate,
                           shape: BoxShape.circle,
                         ),
                         alignment: Alignment.center,
                         child: Text(
                           '${day.day}',
                           style: TextStyle(
-                            color: isEdge ? Colors.white : AppColors.slate,
+                            color: isWeekend                     // 주말인지 확인
+                                ? AppColors.textMuted            // 주말 텍스트 색상
+                                : Colors.white,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       );
                     }
                     return null;
+                  },
+                  todayBuilder: (context, day, focusedDay) {
+                    if (_isInRange(day)) {
+                      final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+
+                      // 범위 안에 포함된 오늘 → 다른 선택된 날짜와 동일하게 표시
+                      return Container(
+                        margin: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: isWeekend
+                              ? Colors.grey.withOpacity(0.3)
+                              : AppColors.slate,
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          '${day.day}',
+                          style: TextStyle(
+                            color: isWeekend ? AppColors.textMuted : Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      );
+                    }
+
+                    // 범위에 포함 안 된 오늘 → 기존 amber 스타일 유지
+                    return Container(
+                      margin: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: AppColors.amber,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        '${day.day}',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                      ),
+                    );
                   },
                 ),
                 onDaySelected: _onDaySelected,
@@ -253,7 +297,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       _endDate == null
                           ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
                           : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (평일 $_weekdayCount일)',
-                      style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                      style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                     ),
 
                   const Spacer(),
@@ -264,11 +308,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       children: [
                         TextSpan(
                           text: '3',
-                          style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: AppColors.slate),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.slate),
                         ),
                         TextSpan(
                           text: ' / 15 일',
-                          style: const TextStyle(fontSize: 12.5, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                          style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                         ),
                       ],
                     ),
@@ -382,6 +426,30 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               ),
             ],
+
+            // 결재자 정보 (항상 표시)
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.divider),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    '결재자',
+                    style: TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                  ),
+                  const Spacer(),
+                  Text(
+                    info != null ? '${info.name} ${info.position}  ' : '',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                  ),
+                ],
+              ),
+            ),
 
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
