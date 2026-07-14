@@ -419,12 +419,19 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     children: [
                       const Text('사용할 연차 개수', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
-                      TextField(
-                        controller: _useDaysController,
-                        textAlign: TextAlign.right,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                        decoration: const InputDecoration(suffixText: '일'),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: Text(
+                          '${_useDaysController.text} 일',
+                          textAlign: TextAlign.right,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                        ),
                       ),
                     ],
                   ),
