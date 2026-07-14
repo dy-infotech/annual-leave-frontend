@@ -25,7 +25,8 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    if (_employeeNumberController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_employeeNumberController.text.isEmpty ||
+        _passwordController.text.isEmpty) {
       setState(() => _errorMessage = '사번과 비밀번호를 입력해주세요.');
       return;
     }
@@ -44,11 +45,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
-
     } catch (e) {
-      // setState(() => _errorMessage = e.toString());  // 임시로 실제 에러 내용 확인
-      setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다.');
-
+      setState(() => _errorMessage = e.toString()); // 임시로 실제 에러 내용 확인
+      //setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다...11');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -96,7 +95,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     Text(
                       '디와이정보기술 임직원 전용 연차 관리 시스템',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: AppColors.slate, fontSize: 12.5, fontWeight: FontWeight.w500),
+                      style: TextStyle(
+                        color: AppColors.slate,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ],
                 ),
@@ -125,7 +128,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 12),
-                        Text(_errorMessage!, style: const TextStyle(color: AppColors.coral, fontSize: 13)),
+                        Text(
+                          _errorMessage!,
+                          style: const TextStyle(
+                            color: AppColors.coral,
+                            fontSize: 13,
+                          ),
+                        ),
                       ],
                       const SizedBox(height: 28),
                       SizedBox(
@@ -134,9 +143,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           onPressed: _isLoading ? null : _handleLogin,
                           child: _isLoading
                               ? const SizedBox(
-                            width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                          )
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
                               : const Text('로그인'),
                         ),
                       ),
@@ -144,12 +157,26 @@ class _LoginScreenState extends State<LoginScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pushNamed(context, '/signup'),
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/signup'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.slate,
-                            side: const BorderSide(color: AppColors.textMuted, width: 1.3),
+                            side: const BorderSide(
+                              color: AppColors.textMuted,
+                              width: 1.3,
+                            ),
                           ),
                           child: const Text('사용 등록'),
+                        ),
+                      ),
+
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () =>
+                              Navigator.pushNamed(context, '/forgot-password'),
+                          child: const Text('비밀번호 찾기'),
                         ),
                       ),
                     ],

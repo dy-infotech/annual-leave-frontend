@@ -41,7 +41,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     int count = 0;
     DateTime cursor = _startDate!;
     while (!cursor.isAfter(_endDate!)) {
-      if (cursor.weekday != DateTime.saturday && cursor.weekday != DateTime.sunday) count++;
+      if (cursor.weekday != DateTime.saturday &&
+          cursor.weekday != DateTime.sunday)
+        count++;
       cursor = cursor.add(const Duration(days: 1));
     }
     return count;
@@ -123,13 +125,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
         Navigator.pop(context);
       }
-
     } catch (e) {
       setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해주세요.');
-
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -174,7 +176,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       '${info?.department ?? ''} · ${info?.employeeNumber ?? ''}',
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.white.withOpacity(0.8),
+                        color: Colors.white.withValues(alpha: 0.8),
                       ),
                     ),
                   ),
@@ -185,7 +187,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             const SizedBox(height: 24),
 
             // 인라인 캘린더
-            const Text('신청 기간', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+            const Text(
+              '신청 기간',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            ),
             const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
@@ -203,13 +208,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
-                  titleTextStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
-                  leftChevronIcon: Icon(Icons.chevron_left, color: AppColors.textMuted),
-                  rightChevronIcon: Icon(Icons.chevron_right, color: AppColors.textMuted),
+                  titleTextStyle: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                  leftChevronIcon: Icon(
+                    Icons.chevron_left,
+                    color: AppColors.textMuted,
+                  ),
+                  rightChevronIcon: Icon(
+                    Icons.chevron_right,
+                    color: AppColors.textMuted,
+                  ),
                 ),
                 daysOfWeekStyle: const DaysOfWeekStyle(
-                  weekdayStyle: TextStyle(fontSize: 12, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                  weekendStyle: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600),
+                  weekdayStyle: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textMuted,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  weekendStyle: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.coral,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 calendarStyle: const CalendarStyle(
                   outsideDaysVisible: false,
@@ -219,10 +242,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     color: AppColors.amber,
                     shape: BoxShape.circle,
                   ),
-                  todayTextStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+                  todayTextStyle: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 selectedDayPredicate: (day) =>
-                _startDate != null && isSameDay(day, _startDate) ||
+                    _startDate != null && isSameDay(day, _startDate) ||
                     _endDate != null && isSameDay(day, _endDate),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
@@ -486,7 +512,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
-              Text(_errorMessage!, style: const TextStyle(color: AppColors.coral, fontSize: 13)),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: AppColors.coral, fontSize: 13),
+              ),
             ],
 
             const SizedBox(height: 32),
@@ -496,8 +525,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 onPressed: _isSubmitting ? null : _handleSubmit,
                 child: _isSubmitting
                     ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('신청하기'),
               ),
             ),

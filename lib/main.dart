@@ -7,6 +7,7 @@ import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
+import 'screens/forgotPasswordScreen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
 import 'screens/my_leave_requests_screen.dart';
@@ -42,9 +43,7 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('ko', 'KR'),
-        ],
+        supportedLocales: const [Locale('ko', 'KR')],
         home: const SplashScreen(),
         navigatorObservers: [routeObserver],
         routes: {
@@ -52,6 +51,8 @@ class MyApp extends StatelessWidget {
           '/login': (context) => const LoginScreen(),
           // 사용 등록 화면
           '/signup': (context) => const SignupScreen(),
+          // 비번찾기 화면
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
           // 대시보드 화면
           '/dashboard': (context) => const DashboardScreen(),
           // 휴가 신청 화면
@@ -64,7 +65,8 @@ class MyApp extends StatelessWidget {
           '/pending-approval': (context) => const PendingApprovalScreen(),
           // 내 정보 화면
           '/my-info': (context) => const MyInfoScreen(),
-        }),
+        },
+      ),
     );
   }
 }
@@ -89,13 +91,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (!mounted) return;
 
-    Navigator.pushReplacementNamed(context, auth.isLoggedIn ? '/dashboard' : '/login');
+    Navigator.pushReplacementNamed(
+      context,
+      auth.isLoggedIn ? '/dashboard' : '/login',
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: CircularProgressIndicator()),
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }

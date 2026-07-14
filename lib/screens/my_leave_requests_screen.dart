@@ -6,22 +6,33 @@ import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 
 class MyLeaveRequestsScreen extends StatefulWidget {
-  const MyLeaveRequestsScreen({super.key});
+
+  final String? status;
+  
+  const MyLeaveRequestsScreen({super.key, this.status});
 
   @override
   State<MyLeaveRequestsScreen> createState() => _MyLeaveRequestsScreenState();
 }
-//test
+
 class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
+
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
   DateTimeRange? _dateRange;
-  final Set<int> _processingIds = {};
-
+  final Set<int> _processingIds = {};   
+  
   @override
   void initState() {
+    
     super.initState(); 
+
+    if(widget.status != null){
+      _statusFilter = widget.status;
+      _setFilter(widget.status);
+    }
+    
     _fetch();
   }
 
@@ -30,6 +41,10 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
     try {
       final queryParams = <String, dynamic>{};
       if (_statusFilter != null) {
+        queryParams['status'] = _statusFilter;
+      }
+      if(widget.status != null){
+        _statusFilter = widget.status;
         queryParams['status'] = _statusFilter;
       }
       if (_dateRange != null) {

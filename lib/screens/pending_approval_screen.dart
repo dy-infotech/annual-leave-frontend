@@ -30,15 +30,15 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     });
 
     try {
-      final response = await ApiClient().dio.get('/api/admin/leave-requests/pending');
+      final response = await ApiClient().dio.get(
+        '/api/admin/leave-requests/pending',
+      );
       final list = (response.data as List)
           .map((json) => PendingLeaveRequest.fromJson(json))
           .toList();
       setState(() => _requests = list);
-
     } catch (e) {
       setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
-
     } finally {
       setState(() => _isLoading = false);
     }
@@ -51,7 +51,10 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('승인 확인', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          '승인 확인',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Text(
           '${req.employeeName}님의 휴가 신청\n(${req.startDate} — ${req.endDate}, ${req.useDays}일)을\n승인하시겠습니까?',
           style: const TextStyle(fontSize: 14, height: 1.5),
@@ -59,11 +62,20 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소', style: TextStyle(color: AppColors.textMuted)),
+            child: const Text(
+              '취소',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('승인', style: TextStyle(color: AppColors.sage, fontWeight: FontWeight.w700)),
+            child: const Text(
+              '승인',
+              style: TextStyle(
+                color: AppColors.sage,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -77,17 +89,21 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
   Future<void> _approve(int requestId) async {
     setState(() => _processingIds.add(requestId));
     try {
-      await ApiClient().dio.post('/api/admin/leave-requests/$requestId/approve');
+      await ApiClient().dio.post(
+        '/api/admin/leave-requests/$requestId/approve',
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('승인 처리되었습니다.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('승인 처리되었습니다.')));
       }
       await _fetchPendingList();
-
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('승인 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('승인 처리에 실패했습니다.')));
       }
-
     } finally {
       setState(() => _processingIds.remove(requestId));
     }
@@ -101,7 +117,10 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('반려 확인', style: TextStyle(fontWeight: FontWeight.w800)),
+        title: const Text(
+          '반려 확인',
+          style: TextStyle(fontWeight: FontWeight.w800),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -121,11 +140,20 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('취소', style: TextStyle(color: AppColors.textMuted)),
+            child: const Text(
+              '취소',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('반려', style: TextStyle(color: AppColors.coral, fontWeight: FontWeight.w700)),
+            child: const Text(
+              '반려',
+              style: TextStyle(
+                color: AppColors.coral,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -145,15 +173,17 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         data: {'rejectReason': reason.isEmpty ? null : reason},
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('반려 처리되었습니다.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('반려 처리되었습니다.')));
       }
       await _fetchPendingList();
-
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('반려 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('반려 처리에 실패했습니다.')));
       }
-
     } finally {
       setState(() => _processingIds.remove(requestId));
     }
@@ -164,27 +194,36 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('승인 대기 목록')),
       drawer: const AppDrawer(),
-      body: RefreshIndicator(
-        onRefresh: _fetchPendingList,
-        child: _buildBody(),
-      ),
+      body: RefreshIndicator(onRefresh: _fetchPendingList, child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.slate));
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.slate),
+      );
     }
 
     if (_errorMessage != null) {
-      return Center(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.textMuted)));
+      return Center(
+        child: Text(
+          _errorMessage!,
+          style: const TextStyle(color: AppColors.textMuted),
+        ),
+      );
     }
 
     if (_requests.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 100),
-          Center(child: Text('대기 중인 휴가 신청이 없습니다.', style: TextStyle(color: AppColors.textMuted))),
+          Center(
+            child: Text(
+              '대기 중인 휴가 신청이 없습니다.',
+              style: TextStyle(color: AppColors.textMuted),
+            ),
+          ),
         ],
       );
     }
@@ -210,36 +249,70 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('${req.employeeName} (${req.employeeNumber})',
-                      style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 15.5)),
-                  Text(req.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12.5)),
+                  Text(
+                    '${req.employeeName} (${req.employeeNumber})',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w800,
+                      fontSize: 15.5,
+                    ),
+                  ),
+                  Text(
+                    req.department,
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 12.5,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 10),
-              Text('${req.startDate} — ${req.endDate}', style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w600)),
+              Text(
+                '${req.startDate} — ${req.endDate}',
+                style: const TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 2),
-              Text('${req.useDays}일', style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
+              Text(
+                '${req.useDays}일',
+                style: const TextStyle(
+                  color: AppColors.textMuted,
+                  fontSize: 13,
+                ),
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: isProcessing ? null : () => _confirmApprove(req),
+                      onPressed: isProcessing
+                          ? null
+                          : () => _confirmApprove(req),
                       child: isProcessing
                           ? const SizedBox(
-                        width: 16, height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      )
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
                           : const Text('승인'),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: isProcessing ? null : () => _showRejectDialog(req),
+                      onPressed: isProcessing
+                          ? null
+                          : () => _showRejectDialog(req),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.coral,
-                        side: const BorderSide(color: AppColors.coral, width: 1.3),
+                        side: const BorderSide(
+                          color: AppColors.coral,
+                          width: 1.3,
+                        ),
                       ),
                       child: const Text('반려'),
                     ),

@@ -36,7 +36,7 @@ class LeaveRequestListItem {
   final String endDate;
   final double useDays;
   final String status;
-  final String? rejectReason;   // 반려 시에만 값 존재
+  final String? rejectReason; // 반려 시에만 값 존재
 
   LeaveRequestListItem({
     required this.requestId,
