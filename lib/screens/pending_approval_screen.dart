@@ -250,7 +250,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '${req.employeeName} (${req.employeeNumber})',
+                    '${req.employeeName} ${req.position} (${req.employeeNumber})',
                     style: const TextStyle(
                       fontWeight: FontWeight.w800,
                       fontSize: 15.5,
@@ -266,20 +266,24 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                '${req.startDate} — ${req.endDate}',
-                style: const TextStyle(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                '${req.useDays}일',
-                style: const TextStyle(
-                  color: AppColors.textMuted,
-                  fontSize: 13,
-                ),
+              Row(
+                children: [
+                  Text(
+                    '${req.startDate} — ${req.endDate}',
+                    style: const TextStyle(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Text(
+                    '(${req.useDays}일)',
+                    style: const TextStyle(
+                      color: AppColors.textMuted,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               Row(
@@ -289,6 +293,10 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                       onPressed: isProcessing
                           ? null
                           : () => _confirmApprove(req),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(0, 30),  // 높이 줄임, 너비는 Expanded가 맞춤
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                      ),
                       child: isProcessing
                           ? const SizedBox(
                               width: 16,
@@ -307,7 +315,10 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                       onPressed: isProcessing
                           ? null
                           : () => _showRejectDialog(req),
+                      
                       style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 30),  // 버튼 높이 작게
+                        padding: const EdgeInsets.symmetric(vertical: 6),
                         foregroundColor: AppColors.coral,
                         side: const BorderSide(
                           color: AppColors.coral,
