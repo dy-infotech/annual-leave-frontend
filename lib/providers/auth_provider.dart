@@ -61,6 +61,19 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
+  Future<void> adminAuthRegister(String name, String department, String team, String position, String role, String email, String hireDate) async {
+    await _apiClient.dio.post(
+      '/api/admin/auth/register',
+      data: AdminAuthRegisterRequest(name: name 
+                                   , department: department
+                                   , team: team
+                                   , position: position
+                                   , role: role
+                                   , email: email
+                                   , hireDate: hireDate ).toJson(),
+    );
+  }
+
   Future<void> fetchMyInfo() async {
     final response = await _apiClient.dio.get('/api/employees/me');
     _employeeInfo = Employee.fromJson(response.data);

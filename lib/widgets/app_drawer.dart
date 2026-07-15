@@ -54,9 +54,11 @@ class AppDrawer extends StatelessWidget {
             _NavItem(label: '내 신청 목록', onTap: () => _navigate(context, '/my-leave-requests')),
             _NavItem(label: '전체 신청 목록', onTap: () => _navigate(context, '/all-leave-requests')),
 
-            if (auth.isAdmin)
+            //if (auth.isAdmin)//{
               _NavItem(label: '승인 대기 목록', onTap: () => _navigate(context, '/pending-approval')),
-
+              _NavItem(label: '사용자 등록 관리', onTap: () => _navigate(context, '/signup_manage_screen')),
+            //}
+              
             _NavItem(label: '내 정보', onTap: () => _navigate(context, '/my-info')),
 
             const Spacer(),

@@ -13,6 +13,7 @@ import 'screens/my_leave_requests_screen.dart';
 import 'screens/all_leave_requests_screen.dart';
 import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
+import 'screens/signup_manage_screen.dart';
 
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
@@ -62,6 +63,8 @@ class MyApp extends StatelessWidget {
           '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
           // 승인 대기 목록 화면
           '/pending-approval': (context) => const PendingApprovalScreen(),
+          //사용자 등록 관리 화면
+          '/signup_manage_screen': (context) => const SignupManageScreen(),
           // 내 정보 화면
           '/my-info': (context) => const MyInfoScreen(),
         }),

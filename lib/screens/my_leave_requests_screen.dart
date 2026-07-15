@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
+import '../providers/auth_provider.dart';
 
 class MyLeaveRequestsScreen extends StatefulWidget {
 
@@ -154,6 +156,9 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   
   @override
   Widget build(BuildContext context) {
+    //로그인 사용자 정보
+    final info = context.watch<AuthProvider>().employeeInfo;
+    
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
       {'label': '대기', 'value': 'PENDING'},

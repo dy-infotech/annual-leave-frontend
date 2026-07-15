@@ -46,3 +46,32 @@ class SignUpRequest {
         'password': password,
       };
 }
+
+class AdminAuthRegisterRequest {
+  final String name;
+  final String department;
+  final String team;
+  final String position;
+  final String role;
+  final String email;
+  final String hireDate;
+
+  AdminAuthRegisterRequest({required this.name
+                          , required this.department
+                          , required this.team
+                          , required this.position
+                          , required this.role
+                          , required this.email
+                          , required this.hireDate
+                          });
+
+  Map<String, dynamic> toJson() => {
+        'name': name,
+        'department': department,
+        'team': team,
+        'position': position,
+        'role': role,
+        'email': email,
+        'hireDate': hireDate,
+      };
+}
