@@ -72,6 +72,7 @@ class PendingLeaveRequest {
   final String employeeNumber;
   final String employeeName;
   final String department;
+  final String position;
   final String startDate;
   final String endDate;
   final double useDays;
@@ -82,6 +83,7 @@ class PendingLeaveRequest {
     required this.employeeNumber,
     required this.employeeName,
     required this.department,
+    required this.position,
     required this.startDate,
     required this.endDate,
     required this.useDays,
@@ -94,6 +96,7 @@ class PendingLeaveRequest {
       employeeNumber: json['employeeNumber'],
       employeeName: json['employeeName'],
       department: json['department'] ?? '',
+      position: json['position'] ?? '',
       startDate: json['startDate'],
       endDate: json['endDate'],
       useDays: (json['useDays'] as num).toDouble(),
