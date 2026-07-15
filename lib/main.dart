@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/public_holiday_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/forgotPasswordScreen.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
       ],
 
       child: MaterialApp(
@@ -93,6 +95,11 @@ class _SplashScreenState extends State<SplashScreen> {
     await auth.tryAutoLogin();
 
     if (!mounted) return;
+
+    // 자동 로그인 성공 시, 공휴일 정보 조회
+    if (auth.isLoggedIn) {
+      await context.read<PublicHolidayProvider>().fetchPublicHoliday();
+    }
 
     Navigator.pushReplacementNamed(
       context,
