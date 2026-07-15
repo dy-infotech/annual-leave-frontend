@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/screens/dashboard_screen.dart';
 import 'package:annual_leave_frontend/services/api_client.dart';
 import 'package:flutter/material.dart';
@@ -30,18 +31,14 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   final List<String> _teamList = [];       //팀 
   final List<String> _departmentList = []; //부서
   final List<String> _positionList = [];   //직급
-  final List<Map<String, String?>> _adminYn = [
-      {'label': '선택', 'value': null},
-      {'label': '관리자', 'value': 'ADMIN'},
-      {'label': '멤버', 'value': 'EMPLOYEE'}
-    ];
   String? _selectedTeam;        //선택된 팀
   String? _otherTeamName;       //기타선택시 입력된 팀명
   String? _selectedDepartment;  //선택된 부서
   String? _selectedPosition;    //선택된 직급
-  String? _selectedManagerYn = 'EMPLOYEE';   //선택된 관리자여부
+  RoleType? _selectedManagerYn = RoleType.employee;   //선택된 관리자여부
   String? formatDate;
 
+  
    @override
   void initState() {
     super.initState();
@@ -68,8 +65,8 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
           _teamList.addAll(List<String>.from(data['team']));
           _positionList.addAll(List<String>.from(data['position']));
 
-          //신규 팀 정보 생성 시 필요 
-          _teamList.add('기타');
+          
+          
         } else {
           // 데이터가 이상할 때 대비한 예외처리
           setState(() => _errorMessage = '기초데이터 조회에 실패했습니다.');
@@ -121,9 +118,9 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
       await context.read<AuthProvider>().adminAuthRegister(
         _employeeNameController.text.trim(),
         _selectedDepartment ?? '',
-        _selectedTeam ?? '',
+        (_selectedTeam == '기타' ? (_otherTeamName ?? '') : (_selectedTeam ?? '')),
         _selectedPosition ?? '',
-        _selectedManagerYn ?? '',
+        _selectedManagerYn?.code ?? '',
         _emailController.text.trim(),
         formatDate.toString()
       );
@@ -166,8 +163,17 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final info = auth.employeeInfo;
+    String userPosition = info!.position;
+    if(auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')){
+      //신규 팀 정보 생성 시 필요 
+      // 관리자이고 대표이사일 때만 "기타" 추가    
+      _teamList.add('기타');
+    }
+
     return Scaffold(
-      appBar: AppBar(title: const Text('신규 사번 등록')),
+      appBar: AppBar(title: const Text('신규 사원 등록')),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -280,24 +286,21 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                   },
                 ),
                 const SizedBox(height: 12),
-                DropdownButtonFormField<String?>(
-                  decoration: InputDecoration(
-                    labelText: '관리자 여부',
-                    border: const OutlineInputBorder(),
-                    isDense: true,
-                    errorText: _managerYnError,
+                DropdownButtonFormField<RoleType>(
+                  decoration: const InputDecoration(
+                    labelText: '역할 선택',
+                    border: OutlineInputBorder(),
                   ),
-                  value: _selectedManagerYn ?? '선택',
-                  items: _adminYn.map((item) {
-                    return DropdownMenuItem<String?>(
-                      value: item['value'] ?? '선택',
-                      child: Text(item['label'] ?? ''),
+                  value: _selectedManagerYn,  
+                  items: RoleType.values.map((role) {
+                    return DropdownMenuItem<RoleType>(
+                      value: role,
+                      child: Text(role.label),
                     );
                   }).toList(),
                   onChanged: (value) {
                     setState(() {
                       _selectedManagerYn = value;
-                      _managerYnError = null;
                     });
                   },
                   onSaved: (value) {
