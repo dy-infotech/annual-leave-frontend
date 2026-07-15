@@ -16,6 +16,11 @@ class AuthProvider extends ChangeNotifier {
   String? get name => _name;
   Employee? get employeeInfo => _employeeInfo;
 
+  Future<void> fetchMyInfo() async {
+      final response = await _apiClient.dio.get('/api/employees/me');
+      _employeeInfo = Employee.fromJson(response.data);
+  }
+
   // 앱 시작 시 저장된 JWT가 있을 경우 로그인 상태로 간주
   Future<void> tryAutoLogin() async {
     final token = await _apiClient.getToken();
@@ -27,7 +32,6 @@ class AuthProvider extends ChangeNotifier {
       _isLoggedIn = true;
       await fetchMyInfo();
       notifyListeners();
-
     } catch (e) {
       // 저장된 JWT가 만료됐거나 서버 응답 실패 시,
       // JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
@@ -74,9 +78,25 @@ class AuthProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> fetchMyInfo() async {
-    final response = await _apiClient.dio.get('/api/employees/me');
-    _employeeInfo = Employee.fromJson(response.data);
+  Future<void> sendPasswordResetEmail(
+    String employeeNumber,
+    String email,
+  ) async {
+    try {
+      // 본인의 백엔드 '비밀번호 찾기(메일발송)' API 주소로 변경하세요.
+      final response = await _apiClient.dio.post(
+        '/api/auth/forgot-password',
+        data: {'employeeNumber': employeeNumber, 'email': email},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('발송 실패');
+      }
+
+      notifyListeners(); // 필요한 경우 상태 업데이트
+    } catch (e) {
+      rethrow; // 에러를 화면단(ForgotPasswordScreen)으로 던져서 에러 메시지를 띄우게 합니다.
+    }
   }
 
   Future<void> logout() async {
@@ -86,5 +106,5 @@ class AuthProvider extends ChangeNotifier {
     _name = null;
     _employeeInfo = null;
     notifyListeners();
-  }
+  } 
 }

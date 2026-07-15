@@ -1,19 +1,25 @@
 class LeaveRequestCreate {
+  final String leaveType;
   final DateTime startDate;
   final DateTime endDate;
   final double useDays;
+  final String? leaveReason;  // 연차, 반차 제외한 휴가만 값 존재
 
   LeaveRequestCreate({
+    required this.leaveType,
     required this.startDate,
     required this.endDate,
     required this.useDays,
+    required this.leaveReason,
   });
 
   Map<String, dynamic> toJson() => {
-        'startDate': _formatDate(startDate),
-        'endDate': _formatDate(endDate),
-        'useDays': useDays,
-      };
+    'leaveType': leaveType,
+    'startDate': _formatDate(startDate),
+    'endDate': _formatDate(endDate),
+    'useDays': useDays,
+    'leaveReason': leaveReason,
+  };
 
   static String _formatDate(DateTime date) {
     return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
@@ -30,7 +36,7 @@ class LeaveRequestListItem {
   final String endDate;
   final double useDays;
   final String status;
-  final String? rejectReason;   // 반려 시에만 값 존재
+  final String? rejectReason; // 반려 시에만 값 존재
 
   LeaveRequestListItem({
     required this.requestId,
