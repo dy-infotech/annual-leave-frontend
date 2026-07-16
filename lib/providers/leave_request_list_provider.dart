@@ -38,12 +38,21 @@ class LeaveRequestListProvider extends ChangeNotifier {
 
   // 휴가 신청 화면에서 선택한 기간(start~end)이 기존 신청(대기(PENDING)/승인(APPROVED))과 겹치는지 확인
   bool hasOverlap(DateTime start, DateTime end) {
+    // 시간 정보를 제거하고 순수 날짜(연/월/일)만 남긴 로컬 DateTime으로 정규화
+    DateTime normalize(DateTime dateTime) {
+      final local = dateTime.toLocal(); // 1. UTC든 로컬이든 로컬 시간대로 통일
+      return DateTime(local.year, local.month, local.day); // 2. 시/분/초 제외하고 날짜만 남김
+    }
+
+    final normalizedStart = normalize(start);
+    final normalizedEnd = normalize(end);
+
     return _items
         .where((item) => item.status == LeaveState.pending.code || item.status == LeaveState.approved.code)
         .any((item) {
-      final itemStart = DateTime.parse(item.startDate);
-      final itemEnd = DateTime.parse(item.endDate);
-      return !start.isAfter(itemEnd) && !end.isBefore(itemStart);
+      final itemStart = normalize(DateTime.parse(item.startDate));
+      final itemEnd = normalize(DateTime.parse(item.endDate));
+      return !normalizedStart.isAfter(itemEnd) && !normalizedEnd.isBefore(itemStart);
     });
   }
 }
