@@ -160,7 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
           _StatRow(items: [
             _StatItem(
               '대기',
-              data.myRequestSummary.pendingCount.toDouble(),
+              data.allEmployeeRequestSummary!.pendingCount.toDouble(),
               AppColors.amber,
               isCount: true,
               onTap: () {
@@ -172,7 +172,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             ),
             _StatItem(
               '승인',
-              data.myRequestSummary.approvedCount.toDouble(),
+              data.allEmployeeRequestSummary!.approvedCount.toDouble(),
               AppColors.sage,
               isCount: true,
               onTap: () {
@@ -184,7 +184,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             ),
             _StatItem(
               '반려',
-              data.myRequestSummary.rejectedCount.toDouble(),
+              data.allEmployeeRequestSummary!.rejectedCount.toDouble(),
               AppColors.coral,
               isCount: true,
               onTap: () {
