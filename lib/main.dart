@@ -63,7 +63,7 @@ class MyApp extends StatelessWidget {
           // 휴가 신청 화면
           '/leave-request': (context) => const LeaveRequestScreen(),
           // 내 휴가 신청 목록 화면
-          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
+          //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
           // 전직원 휴가 신청 목록 화면
           '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
           // 승인 대기 목록 화면
