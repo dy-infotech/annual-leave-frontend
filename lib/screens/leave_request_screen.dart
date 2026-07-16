@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/enums/LeaveType.dart';
 import '../providers/auth_provider.dart';
+import '../providers/leave_request_list_provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
@@ -36,6 +37,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     LeaveType.amHalf,
     LeaveType.pmHalf,
   ].contains(_selectedLeaveType);
+
+  @override
+  void initState() {
+    super.initState();
+    // 첫 프레임이 그려진 직후 실행되도록 addPostFrameCallback 사용
+    // (initState 시점에는 아직 위젯 트리가 완성되지 않아 context 사용이 불안정할 수 있음)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
+      // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
+      context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
+    });
+  }
 
   // 주말 + 공휴일 제외하고 계산
   int _calculateUsableDays(PublicHolidayProvider holidayProvider) {
@@ -114,6 +127,33 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return;
     }
 
+    // 기존 대기/승인 신청과 기간이 겹치는지 확인
+    final listProvider = context.read<LeaveRequestListProvider>();
+    // await listProvider.fetchMyLeaveRequestList();
+    final effectiveEndDate = _endDate ?? _startDate!;
+
+    if (listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
+      await showDialog<void>(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+          content: const Text(
+            '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
+            style: TextStyle(fontSize: 14, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      );
+      return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -137,7 +177,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         Navigator.pop(context);
       }
     } catch (e) {
-      setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해주세요.');
+      setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
