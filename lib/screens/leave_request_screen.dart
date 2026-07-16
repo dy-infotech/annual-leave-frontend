@@ -148,7 +148,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final info = context.watch<AuthProvider>().employeeInfo;
+    final authProvider = context.watch<AuthProvider>().employeeInfo;
     final holidayProvider = context.watch<PublicHolidayProvider>(); // 공휴일 Provider 구독
 
     return Scaffold(
@@ -170,7 +170,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    info != null ? '${info.name} ${info.position}  ' : '',
+                    authProvider != null ? '${authProvider.name} ${authProvider.position}  ' : '',
                     style: const TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -180,7 +180,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   Padding(
                     padding: const EdgeInsets.only(top: 7),
                     child: Text(
-                      '${info?.department ?? ''} · ${info?.employeeNumber ?? ''}',
+                      '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white.withOpacity(0.8),
@@ -372,11 +372,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     TextSpan(
                       children: [
                         TextSpan(
-                          text: '3',
+                          text: '${authProvider?.remainingLeaveDays ?? 0}',
                           style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.slate),
                         ),
                         TextSpan(
-                          text: ' / 15 일',
+                          text: ' / ${authProvider?.currTotalLeaveDays ?? 0} 일',
                           style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -527,7 +527,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                   const Spacer(),
                   Text(
-                    info != null ? '${info.name} ${info.position}  ' : '',
+                    authProvider != null ? '${authProvider.approverName} ${authProvider.approverPosition}  ' : '',
                     style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
                   ),
                 ],
