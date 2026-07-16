@@ -165,7 +165,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
-    String userPosition = info!.position;
+    String userPosition = info != null ? info.position: '';
     if(auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')){
       //신규 팀 정보 생성 시 필요 
       // 관리자이고 대표이사일 때만 "기타" 추가    
