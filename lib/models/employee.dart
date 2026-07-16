@@ -6,6 +6,12 @@ class Employee {
   final String? hireDate;
   final String? role;
   final String email;
+  final double currTotalLeaveDays;
+  final double remainingLeaveDays;
+  final String? approverName;
+  final String? approverPosition;
+  final String? approverDepartment;
+
 
   Employee({
     required this.employeeNumber,
@@ -15,6 +21,11 @@ class Employee {
     this.hireDate,
     this.role,
     required this.email,
+    required this.currTotalLeaveDays,
+    required this.remainingLeaveDays,
+    this.approverName,
+    this.approverPosition,
+    this.approverDepartment,
   });
 
   factory Employee.fromJson(Map<String, dynamic> json) {
@@ -26,6 +37,11 @@ class Employee {
       hireDate: json['hireDate'],
       role: json['role'],
       email: json['email'],
+      currTotalLeaveDays: (json['currTotalLeaveDays'] as num?)?.toDouble() ?? 0.0,
+      remainingLeaveDays: (json['remainingLeaveDays'] as num?)?.toDouble() ?? 0.0,
+      approverName: json['approverName'] ?? '',
+      approverPosition: json['approverPosition'] ?? '',
+      approverDepartment: json['approverDepartment'] ?? '',
     );
   }
 
@@ -38,6 +54,11 @@ class Employee {
     String? hireDate,
     String? role,
     String? email,
+    double? currTotalLeaveDays,
+    double? remainingLeaveDays,
+    String? approverName,
+    String? approverPosition,
+    String? approverDepartment,
   }) {
     return Employee(
       employeeNumber: employeeNumber ?? this.employeeNumber,
@@ -47,6 +68,11 @@ class Employee {
       hireDate: hireDate ?? this.hireDate,
       role: role ?? this.role,
       email: email ?? this.email,
+      currTotalLeaveDays: currTotalLeaveDays ?? this.currTotalLeaveDays,
+      remainingLeaveDays: remainingLeaveDays ?? this.remainingLeaveDays,
+      approverName: this.approverName,
+      approverPosition: this.approverPosition,
+      approverDepartment: this.approverDepartment,
     );
   }
 }
