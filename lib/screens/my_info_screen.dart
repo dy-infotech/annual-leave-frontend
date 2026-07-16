@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/dashboard_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
@@ -111,6 +112,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
   @override
   Widget build(BuildContext context) {
     final info = context.watch<AuthProvider>().employeeInfo;
+    final dashboard = context.watch<DashboardProvider>();
     
     return Scaffold(
       appBar: AppBar(title: const Text('내 정보')),
@@ -145,6 +147,13 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                     const _InfoDivider(),
                     _InfoRow(label: '입사일', value: Text(info!.hireDate!)),
                   ],
+                  const _InfoDivider(),
+                  _InfoRow(
+                    label: '연차정보',
+                    value: Text(
+                      '${dashboard.data?.myLeaveInfo.usedLeaveDays?.toString() ?? '-'} / ${dashboard.data?.myLeaveInfo.totalLeaveDays?.toString() ?? '-'}',
+                    ),
+                  ),
                   const _InfoDivider(),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
