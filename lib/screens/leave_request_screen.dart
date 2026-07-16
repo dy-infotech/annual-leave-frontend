@@ -187,34 +187,92 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   // 날짜 셀 하나를 그리는 공통 위젯 (원 배경 + 숫자 + 필요 시 별표)
+  // Widget _buildDayCell({
+  //   required int day,
+  //   required Color? backgroundColor,
+  //   required Color textColor,
+  //   required bool isRequested,
+  // }) {
+  //   return Stack(
+  //     clipBehavior: Clip.none,
+  //     children: [
+  //       Container(
+  //         margin: const EdgeInsets.all(4),
+  //         decoration: BoxDecoration(
+  //           color: backgroundColor,
+  //           shape: BoxShape.circle,
+  //         ),
+  //         alignment: Alignment.center,
+  //         child: Text(
+  //           '$day',
+  //           style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+  //         ),
+  //       ),
+  //       if (isRequested)
+  //         const Positioned(
+  //           top: 0,
+  //           right: 2,
+  //           child: Icon(Icons.star, size: 10, color: AppColors.amber),
+  //         ),
+  //     ],
+  //   );
+  // }
+
   Widget _buildDayCell({
     required int day,
     required Color? backgroundColor,
     required Color textColor,
     required bool isRequested,
+    bool isToday = false,
   }) {
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        Container(
-          margin: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: backgroundColor,
-            shape: BoxShape.circle,
-          ),
+    if (isRequested) {
+      return Container(
+        margin: const EdgeInsets.all(4),
+        alignment: Alignment.center,
+        child: Stack(
           alignment: Alignment.center,
-          child: Text(
-            '$day',
-            style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-          ),
+          children: [
+            const Icon(
+              Icons.star_rounded,
+              size: 40,
+              color: Colors.yellow,
+            ),
+            Text(
+              '$day',
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w700,
+                fontSize: 12,
+              ),
+            ),
+            if (isToday)  // 오늘
+              Positioned(
+                bottom: 2,
+                child: Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.coral, // 주말과 동일한 빨간 계열
+                  ),
+                ),
+              ),
+          ],
         ),
-        if (isRequested)
-          const Positioned(
-            top: 0,
-            right: 2,
-            child: Icon(Icons.star, size: 10, color: AppColors.amber),
-          ),
-      ],
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$day',
+        style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+      ),
     );
   }
 
@@ -370,15 +428,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         backgroundColor: isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
                         textColor: isGrayed ? AppColors.textMuted : Colors.white,
                         isRequested: isRequested,
+                        isToday: true,
                       );
                     }
 
-                    // 범위에 포함 안 된 오늘 → amber 스타일 유지, 신청된 날짜면 별표 추가
                     return _buildDayCell(
                       day: day.day,
                       backgroundColor: AppColors.amber,
                       textColor: Colors.white,
                       isRequested: isRequested,
+                      isToday: true,
                     );
                   },
                 ),
@@ -512,14 +571,15 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          color: AppColors.surface,
+                          // color: AppColors.surface,
+                          color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.divider),
                         ),
                         child: Text(
                           '${_useDaysController.text} 일',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMuted),
                         ),
                       ),
                     ],
@@ -554,7 +614,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                // color: AppColors.surface,
+                color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.divider),
               ),
@@ -567,7 +628,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   const Spacer(),
                   Text(
                     authProvider != null ? '${authProvider.approverName} ${authProvider.approverPosition}  ' : '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textMuted),
                   ),
                 ],
               ),
