@@ -55,4 +55,22 @@ class LeaveRequestListProvider extends ChangeNotifier {
       return !normalizedStart.isAfter(itemEnd) && !normalizedEnd.isBefore(itemStart);
     });
   }
+
+  // 캘린더에 별표 표시할 날짜인지 확인 (대기/승인 상태만)
+  bool isRequestedDate(DateTime dateTime) {
+    DateTime normalize(DateTime dateTime) {
+      final local = dateTime.toLocal();
+      return DateTime(local.year, local.month, local.day);
+    }
+
+    final target = normalize(dateTime);
+
+    return _items
+        .where((item) => item.status == LeaveState.pending.code || item.status == LeaveState.approved.code)
+        .any((item) {
+      final itemStart = normalize(DateTime.parse(item.startDate));
+      final itemEnd = normalize(DateTime.parse(item.endDate));
+      return !target.isBefore(itemStart) && !target.isAfter(itemEnd);
+    });
+  }
 }

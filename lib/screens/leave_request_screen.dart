@@ -44,7 +44,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 첫 프레임이 그려진 직후 실행되도록 addPostFrameCallback 사용
     // (initState 시점에는 아직 위젯 트리가 완성되지 않아 context 사용이 불안정할 수 있음)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
+      // 캘린더에 별표를 표시하기 위해, 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
       // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
       context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
     });
@@ -129,7 +129,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
     // 기존 대기/승인 신청과 기간이 겹치는지 확인
     final listProvider = context.read<LeaveRequestListProvider>();
-    // await listProvider.fetchMyLeaveRequestList();
+    await listProvider.fetchMyLeaveRequestList();
     final effectiveEndDate = _endDate ?? _startDate!;
 
     if (listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
@@ -186,10 +186,43 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   String _formatDate(DateTime date) =>
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
+  // 날짜 셀 하나를 그리는 공통 위젯 (원 배경 + 숫자 + 필요 시 별표)
+  Widget _buildDayCell({
+    required int day,
+    required Color? backgroundColor,
+    required Color textColor,
+    required bool isRequested,
+  }) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$day',
+            style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+          ),
+        ),
+        if (isRequested)
+          const Positioned(
+            top: 0,
+            right: 2,
+            child: Icon(Icons.star, size: 10, color: AppColors.amber),
+          ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = context.watch<AuthProvider>().employeeInfo;
-    final holidayProvider = context.watch<PublicHolidayProvider>(); // 공휴일 Provider 구독
+    final holidayProvider = context.watch<PublicHolidayProvider>();
+    final leaveReqProvider = context.watch<LeaveRequestListProvider>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('휴가 신청')),
@@ -299,87 +332,53 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     _endDate != null && isSameDay(day, _endDate),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
-                    // 공휴일 여부 확인
                     final isHoliday = holidayProvider.isHoliday(day);
                     final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
+                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
 
                     if (_isInRange(day)) {
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isGrayed
-                              ? Colors.grey.withOpacity(0.3)
-                              : AppColors.slate,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: isGrayed
-                                ? AppColors.textMuted
-                                : Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      return _buildDayCell(
+                        day: day.day,
+                        backgroundColor: isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
+                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        isRequested: isRequested,
                       );
                     }
 
-                    // 범위 밖이지만 공휴일인 경우 별도 표시
-                    if (isHoliday) {
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${day.day}',
-                          style: const TextStyle(
-                            color: AppColors.coral,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                    // 범위 밖이지만 공휴일이거나 신청된 날짜인 경우
+                    if (isHoliday || isRequested) {
+                      return _buildDayCell(
+                        day: day.day,
+                        backgroundColor: null,
+                        textColor: isHoliday ? AppColors.coral : AppColors.textPrimary,
+                        isRequested: isRequested,
                       );
                     }
 
                     return null;
                   },
                   todayBuilder: (context, day, focusedDay) {
-                    final isHoliday = holidayProvider.isHoliday(day); // 공휴일 여부 확인
+                    final isHoliday = holidayProvider.isHoliday(day);
                     final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
+                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
 
                     if (_isInRange(day)) {
-                      return Container(
-                        margin: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: isGrayed
-                              ? Colors.grey.withOpacity(0.3)
-                              : AppColors.slate,
-                          shape: BoxShape.circle,
-                        ),
-                        alignment: Alignment.center,
-                        child: Text(
-                          '${day.day}',
-                          style: TextStyle(
-                            color: isGrayed ? AppColors.textMuted : Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                      return _buildDayCell(
+                        day: day.day,
+                        backgroundColor: isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
+                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        isRequested: isRequested,
                       );
                     }
 
-                    // 범위에 포함 안 된 오늘 → amber 스타일
-                    return Container(
-                      margin: const EdgeInsets.all(4),
-                      decoration: const BoxDecoration(
-                        color: AppColors.amber,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        '${day.day}',
-                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
-                      ),
+                    // 범위에 포함 안 된 오늘 → amber 스타일 유지, 신청된 날짜면 별표 추가
+                    return _buildDayCell(
+                      day: day.day,
+                      backgroundColor: AppColors.amber,
+                      textColor: Colors.white,
+                      isRequested: isRequested,
                     );
                   },
                 ),
@@ -550,7 +549,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ],
 
-            // 결재자 정보 (항상 표시)
+            // 결재자 정보
             const SizedBox(height: 20),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
