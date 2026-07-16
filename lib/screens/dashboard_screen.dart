@@ -4,7 +4,6 @@ import '../main.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
-import '../screens/my_leave_requests_screen.dart';
 import '../screens/all_leave_requests_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -111,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'PENDING')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'my')),
               );
             },
           ),
@@ -123,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'APPROVED')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'my')),
               );
             },
           ),
@@ -135,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'REJECTED')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'my')),
               );
             },
           ),
@@ -166,7 +165,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'all')),
                 );
               },
             ),
@@ -178,7 +177,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'all')),
                 );
               },
             ),
@@ -190,7 +189,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'all')),
                 );
               },
             ),
