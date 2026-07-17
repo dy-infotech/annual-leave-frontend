@@ -15,6 +15,9 @@ class ApiClient {
       baseUrl: ApiConfig.baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
     ));
 
     // 요청마다, 저장된 JWT를 자동으로 Authorization 헤더에 할당
