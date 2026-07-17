@@ -1,11 +1,11 @@
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiConfig {
 
-  static bool get _useNgrok => dotenv.get('USE_NGROK', fallback: 'false') == 'true';
-  static String get _ngrokUrl => dotenv.get('NGROK_URL');
+  static final bool _useNgrok = true;
+  // Web deployment test tunneling URL
+  static final String _ngrokUrl = 'https://primsie-alda-sprawly.ngrok-free.dev';
 
   static String get baseUrl {
     if (_useNgrok) {
