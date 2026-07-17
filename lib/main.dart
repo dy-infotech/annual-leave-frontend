@@ -22,8 +22,8 @@ import 'screens/signup_manage_screen.dart';
 final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() async {
-  await dotenv.load();
   WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load();
   await initializeDateFormatting('ko_KR', null);
   runApp(const MyApp());
 }
