@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import '../features/auth/viewmodel/auth_session_viewmodel.dart';
+import '../features/profile/viewmodel/profile_viewmodel.dart';
 import '../theme/app_theme.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -22,8 +23,9 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final info = auth.employeeInfo;
+    final session = context.watch<AuthSessionViewModel>();
+    final profile = context.watch<ProfileViewModel>();
+    final info = profile.employeeInfo;
 
     return Drawer(
       child: SafeArea(
@@ -35,7 +37,7 @@ class AppDrawer extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    info != null ? '${info.name} ${info.position}' : (auth.name ?? ''),
+                    info != null ? '${info.name} ${info.position}' : (session.name ?? ''),
                     style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                   ),
                   const SizedBox(height: 4),
@@ -54,7 +56,7 @@ class AppDrawer extends StatelessWidget {
             //_NavItem(label: '내 신청 목록', onTap: () => _navigate(context, '/my-leave-requests')),
             _NavItem(label: '신청 목록', onTap: () => _navigate(context, '/all-leave-requests')),
 
-            if (auth.isAdmin) ... [
+            if (profile.isAdmin) ... [
               _NavItem(label: '승인 대기 목록', onTap: () => _navigate(context, '/pending-approval')),
               _NavItem(label: '사용자 등록 관리', onTap: () => _navigate(context, '/signup_manage_screen')),
             ],
@@ -68,7 +70,10 @@ class AppDrawer extends StatelessWidget {
               color: AppColors.coral,
               onTap: () async {
                 Navigator.pop(context);
-                await context.read<AuthProvider>().logout();
+                await context.read<AuthSessionViewModel>().logout();
+                if (context.mounted) {
+                  context.read<ProfileViewModel>().clear();
+                }
                 if (context.mounted) {
                   Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
                 }
