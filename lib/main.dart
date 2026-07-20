@@ -23,7 +23,6 @@ final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load();
   await initializeDateFormatting('ko_KR', null);
   runApp(const MyApp());
 }
