@@ -29,23 +29,23 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   void initState() {
     
     super.initState(); 
-
     if(widget.status != null){
       _statusFilter = widget.status;
       _setFilter(widget.status);
+      //widget.status = '';
     }
     
-    _fetch();
+    _fetch(_statusFilter);
   }
 
-  Future<void> _fetch() async {
+  Future<void> _fetch(widgetStatus) async {
     setState(() => _isLoading = true);
     try {
       final queryParams = <String, dynamic>{};
       if (_statusFilter != null) {
         queryParams['status'] = _statusFilter;
       }
-      if(widget.status != null){
+      if(widgetStatus != null){
         _statusFilter = widget.status;
         queryParams['status'] = _statusFilter;
       }
@@ -70,18 +70,23 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
   void _setFilter(String? status) {
     setState(() => _statusFilter = status);
-    _fetch();
+    _fetch(null);
   }
 
   bool _isCancelable(LeaveRequestListItem item) {
-    if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
+    
+    if (item.status == 'PENDING') return true;
+
+    return false;
+    
+    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
 
     final startDate = DateTime.parse(item.startDate);
     final today = DateTime.now();
     final todayDateOnly = DateTime(today.year, today.month, today.day);
 
     // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly);
+    return startDate.isAfter(todayDateOnly); */
   }
 
   Future<void> _confirmCancel(LeaveRequestListItem item) async {
@@ -120,7 +125,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
       }
-      await _fetch();
+      await _fetch(null);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
@@ -150,7 +155,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
     if (picked != null) {
       setState(() => _dateRange = picked);
-      _fetch();
+      _fetch(null);
     }
   }
   
@@ -158,6 +163,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   Widget build(BuildContext context) {
     //로그인 사용자 정보
     final info = context.watch<AuthProvider>().employeeInfo;
+    
     
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
@@ -190,6 +196,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                         );
                       }).toList(),
                       onChanged: (value) {
+                        _statusFilter = '';
                         _setFilter(value);
                       },
                       underline: Container(height: 1, color: Colors.grey),
@@ -225,7 +232,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                   InkWell(
                     onTap: () {
                       setState(() => _dateRange = null);
-                      _fetch();
+                      _fetch(null);
                     },
                     child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
                   ),

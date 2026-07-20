@@ -1,3 +1,4 @@
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:annual_leave_frontend/theme/app_theme.dart';
@@ -5,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
+import 'providers/leave_request_list_provider.dart';
+import 'providers/public_holiday_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/signup_screen.dart';
 import 'screens/forgotPasswordScreen.dart';
@@ -33,6 +36,8 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
       ],
 
       child: MaterialApp(
@@ -59,7 +64,7 @@ class MyApp extends StatelessWidget {
           // 휴가 신청 화면
           '/leave-request': (context) => const LeaveRequestScreen(),
           // 내 휴가 신청 목록 화면
-          '/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
+          //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
           // 전직원 휴가 신청 목록 화면
           '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
           // 승인 대기 목록 화면
@@ -93,6 +98,11 @@ class _SplashScreenState extends State<SplashScreen> {
     await auth.tryAutoLogin();
 
     if (!mounted) return;
+
+    // 자동 로그인 성공 시, 공휴일 정보 조회
+    if (auth.isLoggedIn) {
+      await context.read<PublicHolidayProvider>().fetchPublicHoliday();
+    }
 
     Navigator.pushReplacementNamed(
       context,

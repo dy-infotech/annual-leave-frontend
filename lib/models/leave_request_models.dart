@@ -29,6 +29,7 @@ class LeaveRequestCreate {
 class LeaveRequestListItem {
   final int requestId;
   final String employeeName;
+  final String employeeNumber;
   final String position;
   final String department;
   final String requestedAt;
@@ -41,6 +42,7 @@ class LeaveRequestListItem {
   LeaveRequestListItem({
     required this.requestId,
     required this.employeeName,
+    required this.employeeNumber,
     required this.position,
     required this.department,
     required this.requestedAt,
@@ -55,6 +57,7 @@ class LeaveRequestListItem {
     return LeaveRequestListItem(
       requestId: json['requestId'],
       employeeName: json['employeeName'],
+      employeeNumber: json['employeeNumber'],
       position: json['position'] ?? '',
       department: json['department'] ?? '',
       requestedAt: json['requestedAt'],
@@ -72,6 +75,7 @@ class PendingLeaveRequest {
   final String employeeNumber;
   final String employeeName;
   final String department;
+  final String position;
   final String startDate;
   final String endDate;
   final double useDays;
@@ -82,6 +86,7 @@ class PendingLeaveRequest {
     required this.employeeNumber,
     required this.employeeName,
     required this.department,
+    required this.position,
     required this.startDate,
     required this.endDate,
     required this.useDays,
@@ -94,6 +99,7 @@ class PendingLeaveRequest {
       employeeNumber: json['employeeNumber'],
       employeeName: json['employeeName'],
       department: json['department'] ?? '',
+      position: json['position'] ?? '',
       startDate: json['startDate'],
       endDate: json['endDate'],
       useDays: (json['useDays'] as num).toDouble(),

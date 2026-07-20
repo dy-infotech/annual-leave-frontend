@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../providers/dashboard_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
@@ -18,12 +19,17 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
   final _newPasswordConfirmController = TextEditingController();
   bool _isSubmitting = false;
   String? _errorMessage;
+  String? _emailErrorMessage;
+
+  bool isEditingEmail = false;
+  final TextEditingController _emailController  = TextEditingController();
 
   @override
   void dispose() {
     _currentPasswordController.dispose();
     _newPasswordController.dispose();
     _newPasswordConfirmController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -71,10 +77,43 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     }
   }
 
+  Future<void> _handleChangeEmail() async {
+    if (_emailController.text.isEmpty) {
+      setState(() => _emailErrorMessage = '이메일 정보를 입력해주세요.');
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+      _emailErrorMessage = null;
+    });
+
+    try {
+      await ApiClient().dio.patch(
+        '/api/employees/me/modify-email',
+        data: _emailController.text
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이메일이 변경되었습니다.')));
+        //AuthProvider.updateEmail();
+        context.read<AuthProvider>().updateEmail(_emailController.text);
+
+        _emailController.clear();
+      }
+    } catch (e) {
+      setState(() => _emailErrorMessage = '이메일 변경에 실패했습니다.');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final info = context.watch<AuthProvider>().employeeInfo;
-
+    final dashboard = context.watch<DashboardProvider>();
+    
     return Scaffold(
       appBar: AppBar(title: const Text('내 정보')),
       drawer: const AppDrawer(),
@@ -97,16 +136,89 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               ),
               child: Column(
                 children: [
-                  _InfoRow(label: '사번', value: info?.employeeNumber ?? '-'),
+                  _InfoRow(label: '사번', value: Text(info?.employeeNumber ?? '-')),
                   const _InfoDivider(),
-                  _InfoRow(label: '이름', value: info?.name ?? '-'),
+                  _InfoRow(label: '이름', value: Text(info?.name ?? '-')),
                   const _InfoDivider(),
-                  _InfoRow(label: '직급', value: info?.position ?? '-'),
+                  _InfoRow(label: '직급', value: Text(info?.position ?? '-')),
                   const _InfoDivider(),
-                  _InfoRow(label: '부서', value: info?.department ?? '-'),
+                  _InfoRow(label: '부서', value: Text(info?.department ?? '-')),
                   if (info?.hireDate != null) ...[
                     const _InfoDivider(),
-                    _InfoRow(label: '입사일', value: info!.hireDate!),
+                    _InfoRow(label: '입사일', value: Text(info!.hireDate!)),
+                  ],
+                  const _InfoDivider(),
+                  _InfoRow(
+                    label: '연차정보',
+                    value: Text(
+                      '${dashboard.data?.myLeaveInfo.usedLeaveDays?.toString() ?? '-'} / ${dashboard.data?.myLeaveInfo.totalLeaveDays?.toString() ?? '-'}',
+                    ),
+                  ),
+                  const _InfoDivider(),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 0),
+                    child: SizedBox(
+                      height: 36,  // 좀 더 여유 있는 높이로 조절 추천
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: _InfoRow(
+                              label: '이메일',
+                              value: isEditingEmail
+                                  ? TextField(
+                                      controller: _emailController,
+                                      style: const TextStyle(fontSize: 16),
+                                      cursorHeight: 18, // 폰트 크기와 비슷하거나 조금 더 크게
+                                      decoration: const InputDecoration(
+                                        isDense: true,
+                                        border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8), // 기존보다 살짝 줄임
+                                      ),
+                                    )
+                                  : Text(
+                                      info?.email ?? '-',
+                                      style: const TextStyle(fontSize: 16),
+                                    ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              fixedSize: const Size(50, 50),
+                              side: const BorderSide(color: Colors.grey, width: 1),
+                              padding: EdgeInsets.zero,
+                            ),
+                            onPressed: () async {
+                              if (isEditingEmail) {
+                                await _handleChangeEmail();
+                              }
+                              setState(() {
+                                isEditingEmail = !isEditingEmail;
+                              });
+                            },
+                            child: Icon(
+                              isEditingEmail ? Icons.check : Icons.edit,
+                              size: 20,
+                              color: Colors.black54,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (_emailErrorMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _emailErrorMessage!,
+                        style: const TextStyle(
+                          color: AppColors.coral,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
                   ],
                 ],
               ),
@@ -189,7 +301,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
 
 class _InfoRow extends StatelessWidget {
   final String label;
-  final String value;
+  final Widget value;  // Widget 타입 유지
 
   const _InfoRow({required this.label, required this.value});
 
@@ -209,14 +321,7 @@ class _InfoRow extends StatelessWidget {
           ),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
+          child: value,  // 이미 위젯이니까 그대로 넣기
         ),
       ],
     );

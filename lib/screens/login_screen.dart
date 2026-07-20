@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -42,12 +43,19 @@ class _LoginScreenState extends State<LoginScreen> {
         _passwordController.text,
       );
 
+      // 로그인 성공 후 공휴일 정보 미리 로드
+      if (mounted) {
+        await context.read<PublicHolidayProvider>().fetchPublicHoliday();
+      }
+
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
+
     } catch (e) {
       setState(() => _errorMessage = e.toString()); // 임시로 실제 에러 내용 확인
       //setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다...11');
+
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);

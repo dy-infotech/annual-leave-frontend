@@ -4,7 +4,6 @@ import '../main.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
-import '../screens/my_leave_requests_screen.dart';
 import '../screens/all_leave_requests_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -111,7 +110,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'PENDING')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'my')),
               );
             },
           ),
@@ -123,7 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'APPROVED')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'my')),
               );
             },
           ),
@@ -135,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => MyLeaveRequestsScreen(status: 'REJECTED')),
+                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'my')),
               );
             },
           ),
@@ -160,37 +159,37 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
           _StatRow(items: [
             _StatItem(
               '대기',
-              data.myRequestSummary.pendingCount.toDouble(),
+              data.allEmployeeRequestSummary!.pendingCount.toDouble(),
               AppColors.amber,
               isCount: true,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'all')),
                 );
               },
             ),
             _StatItem(
               '승인',
-              data.myRequestSummary.approvedCount.toDouble(),
+              data.allEmployeeRequestSummary!.approvedCount.toDouble(),
               AppColors.sage,
               isCount: true,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'all')),
                 );
               },
             ),
             _StatItem(
               '반려',
-              data.myRequestSummary.rejectedCount.toDouble(),
+              data.allEmployeeRequestSummary!.rejectedCount.toDouble(),
               AppColors.coral,
               isCount: true,
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED')),
+                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'all')),
                 );
               },
             ),
