@@ -458,8 +458,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     Text(
                       _endDate == null
                           ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                      // 공휴일 반영된 계산 메서드 사용
-                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (사용 가능 ${_calculateUsableDays(holidayProvider)}일)',
+                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
                       style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
                     ),
 
