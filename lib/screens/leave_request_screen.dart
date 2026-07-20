@@ -186,38 +186,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   String _formatDate(DateTime date) =>
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
-  // 날짜 셀 하나를 그리는 공통 위젯 (원 배경 + 숫자 + 필요 시 별표)
-  // Widget _buildDayCell({
-  //   required int day,
-  //   required Color? backgroundColor,
-  //   required Color textColor,
-  //   required bool isRequested,
-  // }) {
-  //   return Stack(
-  //     clipBehavior: Clip.none,
-  //     children: [
-  //       Container(
-  //         margin: const EdgeInsets.all(4),
-  //         decoration: BoxDecoration(
-  //           color: backgroundColor,
-  //           shape: BoxShape.circle,
-  //         ),
-  //         alignment: Alignment.center,
-  //         child: Text(
-  //           '$day',
-  //           style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-  //         ),
-  //       ),
-  //       if (isRequested)
-  //         const Positioned(
-  //           top: 0,
-  //           right: 2,
-  //           child: Icon(Icons.star, size: 10, color: AppColors.amber),
-  //         ),
-  //     ],
-  //   );
-  // }
-
   Widget _buildDayCell({
     required int day,
     required Color? backgroundColor,
@@ -225,44 +193,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     required bool isRequested,
     bool isToday = false,
   }) {
-    if (isRequested) {
-      return Container(
-        margin: const EdgeInsets.all(4),
+    // 셀 본체: 신청된 날짜는 별표, 그 외는 원형 배경 + 숫자
+    final Widget body = isRequested
+        ? Container(
+      margin: const EdgeInsets.all(4),
+      alignment: Alignment.center,
+      child: Stack(
         alignment: Alignment.center,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(
-              Icons.star_rounded,
-              size: 40,
-              color: Colors.yellow,
+        children: [
+          const Icon(
+            Icons.star_rounded,
+            size: 40,
+            color: Colors.yellow,
+          ),
+          Text(
+            '$day',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
-            Text(
-              '$day',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-            if (isToday)  // 오늘
-              Positioned(
-                bottom: 2,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.coral, // 주말과 동일한 빨간 계열
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
+          ),
+        ],
+      ),
+    )
+        : Container(
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -273,6 +228,29 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         '$day',
         style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
       ),
+    );
+
+    // 오늘이 아니면 본체만 반환
+    if (!isToday) return body;
+
+    // 오늘이면 날짜 밑에 빨간 밑줄 추가
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        body,
+        Positioned(
+          bottom: 6,
+          child: Container(
+            width: 16,
+            height: 3,
+            decoration: BoxDecoration(
+              color: AppColors.coral,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -422,6 +400,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     final isGrayed = isWeekend || isHoliday;
                     final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
 
+                    // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
@@ -432,10 +411,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       );
                     }
 
+                    // 범위 밖의 오늘: 원형 배경 없이 숫자 + 빨간 밑줄
                     return _buildDayCell(
                       day: day.day,
-                      backgroundColor: AppColors.amber,
-                      textColor: Colors.white,
+                      backgroundColor: null,
+                      textColor: isGrayed ? AppColors.coral : AppColors.textPrimary,
                       isRequested: isRequested,
                       isToday: true,
                     );
