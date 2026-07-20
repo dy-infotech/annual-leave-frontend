@@ -268,32 +268,93 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            // 사용자 정보 카드
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-              decoration: BoxDecoration(
-                color: AppColors.slate,
-                borderRadius: BorderRadius.circular(20),
-              ),
+            // 신청자 / 결재자 (좌우 대칭 배치)
+            IntrinsicHeight(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    authProvider != null ? '${authProvider.name} ${authProvider.position}  ' : '',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white
+                  // 신청자
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('신청자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.divider),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  authProvider != null
+                                      ? '${authProvider.name} ${authProvider.position}'
+                                      : '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 7),
-                    child: Text(
-                      '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
+
+                  const SizedBox(width: 12),
+
+                  // 결재자
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('결재자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: AppColors.divider),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  authProvider != null
+                                      ? '${authProvider.approverName} ${authProvider.approverPosition}'
+                                      : '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  // TODO: approverNumber(결재자 사번 추가 필요)
+                                  '${authProvider?.approverDepartment ?? ''} · ${authProvider?.employeeNumber ?? ''}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -465,7 +526,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             const SizedBox(height: 16),
 
-            // 휴가 종류 및 사용할 연차 개수
+            // 휴가 종류 / 사용할 연차 개수
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -477,7 +538,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       const Text('휴가 종류', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(16),
@@ -493,7 +554,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 value: type,
                                 child: Text(
                                   type.label,
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                 ),
                               );
                             }).toList(),
@@ -537,28 +598,27 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
 
                 // 사용할 연차 개수
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('사용할 연차 개수', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const Text('사용 연차', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          // color: AppColors.surface,
-                          color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
+                          color: AppColors.divider.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(color: AppColors.divider),
                         ),
                         child: Text(
                           '${_useDaysController.text} 일',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMuted),
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textMuted),
                         ),
                       ),
                     ],
@@ -587,31 +647,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
               ),
             ],
-
-            // 결재자 정보
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                // color: AppColors.surface,
-                color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '결재자',
-                    style: TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
-                  Text(
-                    authProvider != null ? '${authProvider.approverName} ${authProvider.approverPosition}  ' : '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textMuted),
-                  ),
-                ],
-              ),
-            ),
 
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
