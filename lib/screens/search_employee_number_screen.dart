@@ -40,7 +40,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
     try {
 
       final response = await ApiClient().dio.get(
-        '/api/employees/all',
+        '/api/admin/employees/all',
         queryParameters: _searchParamController.text.isEmpty ? null : {'searchParam': _searchParamController.text},
       );
       setState(() {

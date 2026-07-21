@@ -39,20 +39,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       _setFilter(widget.status);
     }
     
-    _fetch(null);
+    _fetch();
   }
 
-  Future<void> _fetch(widgetStatus) async {
+  Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
       final queryParams = <String, dynamic>{};
+      /* if(widget.status != null && _statusFilter == null){
+        _statusFilter = widget.status;
+        queryParams['status'] = _statusFilter;
+        widget.status = '';
+      } */
       if (_statusFilter != null) {
         queryParams['status'] = _statusFilter;
       }
-      if(widget.status != null){
-        _statusFilter = widget.status;
-        queryParams['status'] = _statusFilter;
-      }
+      
       if (_dateRange != null) {
         queryParams['startDate'] = _formatDate(_dateRange!.start);
         queryParams['endDate'] = _formatDate(_dateRange!.end);
@@ -125,7 +127,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
       }
-      await _fetch(null);
+      await _fetch();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
@@ -155,13 +157,13 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
     if (picked != null) {
       setState(() => _dateRange = picked);
-      _fetch(null);
+      _fetch();
     }
   }
 
   void _setFilter(String? status) {
     setState(() => _statusFilter = status);
-    _fetch(null);
+    _fetch();
   }
 
   void _toggleButtonLabel() {
@@ -210,6 +212,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                         );
                       }).toList(),
                       onChanged: (value) {
+                        //_statusFilter = '';
                         _setFilter(value);
                       },
                       underline: Container(height: 1, color: Colors.grey),
@@ -270,7 +273,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                   InkWell(
                     onTap: () {
                       setState(() => _dateRange = null);
-                      _fetch(null);
+                      _fetch();
                     },
                     child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
                   ),
