@@ -202,21 +202,29 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    child: DropdownButton<String?>(
-                      value: _statusFilter,
-                      items: statusOptions.map((option) {
-                        return DropdownMenuItem<String?>(
-                          value: option['value'],
-                          child: Text(option['label']!),
-                        );
-                      }).toList(),
-                      onChanged: (value) {
-                        //_statusFilter = '';
-                        _setFilter(value);
-                      },
-                      underline: Container(height: 1, color: Colors.grey),
-                      isExpanded: true,
+                    width: MediaQuery.of(context).size.width * 0.25,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white, // 흰 바탕
+                        border: Border.all(color: Colors.grey.shade300), // 옅은 회색 테두리
+                        borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
+                      child: DropdownButton<String?>(
+                        value: _statusFilter,
+                        items: statusOptions.map((option) {
+                          return DropdownMenuItem<String?>(
+                            value: option['value'],
+                            child: Text(option['label']!),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          _setFilter(value);
+                        },
+                        underline: SizedBox(), // 기본 밑줄 제거
+                        isExpanded: true,
+                        dropdownColor: Colors.white, // 드롭다운 목록도 흰색으로 맞춤
+                      ),
                     ),
                   ),
                   const Spacer(),  // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
