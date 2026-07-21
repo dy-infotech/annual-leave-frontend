@@ -8,6 +8,7 @@ class Employee {
   final String email;
   final double currTotalLeaveDays;
   final double remainingLeaveDays;
+  final String? approverNumber;
   final String? approverName;
   final String? approverPosition;
   final String? approverDepartment;
@@ -23,6 +24,7 @@ class Employee {
     required this.email,
     required this.currTotalLeaveDays,
     required this.remainingLeaveDays,
+    this.approverNumber,
     this.approverName,
     this.approverPosition,
     this.approverDepartment,
@@ -39,6 +41,7 @@ class Employee {
       email: json['email'],
       currTotalLeaveDays: (json['currTotalLeaveDays'] as num?)?.toDouble() ?? 0.0,
       remainingLeaveDays: (json['remainingLeaveDays'] as num?)?.toDouble() ?? 0.0,
+      approverNumber: json['approverNumber'] ?? '',
       approverName: json['approverName'] ?? '',
       approverPosition: json['approverPosition'] ?? '',
       approverDepartment: json['approverDepartment'] ?? '',
@@ -56,6 +59,7 @@ class Employee {
     String? email,
     double? currTotalLeaveDays,
     double? remainingLeaveDays,
+    String? approverNumber,
     String? approverName,
     String? approverPosition,
     String? approverDepartment,
@@ -70,6 +74,7 @@ class Employee {
       email: email ?? this.email,
       currTotalLeaveDays: currTotalLeaveDays ?? this.currTotalLeaveDays,
       remainingLeaveDays: remainingLeaveDays ?? this.remainingLeaveDays,
+      approverNumber: this.approverNumber,
       approverName: this.approverName,
       approverPosition: this.approverPosition,
       approverDepartment: this.approverDepartment,
