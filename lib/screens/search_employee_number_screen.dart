@@ -150,7 +150,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        item.email,
+                                        item.email ?? '',
                                         style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                                         overflow: TextOverflow.ellipsis,
                                       ),

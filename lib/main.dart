@@ -1,4 +1,3 @@
-
 import 'package:annual_leave_frontend/screens/search_employee_number_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';

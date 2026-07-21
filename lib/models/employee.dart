@@ -5,7 +5,7 @@ class Employee {
   final String department;
   final String? hireDate;
   final String? role;
-  final String email;
+  final String? email;
   final double currTotalLeaveDays;
   final double remainingLeaveDays;
   final String? approverNumber;
@@ -14,7 +14,6 @@ class Employee {
   final String? approverDepartment;
   final bool? isRegisted;
 
-
   Employee({
     required this.employeeNumber,
     required this.name,
@@ -22,7 +21,7 @@ class Employee {
     required this.department,
     this.hireDate,
     this.role,
-    required this.email,
+    this.email,
     required this.currTotalLeaveDays,
     required this.remainingLeaveDays,
     this.approverNumber,

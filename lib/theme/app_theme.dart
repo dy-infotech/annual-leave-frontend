@@ -19,14 +19,22 @@ class AppTheme {
     final base = ThemeData(useMaterial3: true, brightness: Brightness.light);
     final textTheme = GoogleFonts.notoSansKrTextTheme(base.textTheme);
 
+    // 슬레이트를 시드로 전체 색 세트를 생성, 파생 색까지 보라 제거
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: AppColors.slate,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: AppColors.slate,
+      secondary: AppColors.sage,
+      surface: AppColors.surface,
+      error: AppColors.coral,
+      surfaceTint: Colors.transparent, // 떠 있는 요소(드롭다운 등) 틴트 제거
+    );
+
     return base.copyWith(
       scaffoldBackgroundColor: AppColors.background,
-      colorScheme: base.colorScheme.copyWith(
-        primary: AppColors.slate,
-        secondary: AppColors.sage,
-        surface: AppColors.surface,
-        error: AppColors.coral,
-      ),
+      colorScheme: colorScheme,
+      canvasColor: AppColors.surface, // 드롭다운 펼침 배경을 흰색으로
       textTheme: textTheme.copyWith(
         headlineSmall: textTheme.headlineSmall?.copyWith(
           fontWeight: FontWeight.w800,
@@ -103,5 +111,4 @@ class AppTheme {
       ),
       drawerTheme: const DrawerThemeData(backgroundColor: AppColors.surface),
     );
-  }
-}
+  }}
