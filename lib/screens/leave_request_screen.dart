@@ -73,8 +73,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    // Provider 접근 (계산에 필요)
     final holidayProvider = context.read<PublicHolidayProvider>();
+
+    bool rangeConfirmed = false;
 
     setState(() {
       _focusedDay = focusedDay;
@@ -83,28 +84,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           _selectedLeaveType == LeaveType.pmHalf;
 
       if (isHalfDay) {
-        // 반차인 경우 (시작일 = 종료일), 항상 단일 날짜로 선택
         _startDate = selectedDay;
         _endDate = selectedDay;
         _useDaysController.text = '0.5';
+        rangeConfirmed = true;
 
       } else if (_startDate == null || (_startDate != null && _endDate != null)) {
-        // 새로 범위 선택 시작
         _startDate = selectedDay;
         _endDate = null;
         _useDaysController.text = '0';
 
       } else if (selectedDay.isBefore(_startDate!)) {
-        // 시작일보다 이전 날짜를 누르면 시작일 갱신
         _startDate = selectedDay;
         _useDaysController.text = '0';
 
       } else {
         _endDate = selectedDay;
-        // 공휴일 반영된 계산 메서드 사용
         _useDaysController.text = _calculateUsableDays(holidayProvider).toString();
+        rangeConfirmed = true;
       }
     });
+
+    // 종료일(또는 반차 단일일) 확정 시 조기 확인 (이미 로드된 목록으로, 재호출 없이)
+    if (rangeConfirmed) {
+      _checkOverlapAndWarn();
+    }
   }
 
   bool _isInRange(DateTime day) {
@@ -128,29 +132,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
 
     // 기존 대기/승인 신청과 기간이 겹치는지 확인
-    final listProvider = context.read<LeaveRequestListProvider>();
-    await listProvider.fetchMyLeaveRequestList();
-    final effectiveEndDate = _endDate ?? _startDate!;
-
-    if (listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-          content: const Text(
-            '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
-            style: TextStyle(fontSize: 14, height: 1.5),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-      );
+    if (await _checkOverlapAndWarn(refresh: true)) {
       return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
     }
 
@@ -252,6 +234,42 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         ),
       ],
     );
+  }
+
+  // 중복 신청 여부 확인 후, 겹치면 안내 다이얼로그를 띄우고 true 반환
+  Future<bool> _checkOverlapAndWarn({bool refresh = false}) async {
+    if (_startDate == null) return false;
+
+    final listProvider = context.read<LeaveRequestListProvider>();
+    if (refresh) {
+      await listProvider.fetchMyLeaveRequestList();
+    }
+    final effectiveEndDate = _endDate ?? _startDate!;
+
+    if (!listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
+      return false;
+    }
+
+    if (!mounted) return true;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: const Text(
+          '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return true;
   }
 
   @override
@@ -364,6 +382,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   cursor: SystemMouseCursors.help,
                                   child: Tooltip(
                                     message: 'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
+                                    triggerMode: TooltipTriggerMode.tap,
+                                    showDuration: const Duration(seconds: 3),
                                     child: Container(
                                       width: 28,
                                       height: 28,
