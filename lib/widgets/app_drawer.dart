@@ -57,6 +57,7 @@ class AppDrawer extends StatelessWidget {
             if (auth.isAdmin) ... [
               _NavItem(label: '승인 대기 목록', onTap: () => _navigate(context, '/pending-approval')),
               _NavItem(label: '사용자 등록 관리', onTap: () => _navigate(context, '/signup_manage_screen')),
+              _NavItem(label: '사용자 사번 정보 조회', onTap: () => _navigate(context, '/search_employee_number_screen')),
             ],
               
             _NavItem(label: '내 정보', onTap: () => _navigate(context, '/my-info')),
