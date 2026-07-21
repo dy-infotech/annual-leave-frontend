@@ -151,7 +151,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   _InfoRow(
                     label: '연차정보',
                     value: Text(
-                      '${dashboard.data?.myLeaveInfo.usedLeaveDays?.toString() ?? '-'} / ${dashboard.data?.myLeaveInfo.totalLeaveDays?.toString() ?? '-'}',
+                      '${dashboard.data?.myLeaveInfo.remainingLeaveDays?.toString() ?? '-'} / ${dashboard.data?.myLeaveInfo.totalLeaveDays?.toString() ?? '-'} 일',
                     ),
                   ),
                   const _InfoDivider(),
