@@ -285,9 +285,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.divider),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.slate),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -328,9 +328,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: AppColors.divider),
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.slate),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,8 +345,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
-                                  // TODO: approverNumber(결재자 사번 추가 필요)
-                                  '${authProvider?.approverDepartment ?? ''} · ${authProvider?.employeeNumber ?? ''}',
+                                  '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
                                   overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                                 ),
@@ -361,12 +360,28 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // 인라인 캘린더
-            const Text(
-              '신청 기간',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            Row(
+              children: [
+                const Text(
+                  '신청 기간',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                const SizedBox(width: 10),
+                // 선택된 날짜 범위 텍스트 (라벨 바로 오른쪽에 붙임)
+                if (_startDate != null)
+                  Flexible(
+                    child: Text(
+                      _endDate == null
+                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 10),
             Container(
@@ -487,43 +502,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
-
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // 선택된 날짜 범위 텍스트
-                  if (_startDate != null)
-                    Text(
-                      _endDate == null
-                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
-                      style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                    ),
-
-                  const Spacer(),
-
-                  // 휴가 정보 (남은/총 휴가일수)
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${authProvider?.remainingLeaveDays ?? 0}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.slate),
-                        ),
-                        TextSpan(
-                          text: ' / ${authProvider?.currTotalLeaveDays ?? 0} 일',
-                          style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 16),
 
             // 휴가 종류 / 사용할 연차 개수
@@ -538,6 +516,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       const Text('휴가 종류', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
+                        height: 50,
                         padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
@@ -608,17 +587,30 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       const Text('사용 연차', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
+                        height: 50,
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: AppColors.divider.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.divider),
                         ),
                         child: Text(
                           '${_useDaysController.text} 일',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textMuted),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textMuted),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // 잔여 연차 보조 텍스트 (박스 우측 하단)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Text(
+                            '잔여 ${authProvider?.remainingLeaveDays ?? 0}일',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          ),
                         ),
                       ),
                     ],
@@ -629,7 +621,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             // 사유 입력란 (연차/반차 외 항목 선택 시에만 표시)
             if (_needsReason) ...[
-              const SizedBox(height: 16),
               const Text('사유', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 10),
               TextField(
@@ -656,7 +647,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ],
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
