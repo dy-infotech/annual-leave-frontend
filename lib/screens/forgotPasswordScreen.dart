@@ -88,10 +88,13 @@ class _FindAccountScreenState extends State<FindAccountScreen>
 
   // 비밀번호 찾기(이메일 발송) 요청 처리
   Future<void> _handleForgotPassword() async {
+    // 사번이나 이메일 중 하나라도 비어있으면 에러 메시지 표시
     if (_employeeNoController.text.isEmpty ||
         _emailForPwController.text.isEmpty) {
-      setState(() => _errorMessage = '사번과 이메일을 모두 입력해 주세요.');
-      return;
+      setState(() {
+        _errorMessage = '사번과 이메일을 모두 입력해 주세요.';
+      });
+      return; // 실행 중단
     }
 
     setState(() {
@@ -228,11 +231,11 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             ),
             const SizedBox(height: 32),
             TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: '성함'),
-              keyboardType: TextInputType.text, // 1. 일반 텍스트 타입으로 변경
-              enableSuggestions: false, // 2. 텍스트 추천 기능 끄기
-              autocorrect: false, // 3. 자동 수정 기능 끄기
+              controller: _employeeNoController,
+              decoration: const InputDecoration(labelText: '사번'),
+              keyboardType: TextInputType.text,
+              enableSuggestions: false,
+              autocorrect: false,
             ),
             const SizedBox(height: 12),
             TextField(
