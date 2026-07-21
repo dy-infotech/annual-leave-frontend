@@ -73,8 +73,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    // Provider 접근 (계산에 필요)
     final holidayProvider = context.read<PublicHolidayProvider>();
+
+    bool rangeConfirmed = false;
 
     setState(() {
       _focusedDay = focusedDay;
@@ -83,28 +84,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           _selectedLeaveType == LeaveType.pmHalf;
 
       if (isHalfDay) {
-        // 반차인 경우 (시작일 = 종료일), 항상 단일 날짜로 선택
         _startDate = selectedDay;
         _endDate = selectedDay;
         _useDaysController.text = '0.5';
+        rangeConfirmed = true;
 
       } else if (_startDate == null || (_startDate != null && _endDate != null)) {
-        // 새로 범위 선택 시작
         _startDate = selectedDay;
         _endDate = null;
         _useDaysController.text = '0';
 
       } else if (selectedDay.isBefore(_startDate!)) {
-        // 시작일보다 이전 날짜를 누르면 시작일 갱신
         _startDate = selectedDay;
         _useDaysController.text = '0';
 
       } else {
         _endDate = selectedDay;
-        // 공휴일 반영된 계산 메서드 사용
         _useDaysController.text = _calculateUsableDays(holidayProvider).toString();
+        rangeConfirmed = true;
       }
     });
+
+    // 종료일(또는 반차 단일일) 확정 시 조기 확인 (이미 로드된 목록으로, 재호출 없이)
+    if (rangeConfirmed) {
+      _checkOverlapAndWarn();
+    }
   }
 
   bool _isInRange(DateTime day) {
@@ -128,29 +132,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
 
     // 기존 대기/승인 신청과 기간이 겹치는지 확인
-    final listProvider = context.read<LeaveRequestListProvider>();
-    await listProvider.fetchMyLeaveRequestList();
-    final effectiveEndDate = _endDate ?? _startDate!;
-
-    if (listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
-      await showDialog<void>(
-        context: context,
-        builder: (context) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
-          content: const Text(
-            '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
-            style: TextStyle(fontSize: 14, height: 1.5),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
-            ),
-          ],
-        ),
-      );
+    if (await _checkOverlapAndWarn(refresh: true)) {
       return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
     }
 
@@ -186,38 +168,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   String _formatDate(DateTime date) =>
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
-  // 날짜 셀 하나를 그리는 공통 위젯 (원 배경 + 숫자 + 필요 시 별표)
-  // Widget _buildDayCell({
-  //   required int day,
-  //   required Color? backgroundColor,
-  //   required Color textColor,
-  //   required bool isRequested,
-  // }) {
-  //   return Stack(
-  //     clipBehavior: Clip.none,
-  //     children: [
-  //       Container(
-  //         margin: const EdgeInsets.all(4),
-  //         decoration: BoxDecoration(
-  //           color: backgroundColor,
-  //           shape: BoxShape.circle,
-  //         ),
-  //         alignment: Alignment.center,
-  //         child: Text(
-  //           '$day',
-  //           style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-  //         ),
-  //       ),
-  //       if (isRequested)
-  //         const Positioned(
-  //           top: 0,
-  //           right: 2,
-  //           child: Icon(Icons.star, size: 10, color: AppColors.amber),
-  //         ),
-  //     ],
-  //   );
-  // }
-
   Widget _buildDayCell({
     required int day,
     required Color? backgroundColor,
@@ -225,44 +175,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     required bool isRequested,
     bool isToday = false,
   }) {
-    if (isRequested) {
-      return Container(
-        margin: const EdgeInsets.all(4),
+    // 셀 본체: 신청된 날짜는 별표, 그 외는 원형 배경 + 숫자
+    final Widget body = isRequested
+        ? Container(
+      margin: const EdgeInsets.all(4),
+      alignment: Alignment.center,
+      child: Stack(
         alignment: Alignment.center,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            const Icon(
-              Icons.star_rounded,
-              size: 40,
-              color: Colors.yellow,
+        children: [
+          const Icon(
+            Icons.star_rounded,
+            size: 40,
+            color: Colors.yellow,
+          ),
+          Text(
+            '$day',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 12,
             ),
-            Text(
-              '$day',
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w700,
-                fontSize: 12,
-              ),
-            ),
-            if (isToday)  // 오늘
-              Positioned(
-                bottom: 2,
-                child: Container(
-                  width: 4,
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.coral, // 주말과 동일한 빨간 계열
-                  ),
-                ),
-              ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
+          ),
+        ],
+      ),
+    )
+        : Container(
       margin: const EdgeInsets.all(4),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -274,6 +211,65 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
       ),
     );
+
+    // 오늘이 아니면 본체만 반환
+    if (!isToday) return body;
+
+    // 오늘이면 날짜 밑에 빨간 밑줄 추가
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        body,
+        Positioned(
+          bottom: 6,
+          child: Container(
+            width: 16,
+            height: 3,
+            decoration: BoxDecoration(
+              color: AppColors.coral,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // 중복 신청 여부 확인 후, 겹치면 안내 다이얼로그를 띄우고 true 반환
+  Future<bool> _checkOverlapAndWarn({bool refresh = false}) async {
+    if (_startDate == null) return false;
+
+    final listProvider = context.read<LeaveRequestListProvider>();
+    if (refresh) {
+      await listProvider.fetchMyLeaveRequestList();
+    }
+    final effectiveEndDate = _endDate ?? _startDate!;
+
+    if (!listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
+      return false;
+    }
+
+    if (!mounted) return true;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: const Text(
+          '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
+          style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return true;
   }
 
   @override
@@ -290,44 +286,144 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           controller: _scrollController,
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
           children: [
-            // 사용자 정보 카드
-            Container(
-              padding: const EdgeInsets.fromLTRB(20, 12, 12, 12),
-              decoration: BoxDecoration(
-                color: AppColors.slate,
-                borderRadius: BorderRadius.circular(20),
-              ),
+            // 신청자 / 결재자 (좌우 대칭 배치)
+            IntrinsicHeight(
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    authProvider != null ? '${authProvider.name} ${authProvider.position}  ' : '',
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white
+                  // 신청자
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('신청자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: AppColors.slate),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  authProvider != null
+                                      ? '${authProvider.name} ${authProvider.position}'
+                                      : '',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  Padding(
-                    padding: const EdgeInsets.only(top: 7),
-                    child: Text(
-                      '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
+
+                  const SizedBox(width: 12),
+
+                  // 결재자
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('결재자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const SizedBox(height: 10),
+                        Expanded(
+                          child: Stack(
+                            fit: StackFit.passthrough,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.slate),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      authProvider != null
+                                          ? '${authProvider.approverName} ${authProvider.approverPosition}'
+                                          : '',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              // 우측 상단 호버 툴팁
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.help,
+                                  child: Tooltip(
+                                    message: 'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
+                                    triggerMode: TooltipTriggerMode.tap,
+                                    showDuration: const Duration(seconds: 3),
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
 
             // 인라인 캘린더
-            const Text(
-              '신청 기간',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+            Row(
+              children: [
+                const Text(
+                  '신청 기간',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                ),
+                const SizedBox(width: 10),
+                // 선택된 날짜 범위 텍스트 (라벨 바로 오른쪽에 붙임)
+                if (_startDate != null)
+                  Flexible(
+                    child: Text(
+                      _endDate == null
+                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 10),
             Container(
@@ -422,6 +518,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     final isGrayed = isWeekend || isHoliday;
                     final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
 
+                    // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
@@ -432,10 +529,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       );
                     }
 
+                    // 범위 밖의 오늘: 원형 배경 없이 숫자 + 빨간 밑줄
                     return _buildDayCell(
                       day: day.day,
-                      backgroundColor: AppColors.amber,
-                      textColor: Colors.white,
+                      backgroundColor: null,
+                      textColor: isGrayed ? AppColors.coral : AppColors.textPrimary,
                       isRequested: isRequested,
                       isToday: true,
                     );
@@ -446,47 +544,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ),
 
-            const SizedBox(height: 8),
-
-            Padding(
-              padding: const EdgeInsets.only(top: 10),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // 선택된 날짜 범위 텍스트
-                  if (_startDate != null)
-                    Text(
-                      _endDate == null
-                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                      // 공휴일 반영된 계산 메서드 사용
-                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}  (사용 가능 ${_calculateUsableDays(holidayProvider)}일)',
-                      style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                    ),
-
-                  const Spacer(),
-
-                  // 휴가 정보 (남은/총 휴가일수)
-                  Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: '${authProvider?.remainingLeaveDays ?? 0}',
-                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.slate),
-                        ),
-                        TextSpan(
-                          text: ' / ${authProvider?.currTotalLeaveDays ?? 0} 일',
-                          style: const TextStyle(fontSize: 14, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 16),
 
-            // 휴가 종류 및 사용할 연차 개수
+            // 휴가 종류 / 사용할 연차 개수
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -498,7 +558,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       const Text('휴가 종류', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        height: 50,
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: AppColors.surface,
                           borderRadius: BorderRadius.circular(16),
@@ -514,7 +575,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 value: type,
                                 child: Text(
                                   type.label,
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
                                 ),
                               );
                             }).toList(),
@@ -558,28 +619,40 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                 ),
 
-                const SizedBox(width: 16),
+                const SizedBox(width: 12),
 
                 // 사용할 연차 개수
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('사용할 연차 개수', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const Text('사용 연차', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
+                        height: 50,
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
-                          // color: AppColors.surface,
-                          color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
-                          borderRadius: BorderRadius.circular(16),
+                          color: AppColors.divider.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(color: AppColors.divider),
                         ),
                         child: Text(
                           '${_useDaysController.text} 일',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textMuted),
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textMuted),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      // 잔여 연차 보조 텍스트 (박스 우측 하단)
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: Padding(
+                          padding: const EdgeInsets.only(right: 4),
+                          child: Text(
+                            '잔여 ${authProvider?.remainingLeaveDays ?? 0}일',
+                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                          ),
                         ),
                       ),
                     ],
@@ -590,7 +663,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             // 사유 입력란 (연차/반차 외 항목 선택 시에만 표시)
             if (_needsReason) ...[
-              const SizedBox(height: 16),
               const Text('사유', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 10),
               TextField(
@@ -609,31 +681,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ],
 
-            // 결재자 정보
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-              decoration: BoxDecoration(
-                // color: AppColors.surface,
-                color: AppColors.divider.withOpacity(0.3), // surface보다 톤다운
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: Row(
-                children: [
-                  Text(
-                    '결재자',
-                    style: TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
-                  ),
-                  const Spacer(),
-                  Text(
-                    authProvider != null ? '${authProvider.approverName} ${authProvider.approverPosition}  ' : '',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.textMuted),
-                  ),
-                ],
-              ),
-            ),
-
             if (_errorMessage != null) ...[
               const SizedBox(height: 16),
               Text(
@@ -642,7 +689,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ],
 
-            const SizedBox(height: 32),
+            const SizedBox(height: 16),
+
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
