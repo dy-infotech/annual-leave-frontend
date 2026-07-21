@@ -1,4 +1,5 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
+import 'package:annual_leave_frontend/screens/search_employee_number_screen.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:annual_leave_frontend/theme/app_theme.dart';
@@ -13,7 +14,7 @@ import 'screens/signup_screen.dart';
 import 'screens/forgotPasswordScreen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/leave_request_screen.dart';
-import 'screens/my_leave_requests_screen.dart';
+//import 'screens/my_leave_requests_screen.dart';
 import 'screens/all_leave_requests_screen.dart';
 import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
@@ -70,6 +71,8 @@ class MyApp extends StatelessWidget {
           '/pending-approval': (context) => const PendingApprovalScreen(),
           //사용자 등록 관리 화면
           '/signup_manage_screen': (context) => const SignupManageScreen(),
+          //사용자 사번 조회 화면
+          '/search_employee_number_screen': (context) => const SearchEmployeeNumberScreen(),
           // 내 정보 화면
           '/my-info': (context) => const MyInfoScreen(),
         },

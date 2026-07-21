@@ -11,6 +11,7 @@ class Employee {
   final String? approverName;
   final String? approverPosition;
   final String? approverDepartment;
+  final bool? isRegisted;
 
 
   Employee({
@@ -26,6 +27,7 @@ class Employee {
     this.approverName,
     this.approverPosition,
     this.approverDepartment,
+    required this.isRegisted
   });
 
   factory Employee.fromJson(Map<String, dynamic> json) {
@@ -42,6 +44,7 @@ class Employee {
       approverName: json['approverName'] ?? '',
       approverPosition: json['approverPosition'] ?? '',
       approverDepartment: json['approverDepartment'] ?? '',
+      isRegisted: json['isRegisted'] ?? false,
     );
   }
 
@@ -59,6 +62,7 @@ class Employee {
     String? approverName,
     String? approverPosition,
     String? approverDepartment,
+    bool? isRegisted
   }) {
     return Employee(
       employeeNumber: employeeNumber ?? this.employeeNumber,
@@ -73,6 +77,7 @@ class Employee {
       approverName: this.approverName,
       approverPosition: this.approverPosition,
       approverDepartment: this.approverDepartment,
+      isRegisted: this.isRegisted,
     );
   }
 }

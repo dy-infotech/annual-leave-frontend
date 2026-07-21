@@ -114,7 +114,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> updateEmail(newEmail) async {
-    //fetchMyInfo();
     // 기존 employeeInfo 객체에 이메일 갱신
     _employeeInfo = _employeeInfo!.copyWith(email: newEmail);
     notifyListeners();

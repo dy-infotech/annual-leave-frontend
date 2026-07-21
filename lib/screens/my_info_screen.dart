@@ -173,7 +173,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                                       decoration: const InputDecoration(
                                         isDense: true,
                                         border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8), // 기존보다 살짝 줄임
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
                                       ),
                                     )
                                   : Text(
