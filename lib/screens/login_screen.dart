@@ -39,9 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       await context.read<AuthProvider>().login(
-        _employeeNumberController.text.trim(),
-        _passwordController.text,
-      );
+            _employeeNumberController.text.trim(),
+            _passwordController.text,
+          );
 
       // 로그인 성공 후 공휴일 정보 미리 로드
       if (mounted) {
@@ -51,11 +51,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
-
     } catch (e) {
       setState(() => _errorMessage = e.toString()); // 임시로 실제 에러 내용 확인
       //setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다...11');
-
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -177,14 +175,13 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: const Text('사용 등록'),
                         ),
                       ),
-
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () =>
                               Navigator.pushNamed(context, '/forgot-password'),
-                          child: const Text('비밀번호 찾기'),
+                          child: const Text('아이디/비밀번호 찾기'),
                         ),
                       ),
                     ],

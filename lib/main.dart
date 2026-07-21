@@ -39,7 +39,6 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
         ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
       ],
-
       child: MaterialApp(
         title: '연차 관리',
         theme: AppTheme.theme,
@@ -58,7 +57,7 @@ class MyApp extends StatelessWidget {
           // 사용 등록 화면
           '/signup': (context) => const SignupScreen(),
           // 비번찾기 화면
-          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/forgot-password': (context) => const FindAccountScreen(),
           // 대시보드 화면
           '/dashboard': (context) => const DashboardScreen(),
           // 휴가 신청 화면
