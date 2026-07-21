@@ -166,17 +166,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     _fetch();
   }
 
-  void _toggleButtonLabel() {
-  
-    setState(() {
-      if (_buttonLabel == '내 신청') {
-        _buttonLabel = '전체';
-      } else {
-        _buttonLabel = '내 신청';
-      }
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     final userEmployeeNumber = context.watch<AuthProvider>().employeeInfo?.employeeNumber;
@@ -187,6 +176,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       {'label': '승인', 'value': 'APPROVED'},
       {'label': '반려', 'value': 'REJECTED'},
       {'label': '취소', 'value': 'CANCELLED'}
+    ];
+    final List<Map<String, String?>> searchFilterList = [
+      {'label': '전체', 'value': '전체'},
+      {'label': '내 신청', 'value': '내 신청'},
     ];
     return Scaffold(
       appBar: AppBar(title: const Text('신청 목록')),
@@ -203,6 +196,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                 children: [
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.25,
+                    height: 40,  // 원하는 높이로 조절
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white, // 흰 바탕
@@ -230,23 +224,33 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                   const Spacer(),  // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _toggleButtonLabel();
-                          //선택 항목에 대한 목록 필터링 
-                          _setFilter(_statusFilter);
-                        },
-                        label: Text(
-                          _buttonLabel,   //내 신청 or 전체
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.grey.shade300,
-                          foregroundColor: Colors.black87,
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
-                          minimumSize: const Size(70, 36),
-                        ),
+                      // UI 코드 예시: 라디오 버튼 목록 만들기
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: searchFilterList.map((item) {
+                          final label = item['label']!;
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Radio<String>(
+                                  value: label,
+                                  // ignore: deprecated_member_use
+                                  groupValue: _buttonLabel,
+                                  // ignore: deprecated_member_use
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _buttonLabel = value!;
+                                      _setFilter(_statusFilter);
+                                    });
+                                  },
+                                ),
+                                Text(label),
+                              ],
+                            ),
+                          );
+                        }).toList(),
                       ),
                       const SizedBox(width: 10), // 두 버튼 간격 
                       ElevatedButton.icon(
@@ -255,13 +259,13 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                         },
                         icon: const Icon(Icons.calendar_today, size: 20),
                         label: const Text(
-                          '기간 선택',
+                          '기간',
                           style: TextStyle(fontSize: 14),
                         ),
                         style: ElevatedButton.styleFrom(
                           padding:
                               const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          minimumSize: const Size(100, 36),
+                          minimumSize: const Size(80, 36),
                         ),
                       ),
                     ],
