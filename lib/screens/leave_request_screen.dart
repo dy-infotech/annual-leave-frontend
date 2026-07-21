@@ -324,33 +324,55 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         const Text('결재자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
                         const SizedBox(height: 10),
                         Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.slate),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  authProvider != null
-                                      ? '${authProvider.approverName} ${authProvider.approverPosition}'
-                                      : '',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                          child: Stack(
+                            fit: StackFit.passthrough,
+                            children: [
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.slate),
                                 ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      authProvider != null
+                                          ? '${authProvider.approverName} ${authProvider.approverPosition}'
+                                          : '',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
+                              ),
+
+                              // 우측 상단 호버 툴팁
+                              Positioned(
+                                top: 0,
+                                right: 0,
+                                child: MouseRegion(
+                                  cursor: SystemMouseCursors.help,
+                                  child: Tooltip(
+                                    message: 'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
+                                    child: Container(
+                                      width: 28,
+                                      height: 28,
+                                      color: Colors.transparent,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
