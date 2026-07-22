@@ -89,9 +89,10 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     });
 
     try {
+
       await ApiClient().dio.patch(
         '/api/employees/me/modify-email',
-        data: _emailController.text
+        data: {"email":_emailController.text}
       );
       if (mounted) {
         ScaffoldMessenger.of(
