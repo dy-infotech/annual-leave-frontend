@@ -26,7 +26,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   String _buttonLabel = '전체';  //로드시 기본 버튼 라벨
   final Set<int> _processingIds = {};
   // 오늘 날짜 구하기
-  DateTime _focusedDay = DateTime.now();
+  DateTime _today = DateTime.now();
 
 
   @override
@@ -58,15 +58,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
         queryParams['status'] = _statusFilter;
       }
       
-      if(_focusedDay != null){
+      if(_today != null){
         // 오늘 날짜가 속한 연도 구하기
-        int year = _focusedDay.year;
+        int year = _today.year;
 
         // 그 연도의 1월 1일 날짜 만들기
         DateTime firstDayOfYear = DateTime(year, 1, 1);
 
         queryParams['startDate'] = _formatDate(firstDayOfYear);
-        queryParams['endDate'] = _formatDate(_focusedDay);
+        queryParams['endDate'] = _formatDate(_today);
       }
       
       if (_dateRange != null) {
