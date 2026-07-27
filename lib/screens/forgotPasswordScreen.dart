@@ -61,22 +61,23 @@ class _FindAccountScreenState extends State<FindAccountScreen>
       setState(() => _errorMessage = '성함과 이메일을 모두 입력해 주세요.');
       return;
     }
-
     setState(() {
       _isLoading = true;
       _errorMessage = null;
-      _foundId = null;
     });
 
     try {
       // 💡 AuthProvider에 findId 기능을 구현하여 호출해야 합니다.
-      final resultId = await context.read<AuthProvider>().findId(
+      await context.read<AuthProvider>().findId(
             _nameController.text.trim(),
             _emailForIdController.text.trim(),
           );
 
       if (mounted) {
-        setState(() => _foundId = resultId);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('아이디를 성공적으로 전송하였습니다.')),
+        );
+        Navigator.pop(context);
       }
     } catch (e) {
       print("아이디 찾기 에러 발생: $e");
@@ -180,36 +181,46 @@ class _FindAccountScreenState extends State<FindAccountScreen>
                 onPressed: _isLoading ? null : _handleFindId,
                 child: _isLoading
                     ? _buildLoadingIndicator()
-                    : const Text('아이디 찾기'),
+                    : const Text('이메일 전송'),
               ),
             ),
-            // 아이디 결과 표시 영역
-            if (_foundId != null) ...[
-              const SizedBox(height: 32),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.grey[300]!),
-                ),
-                child: Column(
-                  children: [
-                    const Text('확인된 아이디 정보',
-                        style: TextStyle(fontSize: 14, color: Colors.grey)),
-                    const SizedBox(height: 8),
-                    Text(
-                      _foundId!,
-                      style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textPrimary),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            // const SizedBox(height: 24),
+            // SizedBox(
+            //   width: double.infinity,
+            //   child: ElevatedButton(
+            //     onPressed: _isLoading ? null : _handleFindId,
+            //     child: _isLoading
+            //         ? _buildLoadingIndicator()
+            //         : const Text('아이디 찾기'),
+            //   ),
+            // ),
+            // // 아이디 결과 표시 영역
+            // if (_foundId != null) ...[
+            //   const SizedBox(height: 32),
+            //   Container(
+            //     width: double.infinity,
+            //     padding: const EdgeInsets.all(16),
+            //     decoration: BoxDecoration(
+            //       color: Colors.grey[100],
+            //       borderRadius: BorderRadius.circular(8),
+            //       border: Border.all(color: Colors.grey[300]!),
+            //     ),
+            //     child: Column(
+            //       children: [
+            //         const Text('확인된 아이디 정보',
+            //             style: TextStyle(fontSize: 14, color: Colors.grey)),
+            //         const SizedBox(height: 8),
+            //         Text(
+            //           _foundId!,
+            //           style: const TextStyle(
+            //               fontSize: 18,
+            //               fontWeight: FontWeight.bold,
+            //               color: AppColors.textPrimary),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ],
           ],
         ),
       ),

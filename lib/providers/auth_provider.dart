@@ -120,7 +120,7 @@ class AuthProvider extends ChangeNotifier {
   }
 
   // 💡 아이디 찾기 기능 추가
-  Future<String> findId(String name, String email) async {
+  Future<void> findId(String name, String email) async {
     try {
       // 본인의 백엔드 '아이디 찾기' API 주소로 변경하세요.
       final response = await _apiClient.dio.post(
@@ -133,9 +133,15 @@ class AuthProvider extends ChangeNotifier {
 
       // 서버 응답에서 사번(아이디) 추출 (백엔드가 주는 key 이름에 맞게 수정하세요)
       // 예: { "employeeNumber": "EMP123456" } 형태로 온다고 가정한 코드입니다.
-      final String foundEmployeeNumber = response.data['employeeNumber'];
+      // final String foundEmployeeNumber = response.data['employeeNumber'];
 
-      return foundEmployeeNumber;
+      // return foundEmployeeNumber;
+
+      if (response.statusCode != 200) {
+        throw Exception('발송 실패');
+      }
+
+      notifyListeners(); // 필요한 경우 상태 업데이트
     } catch (e) {
       // 에러를 화면단(FindAccountScreen)으로 던져서 에러 메시지를 띄우게 합니다.
       rethrow;
