@@ -6,6 +6,7 @@ import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
+import '../widgets/date_range_dialog.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   
@@ -26,8 +27,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   String _buttonLabel = '전체';  //로드시 기본 버튼 라벨
   final Set<int> _processingIds = {};
   // 오늘 날짜 구하기
-  DateTime _today = DateTime.now();
-
+  final DateTime _today = DateTime.now();
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -49,25 +50,19 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     setState(() => _isLoading = true);
     try {
       final queryParams = <String, dynamic>{};
-      /* if(widget.status != null && _statusFilter == null){
-        _statusFilter = widget.status;
-        queryParams['status'] = _statusFilter;
-        widget.status = '';
-      } */
       if (_statusFilter != null) {
         queryParams['status'] = _statusFilter;
       }
       
-      if(_today != null){
-        // 오늘 날짜가 속한 연도 구하기
-        int year = _today.year;
+      //기본 당해년도 조회 날짜 세팅
+      // 오늘 날짜가 속한 연도 구하기
+      int year = _today.year;
 
-        // 그 연도의 1월 1일 날짜 만들기
-        DateTime firstDayOfYear = DateTime(year, 1, 1);
+      // 그 연도의 1월 1일 날짜 만들기
+      DateTime firstDayOfYear = DateTime(year, 1, 1);
 
-        queryParams['startDate'] = _formatDate(firstDayOfYear);
-        queryParams['endDate'] = _formatDate(_today);
-      }
+      queryParams['startDate'] = _formatDate(firstDayOfYear);
+      queryParams['endDate'] = _formatDate(_today);
       
       if (_dateRange != null) {
         queryParams['startDate'] = _formatDate(_dateRange!.start);
@@ -87,6 +82,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   bool _isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
@@ -152,28 +153,32 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   }
 
   String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
 
   Future<void> _pickDateRange() async {
-    final now = DateTime.now();
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(now.year - 1),
-      lastDate: DateTime(now.year + 1),
-      initialDateRange: _dateRange,
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.slate),
+  final picked = await showDialog<DateTimeRange>(
+    context: context,
+    barrierDismissible: false,
+    builder: (context) => Theme(
+      data: Theme.of(context).copyWith(
+        colorScheme: Theme.of(context).colorScheme.copyWith(
+          primary: AppColors.slate,
         ),
-        child: child!,
       ),
-    );
+      child: DateRangeDialog(
+        initialRange: _dateRange,
+      ),
+    ),
+  );
 
-    if (picked != null) {
-      setState(() => _dateRange = picked);
-      _fetch();
-    }
+  if (picked != null) {
+    setState(() {
+      _dateRange = picked;
+    });
+
+    _fetch();
   }
+}
 
   void _setFilter(String? status) {
     setState(() => _statusFilter = status);
@@ -311,118 +316,99 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                 ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
                 : _items.isEmpty
                     ? const Center(child: Text('조회된 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(20),
-                        itemCount: _items.length,
-                        itemBuilder: (context, index) {
-                          final item = _items[index];
-                          final isProcessing = _processingIds.contains(item.requestId);
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.divider),
+                    : Theme(
+                        data: Theme.of(context).copyWith(
+                          scrollbarTheme: ScrollbarThemeData(
+                            thumbColor: WidgetStatePropertyAll(
+                              Colors.black.withValues(alpha: 0.3),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${item.employeeName} ${item.position}',
-                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
-                                    Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                                    LeaveStatusBadge(status: item.status),
-                                  ],
+                            thickness: WidgetStatePropertyAll(5),
+                            radius: const Radius.circular(8),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          interactive: true,
+                          child: ListView.builder(
+                            controller: _scrollController, // 추가
+                            padding: const EdgeInsets.all(20),
+                            itemCount: _items.length,
+                            itemBuilder: (context, index) {
+                              final item = _items[index];
+                              final isProcessing = _processingIds.contains(item.requestId);
+                              return Container(
+                                margin: const EdgeInsets.only(bottom: 12),
+                                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: AppColors.divider),
                                 ),
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.baseline,   
-                                  textBaseline: TextBaseline.alphabetic,   
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const SizedBox(height: 10),
-                                    Text('${item.startDate} — ${item.endDate}',
-                                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                    const SizedBox(width: 12),  
-                                    Text('(${item.useDays}일)', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                                    const SizedBox(width: 70), 
-                                    // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
-                                    if (_isCancelable(item, userEmployeeNumber)) ...[
-                                      const SizedBox(height: 20),
-                                      const Divider(height: 1, color: AppColors.divider),
-                                      const SizedBox(height: 4),
-                                      Align(
-                                        alignment: Alignment.centerRight,
-                                        child: TextButton(
-                                          onPressed: isProcessing ? null : () => _confirmCancel(item),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          ),
-                                          child: isProcessing
-                                              ? const SizedBox(
-                                            width: 14, height: 14,
-                                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-                                          )
-                                              : const Text(
-                                            '신청 취소',
-                                            style: TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.textMuted,
-                                              decoration: TextDecoration.underline,
-                                              decorationColor: AppColors.textMuted,
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text('${item.employeeName} ${item.position}',
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
+                                        Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                        LeaveStatusBadge(status: item.status),
+                                      ],
+                                    ),
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,   
+                                      textBaseline: TextBaseline.alphabetic,   
+                                      children: [
+                                        const SizedBox(height: 10),
+                                        Text('${item.startDate} — ${item.endDate}',
+                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                                        const SizedBox(width: 12),  
+                                        Text('(${item.useDays}일)', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
+                                        const SizedBox(width: 70), 
+                                        // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
+                                        if (_isCancelable(item, userEmployeeNumber)) ...[
+                                          const SizedBox(height: 20),
+                                          const Divider(height: 1, color: AppColors.divider),
+                                          const SizedBox(height: 4),
+                                          Align(
+                                            alignment: Alignment.centerRight,
+                                            child: TextButton(
+                                              onPressed: isProcessing ? null : () => _confirmCancel(item),
+                                              style: TextButton.styleFrom(
+                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                                minimumSize: Size.zero,
+                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                              ),
+                                              child: isProcessing
+                                                  ? const SizedBox(
+                                                width: 14, height: 14,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+                                              )
+                                                  : const Text(
+                                                '신청 취소',
+                                                style: TextStyle(
+                                                  fontSize: 12.5,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textMuted,
+                                                  decoration: TextDecoration.underline,
+                                                  decorationColor: AppColors.textMuted,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        ),
-                                      ),
-                                    ],
-                                  ]
-                                )
-                              ],
-                            ),
-                          );
-                        },
-                    
-          ),),
+                                        ],
+                                      ]
+                                    )
+                                  ],
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                    ),
+          ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.slate : AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? AppColors.slate : AppColors.divider),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : AppColors.textMuted,
-            ),
-          ),
-        ),
       ),
     );
   }

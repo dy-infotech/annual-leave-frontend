@@ -16,6 +16,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
   bool _isLoading = true;
   String? _errorMessage;
   final Set<int> _processingIds = {};
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void initState() {
@@ -42,6 +43,12 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     } finally {
       setState(() => _isLoading = false);
     }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
   }
 
   // 승인 전 확인 다이얼로그
@@ -228,112 +235,127 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: _requests.length,
-      itemBuilder: (context, index) {
-        final req = _requests[index];
-        final isProcessing = _processingIds.contains(req.requestId);
+    return Theme(
+              data: Theme.of(context).copyWith(
+                scrollbarTheme: ScrollbarThemeData(
+                  thumbColor: WidgetStatePropertyAll(
+                    Colors.black.withValues(alpha: 0.3),
+                  ),
+                  thickness: WidgetStatePropertyAll(5),
+                  radius: const Radius.circular(8),
+                ),
+              ),
+              child: Scrollbar(
+                controller: _scrollController,
+                interactive: true,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(20),
+                  itemCount: _requests.length,
+                  itemBuilder: (context, index) {
+                    final req = _requests[index];
+                    final isProcessing = _processingIds.contains(req.requestId);
 
-        return Container(
-          margin: const EdgeInsets.only(bottom: 14),
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: AppColors.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '${req.employeeName} ${req.position} (${req.employeeNumber})',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15.5,
-                    ),
-                  ),
-                  Text(
-                    req.department,
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 12.5,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Text(
-                    '${req.startDate} — ${req.endDate}',
-                    style: const TextStyle(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Text(
-                    '(${req.useDays}일)',
-                    style: const TextStyle(
-                      color: AppColors.textMuted,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: isProcessing
-                          ? null
-                          : () => _confirmApprove(req),
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 30),  // 높이 줄임, 너비는 Expanded가 맞춤
-                        padding: const EdgeInsets.symmetric(vertical: 6),
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 14),
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(color: AppColors.divider),
                       ),
-                      child: isProcessing
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${req.employeeName} ${req.position} (${req.employeeNumber})',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15.5,
+                                ),
                               ),
-                            )
-                          : const Text('승인'),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: isProcessing
-                          ? null
-                          : () => _showRejectDialog(req),
-                      
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 30),  // 버튼 높이 작게
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        foregroundColor: AppColors.coral,
-                        side: const BorderSide(
-                          color: AppColors.coral,
-                          width: 1.3,
-                        ),
+                              Text(
+                                req.department,
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Text(
+                                '${req.startDate} — ${req.endDate}',
+                                style: const TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Text(
+                                '(${req.useDays}일)',
+                                style: const TextStyle(
+                                  color: AppColors.textMuted,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: isProcessing
+                                      ? null
+                                      : () => _confirmApprove(req),
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(0, 30),  // 높이 줄임, 너비는 Expanded가 맞춤
+                                    padding: const EdgeInsets.symmetric(vertical: 6),
+                                  ),
+                                  child: isProcessing
+                                      ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : const Text('승인'),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton(
+                                  onPressed: isProcessing
+                                      ? null
+                                      : () => _showRejectDialog(req),
+                                  
+                                  style: OutlinedButton.styleFrom(
+                                    minimumSize: const Size(0, 30),  // 버튼 높이 작게
+                                    padding: const EdgeInsets.symmetric(vertical: 6),
+                                    foregroundColor: AppColors.coral,
+                                    side: const BorderSide(
+                                      color: AppColors.coral,
+                                      width: 1.3,
+                                    ),
+                                  ),
+                                  child: const Text('반려'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      child: const Text('반려'),
-                    ),
-                  ),
-                ],
+                    );
+                  },
+                ),
               ),
-            ],
-          ),
-        );
-      },
     );
   }
 }

@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
-import '../providers/auth_provider.dart';
 
 class MyLeaveRequestsScreen extends StatefulWidget {
 
@@ -162,7 +160,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   @override
   Widget build(BuildContext context) {
     //로그인 사용자 정보
-    final info = context.watch<AuthProvider>().employeeInfo;
+    //final info = context.watch<AuthProvider>().employeeInfo;
     
     
     final List<Map<String, String?>> statusOptions = [
@@ -339,41 +337,6 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _FilterChip({required this.label, required this.selected, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8, bottom: 8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-          decoration: BoxDecoration(
-            color: selected ? AppColors.slate : AppColors.surface,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: selected ? AppColors.slate : AppColors.divider),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: selected ? Colors.white : AppColors.textMuted,
-            ),
-          ),
-        ),
       ),
     );
   }
