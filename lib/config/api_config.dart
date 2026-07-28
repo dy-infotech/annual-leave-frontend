@@ -19,6 +19,5 @@ class ApiConfig {
     // iOS 시뮬레이터
     return 'https://app.dyinfotech.com';
     // return 'http://localhost:8080';
-    // return 'http://192.168.0.5:8080';
   }
 }
