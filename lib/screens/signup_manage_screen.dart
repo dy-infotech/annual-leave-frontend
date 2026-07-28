@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
+import '../widgets/date_input_dialog.dart';
 
 class SignupManageScreen extends StatefulWidget {
   const SignupManageScreen({super.key});
@@ -24,7 +25,6 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   String? _departmentError;    //부서에러
   String? _teamError;          //팀에러
   String? _positionError;      //직급에러
-  String? _managerYnError;     //관리자여부에러
   String? _emailError;         //이메일에러
   String? _hireDateError;      //입사일에러
   
@@ -96,10 +96,6 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
       setState(() => _positionError = '직급을 입력해 주세요.');
       return;
     }
-    if (_selectedManagerYn == null) {
-      setState(() => _managerYnError = '관리자여부를 선택해 주세요.');
-      return;
-    }
     if (_emailController.text.isEmpty) {
       setState(() => _emailError = '이메일 정보를 입력해 주세요.');
       return;
@@ -143,14 +139,21 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   }
 
   Future<void> _selectDate() async {
-    final DateTime? picked = await showDatePicker(
+    /*final DateTime? picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
       locale: const Locale('ko'),
-    );
+    );*/
 
+    final DateTime? picked = await showDialog<DateTime>(
+    context: context,
+      builder: (_) => DateInputDialog(
+        initialDate: _selectedDate,
+      ),
+    );
+    
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
