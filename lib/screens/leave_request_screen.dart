@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/enums/LeaveType.dart';
+import '../providers/dashboard_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/leave_request_list_provider.dart';
 import '../services/api_client.dart';
@@ -38,6 +39,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         LeaveType.pmHalf,
       ].contains(_selectedLeaveType);
 
+  // ✨ 서버 연동을 위한 로컬 상태 변수
+  bool _isLoadingLeave = true;
+  double _remainingLeaveDays = 0.0; // 연차가 반차(0.5일) 단위를 쓸 수 있으므로 double 권장
+
   @override
   void initState() {
     super.initState();
@@ -47,7 +52,50 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       // 캘린더에 별표를 표시하기 위해, 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
       // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
       context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
+
+      // 2. ✨ 실시간 잔여 연차 조회를 서버에 요청 (추가 완료)
+      _fetchRemainingLeave();
     });
+  }
+
+  // 2. 서버 API 호출 함수
+  Future<void> _fetchRemainingLeave() async {
+    // setState(() {
+    //   _isLoadingLeave = true;
+    // });
+    // 1. AuthProvider에서 현재 로그인한 사원의 사번 안전하게 추출
+    final employeeNumber =
+        context.read<AuthProvider>().employeeInfo?.employeeNumber ?? '';
+
+    if (employeeNumber.isEmpty) {
+      debugPrint('사번 정보가 없어 조회를 스킵합니다.');
+      return;
+    }
+
+    try {
+      final remainingPTO = await ApiClient().getRemainingPTO(employeeNumber);
+
+      await Future.delayed(
+          const Duration(milliseconds: 800)); // API 네트워크 지연 시뮬레이션
+
+      if (mounted) {
+        setState(() {
+          _remainingLeaveDays =
+              remainingPTO.remainingLeaveDays; // 백엔드가 계산한 잔여 연차 대입
+          _isLoadingLeave = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingLeave = false;
+        });
+        // 에러 처리 (스낵바 표시 등)
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('잔여 연차 정보를 불러오지 못했습니다.')),
+        );
+      }
+    }
   }
 
   // 주말 + 공휴일 제외하고 계산
@@ -277,6 +325,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<DashboardProvider>();
+    provider.fetchDashboard(); // 화면 진입 시 대시보드 정보 갱신
     final authProvider = context.watch<AuthProvider>().employeeInfo;
     final holidayProvider = context.watch<PublicHolidayProvider>();
     final leaveReqProvider = context.watch<LeaveRequestListProvider>();
@@ -316,24 +366,56 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
+                              // children: [
+                              //   Text(
+                              //     authProvider != null
+                              //         ? '${authProvider.name} ${authProvider.position} ${authProvider.department}'
+                              //         : '',
+                              //     overflow: TextOverflow.ellipsis,
+                              //     style: const TextStyle(
+                              //         fontSize: 15,
+                              //         fontWeight: FontWeight.w800,
+                              //         color: AppColors.textPrimary),
+                              //   ),
+                              //   const SizedBox(height: 3),
+                              //   // Text(
+                              //   //   '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
+                              //   //   overflow: TextOverflow.ellipsis,
+                              //   //   style: const TextStyle(
+                              //   //       fontSize: 12, color: AppColors.textMuted),
+                              //   // ),
+                              // ],
                               children: [
-                                Text(
-                                  authProvider != null
-                                      ? '${authProvider.name} ${authProvider.position}'
-                                      : '',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                      color: AppColors.textPrimary),
-                                ),
+                                if (authProvider != null)
+                                  // ✨ 가로로 배치하기 위해 Row 사용
+                                  Row(
+                                    children: [
+                                      // 이름과 직급 (좌측 고정, 크고 진하게)
+                                      Text(
+                                        '${authProvider.name} ${authProvider.position}',
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textPrimary),
+                                      ),
+
+                                      // ✨ 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냅니다.
+                                      const Expanded(child: SizedBox()),
+
+                                      // 부서 정보 (우측 끝 고정, 작고 연하게)
+                                      Text(
+                                        authProvider.department,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w400),
+                                      ),
+                                      const SizedBox(
+                                          width: 4), // 우측 테두리와의 최소 여백
+                                    ],
+                                  ),
                                 const SizedBox(height: 3),
-                                Text(
-                                  '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: 12, color: AppColors.textMuted),
-                                ),
                               ],
                             ),
                           ),
@@ -370,24 +452,36 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      authProvider != null
-                                          ? '${authProvider.approverName} ${authProvider.approverPosition}'
-                                          : '',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.textPrimary),
-                                    ),
+                                    if (authProvider != null)
+                                      // ✨ 가로로 배치하기 위해 Row 사용
+                                      Row(
+                                        children: [
+                                          // 이름과 직급 (좌측 고정, 크고 진하게)
+                                          Text(
+                                            '${authProvider.approverName} ${authProvider.approverPosition}',
+                                            style: const TextStyle(
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.w800,
+                                                color: AppColors.textPrimary),
+                                          ),
+
+                                          // ✨ 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냅니다.
+                                          const Expanded(child: SizedBox()),
+
+                                          // 부서 정보 (우측 끝 고정, 작고 연하게)
+                                          Text(
+                                            authProvider.department,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textMuted,
+                                                fontWeight: FontWeight.w400),
+                                          ),
+                                          const SizedBox(
+                                              width: 4), // 우측 테두리와의 최소 여백
+                                        ],
+                                      ),
                                     const SizedBox(height: 3),
-                                    Text(
-                                      '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppColors.textMuted),
-                                    ),
                                   ],
                                 ),
                               ),
@@ -425,26 +519,41 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             // 인라인 캘린더
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   '신청 기간',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
                 const SizedBox(width: 10),
-                // 선택된 날짜 범위 텍스트 (라벨 바로 오른쪽에 붙임)
-                if (_startDate != null)
-                  Flexible(
-                    child: Text(
-                      _endDate == null
-                          ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                          : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontSize: 13,
-                          color: AppColors.textMuted,
-                          fontWeight: FontWeight.w600),
-                    ),
+
+                // ✨ Expanded를 조건문 바깥으로 빼서 날짜가 없어도 항상 공간을 차지하게 합니다.
+                Expanded(
+                  child: _startDate != null
+                      ? Text(
+                          _endDate == null
+                              ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                              : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 13,
+                              color: AppColors.textMuted,
+                              fontWeight: FontWeight.w600),
+                        )
+                      : const SizedBox(), // ✨ 날짜가 없을 때는 빈 공간으로 채워 우측 텍스트를 밀어냅니다.
+                ),
+
+                // 우측 끝에 완전히 고정되는 잔여 연차 표시
+                Padding(
+                  padding: const EdgeInsets.only(left: 10, right: 4),
+                  child: Text(
+                    _isLoadingLeave
+                        ? '조회 중...'
+                        : '잔여 ${provider.data?.myLeaveInfo.remainingLeaveDays ?? 0}일',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted),
                   ),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -721,19 +830,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               fontSize: 16,
                               fontWeight: FontWeight.w800,
                               color: AppColors.textMuted),
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      // 잔여 연차 보조 텍스트 (박스 우측 하단)
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: Padding(
-                          padding: const EdgeInsets.only(right: 4),
-                          child: Text(
-                            '잔여 ${authProvider?.remainingLeaveDays ?? 0}일',
-                            style: const TextStyle(
-                                fontSize: 12, color: AppColors.textMuted),
-                          ),
                         ),
                       ),
                     ],
