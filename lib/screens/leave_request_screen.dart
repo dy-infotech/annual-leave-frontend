@@ -39,10 +39,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         LeaveType.pmHalf,
       ].contains(_selectedLeaveType);
 
-  // ✨ 서버 연동을 위한 로컬 상태 변수
-  bool _isLoadingLeave = true;
-  double _remainingLeaveDays = 0.0; // 연차가 반차(0.5일) 단위를 쓸 수 있으므로 double 권장
-
   @override
   void initState() {
     super.initState();
@@ -52,51 +48,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       // 캘린더에 별표를 표시하기 위해, 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
       // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
       context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
-
-      // 2. ✨ 실시간 잔여 연차 조회를 서버에 요청 (추가 완료)
-      _fetchRemainingLeave();
     });
     context.read<AuthProvider>().fetchMyInfo();
-  }
-
-  // 2. 서버 API 호출 함수
-  Future<void> _fetchRemainingLeave() async {
-    // setState(() {
-    //   _isLoadingLeave = true;
-    // });
-    // 1. AuthProvider에서 현재 로그인한 사원의 사번 안전하게 추출
-    final employeeNumber =
-        context.read<AuthProvider>().employeeInfo?.employeeNumber ?? '';
-
-    if (employeeNumber.isEmpty) {
-      debugPrint('사번 정보가 없어 조회를 스킵합니다.');
-      return;
-    }
-
-    try {
-      final remainingPTO = await ApiClient().getRemainingPTO(employeeNumber);
-
-      await Future.delayed(
-          const Duration(milliseconds: 800)); // API 네트워크 지연 시뮬레이션
-
-      if (mounted) {
-        setState(() {
-          _remainingLeaveDays =
-              remainingPTO.remainingLeaveDays; // 백엔드가 계산한 잔여 연차 대입
-          _isLoadingLeave = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingLeave = false;
-        });
-        // 에러 처리 (스낵바 표시 등)
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('잔여 연차 정보를 불러오지 못했습니다.')),
-        );
-      }
-    }
   }
 
   // 주말 + 공휴일 제외하고 계산
@@ -548,9 +501,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 10, right: 4),
                   child: Text(
-                    _isLoadingLeave
-                        ? '조회 중...'
-                        : '잔여 ${provider.data?.myLeaveInfo.remainingLeaveDays ?? 0}일',
+                    '잔여 ${provider.data?.myLeaveInfo.remainingLeaveDays ?? 0}일',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textMuted),
                   ),
