@@ -91,7 +91,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     try {
 
       await ApiClient().dio.patch(
-        '/api/employees/me/modify-email',
+        '/api/employees/me/email',
         data: {"email":_emailController.text}
       );
       if (mounted) {
