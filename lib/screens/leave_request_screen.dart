@@ -33,10 +33,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
   bool get _needsReason => ![
-    LeaveType.full,
-    LeaveType.amHalf,
-    LeaveType.pmHalf,
-  ].contains(_selectedLeaveType);
+        LeaveType.full,
+        LeaveType.amHalf,
+        LeaveType.pmHalf,
+      ].contains(_selectedLeaveType);
 
   @override
   void initState() {
@@ -56,7 +56,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     int count = 0;
     DateTime cursor = _startDate!;
     while (!cursor.isAfter(_endDate!)) {
-      final isWeekend = cursor.weekday == DateTime.saturday || cursor.weekday == DateTime.sunday;
+      final isWeekend = cursor.weekday == DateTime.saturday ||
+          cursor.weekday == DateTime.sunday;
       final isHoliday = holidayProvider.isHoliday(cursor);
       if (!isWeekend && !isHoliday) count++;
       cursor = cursor.add(const Duration(days: 1));
@@ -88,19 +89,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         _endDate = selectedDay;
         _useDaysController.text = '0.5';
         rangeConfirmed = true;
-
-      } else if (_startDate == null || (_startDate != null && _endDate != null)) {
+      } else if (_startDate == null ||
+          (_startDate != null && _endDate != null)) {
         _startDate = selectedDay;
         _endDate = null;
         _useDaysController.text = '0';
-
       } else if (selectedDay.isBefore(_startDate!)) {
         _startDate = selectedDay;
         _useDaysController.text = '0';
-
       } else {
         _endDate = selectedDay;
-        _useDaysController.text = _calculateUsableDays(holidayProvider).toString();
+        _useDaysController.text =
+            _calculateUsableDays(holidayProvider).toString();
         rangeConfirmed = true;
       }
     });
@@ -178,39 +178,39 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 셀 본체: 신청된 날짜는 별표, 그 외는 원형 배경 + 숫자
     final Widget body = isRequested
         ? Container(
-      margin: const EdgeInsets.all(4),
-      alignment: Alignment.center,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const Icon(
-            Icons.star_rounded,
-            size: 40,
-            color: Colors.yellow,
-          ),
-          Text(
-            '$day',
-            style: const TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w700,
-              fontSize: 12,
+            margin: const EdgeInsets.all(4),
+            alignment: Alignment.center,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                const Icon(
+                  Icons.star_rounded,
+                  size: 40,
+                  color: Colors.yellow,
+                ),
+                Text(
+                  '$day',
+                  style: const TextStyle(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ],
-      ),
-    )
+          )
         : Container(
-      margin: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        shape: BoxShape.circle,
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        '$day',
-        style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-      ),
-    );
+            margin: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              color: backgroundColor,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$day',
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+            ),
+          );
 
     // 오늘이 아니면 본체만 반환
     if (!isToday) return body;
@@ -256,7 +256,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('중복 신청 안내', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        title: const Text('중복 신청 안내',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: const Text(
           '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
           style: TextStyle(fontSize: 14, height: 1.5),
@@ -264,7 +265,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('확인', style: TextStyle(color: AppColors.slate, fontWeight: FontWeight.w700)),
+            child: const Text('확인',
+                style: TextStyle(
+                    color: AppColors.slate, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -296,12 +299,15 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('신청자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const Text('신청자',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 14)),
                         const SizedBox(height: 10),
                         Expanded(
                           child: Container(
                             width: double.infinity,
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
@@ -316,13 +322,17 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                       ? '${authProvider.name} ${authProvider.position}'
                                       : '',
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                  style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w800,
+                                      color: AppColors.textPrimary),
                                 ),
                                 const SizedBox(height: 3),
                                 Text(
                                   '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  style: const TextStyle(
+                                      fontSize: 12, color: AppColors.textMuted),
                                 ),
                               ],
                             ),
@@ -339,7 +349,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text('결재자', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                        const Text('결재자',
+                            style: TextStyle(
+                                fontWeight: FontWeight.w700, fontSize: 14)),
                         const SizedBox(height: 10),
                         Expanded(
                           child: Stack(
@@ -347,7 +359,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             children: [
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
@@ -362,13 +375,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                           ? '${authProvider.approverName} ${authProvider.approverPosition}'
                                           : '',
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                      style: const TextStyle(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: AppColors.textPrimary),
                                     ),
                                     const SizedBox(height: 3),
                                     Text(
                                       '${authProvider?.approverDepartment ?? ''} · ${authProvider?.approverNumber ?? ''}',
                                       overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                      style: const TextStyle(
+                                          fontSize: 12,
+                                          color: AppColors.textMuted),
                                     ),
                                   ],
                                 ),
@@ -381,7 +399,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 child: MouseRegion(
                                   cursor: SystemMouseCursors.help,
                                   child: Tooltip(
-                                    message: 'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
+                                    message:
+                                        'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
                                     triggerMode: TooltipTriggerMode.tap,
                                     showDuration: const Duration(seconds: 3),
                                     child: Container(
@@ -420,7 +439,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
                           : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(fontSize: 13, color: AppColors.textMuted, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textMuted,
+                          fontWeight: FontWeight.w600),
                     ),
                   ),
               ],
@@ -482,20 +504,25 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                 ),
                 selectedDayPredicate: (day) =>
-                _startDate != null && isSameDay(day, _startDate) ||
+                    _startDate != null && isSameDay(day, _startDate) ||
                     _endDate != null && isSameDay(day, _endDate),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday ||
+                        day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
-                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
+                    final isRequested = (isGrayed == false) &&
+                        leaveReqProvider.isRequestedDate(day);
 
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
-                        backgroundColor: isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
-                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        backgroundColor: isGrayed
+                            ? Colors.grey.withOpacity(0.3)
+                            : AppColors.slate,
+                        textColor:
+                            isGrayed ? AppColors.textMuted : Colors.white,
                         isRequested: isRequested,
                       );
                     }
@@ -505,7 +532,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       return _buildDayCell(
                         day: day.day,
                         backgroundColor: null,
-                        textColor: isHoliday ? AppColors.coral : AppColors.textPrimary,
+                        textColor:
+                            isHoliday ? AppColors.coral : AppColors.textPrimary,
                         isRequested: isRequested,
                       );
                     }
@@ -514,16 +542,21 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   },
                   todayBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday ||
+                        day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
-                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
+                    final isRequested = (isGrayed == false) &&
+                        leaveReqProvider.isRequestedDate(day);
 
                     // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
-                        backgroundColor: isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
-                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        backgroundColor: isGrayed
+                            ? Colors.grey.withOpacity(0.3)
+                            : AppColors.slate,
+                        textColor:
+                            isGrayed ? AppColors.textMuted : Colors.white,
                         isRequested: isRequested,
                         isToday: true,
                       );
@@ -533,7 +566,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     return _buildDayCell(
                       day: day.day,
                       backgroundColor: null,
-                      textColor: isGrayed ? AppColors.coral : AppColors.textPrimary,
+                      textColor:
+                          isGrayed ? AppColors.coral : AppColors.textPrimary,
                       isRequested: isRequested,
                       isToday: true,
                     );
@@ -555,7 +589,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('휴가 종류', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const Text('휴가 종류',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
                         height: 50,
@@ -569,21 +605,26 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           child: DropdownButton<LeaveType>(
                             value: _selectedLeaveType,
                             isExpanded: true,
-                            icon: const Icon(Icons.keyboard_arrow_down, color: AppColors.textMuted),
+                            icon: const Icon(Icons.keyboard_arrow_down,
+                                color: AppColors.textMuted),
                             items: LeaveType.values.map((type) {
                               return DropdownMenuItem(
                                 value: type,
                                 child: Text(
                                   type.label,
-                                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                  style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600),
                                 ),
                               );
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
-                                final wasHalfDay = _selectedLeaveType == LeaveType.amHalf ||
-                                    _selectedLeaveType == LeaveType.pmHalf;
-                                final isHalfDay = value == LeaveType.amHalf || value == LeaveType.pmHalf;
+                                final wasHalfDay =
+                                    _selectedLeaveType == LeaveType.amHalf ||
+                                        _selectedLeaveType == LeaveType.pmHalf;
+                                final isHalfDay = value == LeaveType.amHalf ||
+                                    value == LeaveType.pmHalf;
 
                                 final willShowReason = ![
                                   LeaveType.full,
@@ -594,18 +635,51 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 setState(() {
                                   _selectedLeaveType = value;
 
+                                  // if (isHalfDay) {
+                                  //   _useDaysController.text = '0.5';
+                                  // } else if (wasHalfDay) {
+                                  //   _useDaysController.text = '0';
+                                  // }
                                   if (isHalfDay) {
-                                    _useDaysController.text = '0.5';
+                                    // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
+                                    if (_startDate != null &&
+                                        _endDate != null &&
+                                        _startDate != _endDate) {
+                                      _startDate = null;
+                                      _endDate = null;
+                                      _useDaysController.text = '0';
+                                    }
+                                    // 정확히 하루만 선택되어 있었다면 반차(0.5일) 기간으로 동기화
+                                    else if (_startDate != null) {
+                                      _endDate = _startDate; // 시작일과 종료일을 같게 설정
+                                      _useDaysController.text = '0.5';
+                                    }
+                                    // 날짜가 아예 선택되지 않은 상태라면 사용일수만 0.5로 설정
+                                    else {
+                                      _useDaysController.text = '0.5';
+                                    }
                                   } else if (wasHalfDay) {
-                                    _useDaysController.text = '0';
+                                    // 반차에서 일반 휴가로 바꿀 때, 기존에 선택된 날짜가 있다면 사용일수 재계산
+                                    if (_startDate != null) {
+                                      // 이미 하루 이상 선택되어 있다면 종료일 확인 후 재계산 (holidayProvider 필요)
+                                      _useDaysController
+                                          .text = _calculateUsableDays(context
+                                              .read<PublicHolidayProvider>())
+                                          .toString();
+                                    } else {
+                                      _useDaysController.text = '0';
+                                    }
                                   }
                                 });
 
                                 if (willShowReason) {
-                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                  WidgetsBinding.instance
+                                      .addPostFrameCallback((_) {
                                     _scrollController.animateTo(
-                                      _scrollController.position.maxScrollExtent,
-                                      duration: const Duration(milliseconds: 300),
+                                      _scrollController
+                                          .position.maxScrollExtent,
+                                      duration:
+                                          const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
                                     );
                                   });
@@ -626,12 +700,15 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('사용 연차', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      const Text('사용 연차',
+                          style: TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 14)),
                       const SizedBox(height: 10),
                       Container(
                         height: 50,
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(
                           color: AppColors.divider.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(12),
@@ -640,7 +717,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         child: Text(
                           '${_useDaysController.text} 일',
                           textAlign: TextAlign.right,
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: AppColors.textMuted),
+                          style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textMuted),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -651,7 +731,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           padding: const EdgeInsets.only(right: 4),
                           child: Text(
                             '잔여 ${authProvider?.remainingLeaveDays ?? 0}일',
-                            style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
+                            style: const TextStyle(
+                                fontSize: 12, color: AppColors.textMuted),
                           ),
                         ),
                       ),
@@ -663,7 +744,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
             // 사유 입력란 (연차/반차 외 항목 선택 시에만 표시)
             if (_needsReason) ...[
-              const Text('사유', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+              const Text('사유',
+                  style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 10),
               TextField(
                 controller: _reasonController,
@@ -671,7 +753,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
                   hintText: '휴가 사유를 입력해주세요',
-                  hintStyle: TextStyle(color: AppColors.textMuted.withOpacity(0.6)),
+                  hintStyle:
+                      TextStyle(color: AppColors.textMuted.withOpacity(0.6)),
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -697,13 +780,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 onPressed: _isSubmitting ? null : _handleSubmit,
                 child: _isSubmitting
                     ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
                     : const Text('신청하기'),
               ),
             ),
