@@ -518,10 +518,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: TableCalendar(
                 locale: 'ko_KR',
+                rowHeight: 42, // 기본 52 > 42
+                daysOfWeekHeight: 22, // 기존 28 > 22 (요일 헤더도 축소)
                 firstDay: DateTime.now().subtract(const Duration(days: 365)),
                 lastDay: DateTime.now().add(const Duration(days: 365)),
                 focusedDay: _focusedDay,
-                daysOfWeekHeight: 28,
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
