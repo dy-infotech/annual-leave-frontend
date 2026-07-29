@@ -48,6 +48,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
       context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
     });
+    context.read<AuthProvider>().fetchMyInfo();
   }
 
   // 주말 + 공휴일 제외하고 계산
