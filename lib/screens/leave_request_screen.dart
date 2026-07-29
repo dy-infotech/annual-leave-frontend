@@ -56,6 +56,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       // 2. ✨ 실시간 잔여 연차 조회를 서버에 요청 (추가 완료)
       _fetchRemainingLeave();
     });
+    context.read<AuthProvider>().fetchMyInfo();
   }
 
   // 2. 서버 API 호출 함수
