@@ -1,6 +1,6 @@
 {
-    "name": "annual_leave_frontend",
-    "short_name": "annual_leave_frontend",
+    "name": "근태 관리",
+    "short_name": "근태 관리",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#F9F9F8",
