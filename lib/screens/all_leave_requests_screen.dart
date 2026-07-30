@@ -1,4 +1,6 @@
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
+import 'package:annual_leave_frontend/providers/leave_request_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_client.dart';
@@ -7,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 import '../widgets/date_range_dialog.dart';
+import 'package:annual_leave_frontend/main.dart';
 import 'package:intl/intl.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
@@ -19,7 +22,7 @@ class AllLeaveRequestsScreen extends StatefulWidget {
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
 }
 
-class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
+class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with RouteAware{
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
@@ -60,9 +63,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
       // 그 연도의 1월 1일 날짜 만들기
       DateTime firstDayOfYear = DateTime(year, 1, 1);
+      DateTime lastDayOfYear = DateTime(year, 12, 31);
 
       queryParams['startDate'] = _formatDate(firstDayOfYear);
-      queryParams['endDate'] = _formatDate(_today);
+      queryParams['endDate'] = _formatDate(lastDayOfYear);
 
       if (_dateRange != null) {
         queryParams['startDate'] = _formatDate(_dateRange!.start);
@@ -86,9 +90,29 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final route = ModalRoute.of(context);
+
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+
+  @override
   void dispose() {
     _scrollController.dispose();
+    routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+
+  @override
+  void didPopNext() {
+    // 다른 화면에서 돌아왔을 때
+    _fetch();
   }
 
   bool _isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
