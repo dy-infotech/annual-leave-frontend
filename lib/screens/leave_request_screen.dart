@@ -279,7 +279,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
     final effectiveEndDate = _endDate ?? _startDate!;
 
-    if (!listProvider.hasOverlap(_startDate!, effectiveEndDate)) {
+    if (!listProvider.hasOverlap(_startDate!, effectiveEndDate, _selectedLeaveType.code)) {
       return false;
     }
 

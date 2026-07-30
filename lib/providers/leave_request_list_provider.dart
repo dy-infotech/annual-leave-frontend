@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/enums/LeaveState.dart';
+import '../models/enums/LeaveType.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 
@@ -36,12 +37,12 @@ class LeaveRequestListProvider extends ChangeNotifier {
     }
   }
 
-  // 휴가 신청 화면에서 선택한 기간(start~end)이 기존 신청(대기(PENDING)/승인(APPROVED))과 겹치는지 확인
-  bool hasOverlap(DateTime start, DateTime end) {
+  // 새 신청의 기간(start~end)과 종류(newLeaveType)가 기존 신청과 겹치는지 확인
+  bool hasOverlap(DateTime start, DateTime end, String newLeaveType) {
     // 시간 정보를 제거하고 순수 날짜(연/월/일)만 남긴 로컬 DateTime으로 정규화
     DateTime normalize(DateTime dateTime) {
       final local = dateTime.toLocal(); // 1. UTC든 로컬이든 로컬 시간대로 통일
-      return DateTime(local.year, local.month, local.day); // 2. 시/분/초 제외하고 날짜만 남김
+      return DateTime(local.year, local.month, local.day);  // 2. 시/분/초 제외하고 날짜만 남김
     }
 
     final normalizedStart = normalize(start);
@@ -52,8 +53,27 @@ class LeaveRequestListProvider extends ChangeNotifier {
         .any((item) {
       final itemStart = normalize(DateTime.parse(item.startDate));
       final itemEnd = normalize(DateTime.parse(item.endDate));
-      return !normalizedStart.isAfter(itemEnd) && !normalizedEnd.isBefore(itemStart);
+
+      // 1. 날짜 범위가 안 겹치면 무조건 겹침 아님
+      final dateOverlaps = !normalizedStart.isAfter(itemEnd) && !normalizedEnd.isBefore(itemStart);
+      if (!dateOverlaps) return false;
+
+      // 2. 날짜는 겹치는데, 둘 다 반차이고 오전/오후가 서로 다르면 겹침 아님
+      // (예: 기존 오전 반차 + 신규 오후 반차 -> 허용)
+      if (_isHalf(newLeaveType) && _isHalf(item.leaveType)) {
+        // 서로 다른 반차 시간대면 겹치지 않음
+        if (newLeaveType != item.leaveType) return false;
+      }
+
+      // 그 외(종일이 하나라도 끼거나, 같은 시간대 반차끼리)는 겹침
+      return true;
     });
+  }
+
+  // 반차(오전/오후) 여부
+  bool _isHalf(String leaveType) {
+    return leaveType == LeaveType.amHalf.code ||
+        leaveType == LeaveType.pmHalf.code;
   }
 
   // 캘린더에 별표 표시할 날짜인지 확인 (대기/승인 상태만)
