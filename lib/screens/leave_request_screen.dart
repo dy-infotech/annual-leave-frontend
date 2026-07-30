@@ -142,6 +142,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
     }
 
+    // 최종 확인 다이얼로그
+    if (!await _confirmSubmit()) {
+      return;
+    }
+
     setState(() {
       _isSubmitting = true;
       _errorMessage = null;
@@ -302,6 +307,76 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       ),
     );
     return true;
+  }
+
+  // 신청 전 최종 확인 다이얼로그
+  Future<bool> _confirmSubmit() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('휴가 신청 확인',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('아래 내용으로 신청하시겠습니까?',
+                style: TextStyle(fontSize: 14, height: 1.5)),
+            const SizedBox(height: 14),
+            _confirmRow('휴가 종류', _selectedLeaveType.label),
+            const SizedBox(height: 6),
+            _confirmRow(
+              '기간',
+              _endDate == null || _startDate == _endDate
+                  ? _formatDate(_startDate!)
+                  : '${_formatDate(_startDate!)} ~ ${_formatDate(_endDate!)}',
+            ),
+            const SizedBox(height: 6),
+            _confirmRow('사용 연차', '${_useDaysController.text}일'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소',
+                style: TextStyle(
+                    color: AppColors.textMuted, fontWeight: FontWeight.w700)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('신청',
+                style: TextStyle(
+                    color: AppColors.slate, fontWeight: FontWeight.w800)),
+          ),
+        ],
+      ),
+    );
+    return result ?? false; // 바깥 탭으로 닫히면 false
+  }
+
+// 확인 다이얼로그 내부의 한 줄 (라벨 + 값)
+  Widget _confirmRow(String label, String value) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 70,
+          child: Text(label,
+              style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textMuted)),
+        ),
+        Expanded(
+          child: Text(value,
+              style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary)),
+        ),
+      ],
+    );
   }
 
   @override
