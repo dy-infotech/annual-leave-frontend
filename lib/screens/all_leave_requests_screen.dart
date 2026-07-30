@@ -7,12 +7,12 @@ import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 import '../widgets/date_range_dialog.dart';
+import 'package:intl/intl.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
-  
   final String? status;
   final String? filter;
-  
+
   const AllLeaveRequestsScreen({super.key, this.status, this.filter});
 
   @override
@@ -24,7 +24,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
   DateTimeRange? _dateRange;
-  String _buttonLabel = '전체';  //로드시 기본 버튼 라벨
+  String _buttonLabel = '전체'; //로드시 기본 버튼 라벨
   final Set<int> _processingIds = {};
   // 오늘 날짜 구하기
   final DateTime _today = DateTime.now();
@@ -33,16 +33,16 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   @override
   void initState() {
     super.initState();
-    
-    if(widget.status != null){
+
+    if (widget.status != null) {
       _statusFilter = widget.status;
 
-      if(widget.filter != null){
-        _buttonLabel = widget.filter! == 'my' ? "내 신청": "전체";
+      if (widget.filter != null) {
+        _buttonLabel = widget.filter! == 'my' ? "내 신청" : "전체";
       }
       _setFilter(widget.status);
     }
-    
+
     _fetch();
   }
 
@@ -53,7 +53,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       if (_statusFilter != null) {
         queryParams['status'] = _statusFilter;
       }
-      
+
       //기본 당해년도 조회 날짜 세팅
       // 오늘 날짜가 속한 연도 구하기
       int year = _today.year;
@@ -63,22 +63,23 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
       queryParams['startDate'] = _formatDate(firstDayOfYear);
       queryParams['endDate'] = _formatDate(_today);
-      
+
       if (_dateRange != null) {
         queryParams['startDate'] = _formatDate(_dateRange!.start);
         queryParams['endDate'] = _formatDate(_dateRange!.end);
       }
 
       final response = await ApiClient().dio.get(
-        _buttonLabel == "내 신청" ? '/api/leave-requests/my' : '/api/leave-requests/all',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
-      );
+            _buttonLabel == "내 신청"
+                ? '/api/leave-requests/my'
+                : '/api/leave-requests/all',
+            queryParameters: queryParams.isEmpty ? null : queryParams,
+          );
       setState(() {
         _items = (response.data as List)
             .map((json) => LeaveRequestListItem.fromJson(json))
             .toList();
       });
-
     } finally {
       setState(() => _isLoading = false);
     }
@@ -91,11 +92,11 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
   }
 
   bool _isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
-    
-    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber) return true;
+    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber)
+      return true;
 
     return false;
-    
+
     /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
 
     final startDate = DateTime.parse(item.startDate);
@@ -112,7 +113,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
+        title:
+            const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           '${item.startDate} — ${item.endDate} (${item.useDays}일)\n신청을 취소하시겠습니까?',
           style: const TextStyle(fontSize: 14, height: 1.5),
@@ -120,11 +122,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('아니오', style: TextStyle(color: AppColors.textMuted)),
+            child:
+                const Text('아니오', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('취소하기', style: TextStyle(color: AppColors.coral, fontWeight: FontWeight.w700)),
+            child: const Text('취소하기',
+                style: TextStyle(
+                    color: AppColors.coral, fontWeight: FontWeight.w700)),
           ),
         ],
       ),
@@ -132,7 +137,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
     if (confirmed == true) {
       await _cancel(item.requestId);
-    } 
+    }
   }
 
   Future<void> _cancel(int requestId) async {
@@ -140,12 +145,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
     try {
       await ApiClient().dio.delete('/api/leave-requests/$requestId');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
       }
       await _fetch();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
       }
     } finally {
       setState(() => _processingIds.remove(requestId));
@@ -156,29 +163,29 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
 
   Future<void> _pickDateRange() async {
-  final picked = await showDialog<DateTimeRange>(
-    context: context,
-    barrierDismissible: false,
-    builder: (context) => Theme(
-      data: Theme.of(context).copyWith(
-        colorScheme: Theme.of(context).colorScheme.copyWith(
-          primary: AppColors.slate,
+    final picked = await showDialog<DateTimeRange>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: Theme.of(context).colorScheme.copyWith(
+                primary: AppColors.slate,
+              ),
+        ),
+        child: DateRangeDialog(
+          initialRange: _dateRange,
         ),
       ),
-      child: DateRangeDialog(
-        initialRange: _dateRange,
-      ),
-    ),
-  );
+    );
 
-  if (picked != null) {
-    setState(() {
-      _dateRange = picked;
-    });
+    if (picked != null) {
+      setState(() {
+        _dateRange = picked;
+      });
 
-    _fetch();
+      _fetch();
+    }
   }
-}
 
   void _setFilter(String? status) {
     setState(() => _statusFilter = status);
@@ -187,7 +194,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final userEmployeeNumber = context.watch<AuthProvider>().employeeInfo?.employeeNumber;
+    final userEmployeeNumber =
+        context.watch<AuthProvider>().employeeInfo?.employeeNumber;
     //final userEmployeeNumber = AuthProvider().employeeInfo?.employeeNumber;
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
@@ -206,23 +214,25 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
       body: Column(
         children: [
           SizedBox(
-            height: 60, 
+            height: 60,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.start, 
+                mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.25,
-                    height: 40,  // 원하는 높이로 조절
+                    height: 40, // 원하는 높이로 조절
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white, // 흰 바탕
-                        border: Border.all(color: Colors.grey.shade300), // 옅은 회색 테두리
+                        border: Border.all(
+                            color: Colors.grey.shade300), // 옅은 회색 테두리
                         borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
                       child: DropdownButton<String?>(
                         value: _statusFilter,
                         items: statusOptions.map((option) {
@@ -240,7 +250,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                       ),
                     ),
                   ),
-                  const Spacer(),  // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
+                  const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
                       // UI 코드 예시: 라디오 버튼 목록 만들기
@@ -249,7 +259,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                         children: searchFilterList.map((item) {
                           final label = item['label']!;
                           return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 0.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -271,7 +282,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                           );
                         }).toList(),
                       ),
-                      const SizedBox(width: 10), // 두 버튼 간격 
+                      const SizedBox(width: 10), // 두 버튼 간격
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
@@ -282,8 +293,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                           style: TextStyle(fontSize: 14),
                         ),
                         style: ElevatedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
                           minimumSize: const Size(80, 36),
                         ),
                       ),
@@ -298,24 +309,33 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text('${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
-                      style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(
+                      '${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textMuted)),
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
                       setState(() => _dateRange = null);
                       _fetch();
                     },
-                    child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
+                    child: const Text('지우기',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.coral,
+                            fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),
             ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.slate))
                 : _items.isEmpty
-                    ? const Center(child: Text('조회된 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
+                    ? const Center(
+                        child: Text('조회된 내역이 없습니다.',
+                            style: TextStyle(color: AppColors.textMuted)))
                     : Theme(
                         data: Theme.of(context).copyWith(
                           scrollbarTheme: ScrollbarThemeData(
@@ -335,10 +355,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                             itemCount: _items.length,
                             itemBuilder: (context, index) {
                               final item = _items[index];
-                              final isProcessing = _processingIds.contains(item.requestId);
+                              final isProcessing =
+                                  _processingIds.contains(item.requestId);
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
-                                padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 10, 16, 10),
                                 decoration: BoxDecoration(
                                   color: AppColors.surface,
                                   borderRadius: BorderRadius.circular(16),
@@ -348,65 +370,156 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
                                       children: [
-                                        Text('${item.employeeName} ${item.position}',
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5)),
-                                        Text(item.department, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                        Text(
+                                            '${item.employeeName} ${item.position}',
+                                            style: const TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14.5)),
+                                        // Text(item.department,
+                                        //     style: const TextStyle(
+                                        //         color: AppColors.textMuted,
+                                        //         fontSize: 12)),
+                                        // LeaveStatusBadge(status: item.status),
+
+                                        Text(
+                                            '신청일: ' +
+                                                DateFormat('yyyy-MM-dd').format(
+                                                    DateTime.parse(
+                                                        item.requestedAt)),
+                                            style: const TextStyle(
+                                                color: AppColors.textMuted,
+                                                fontSize: 12)),
                                         LeaveStatusBadge(status: item.status),
                                       ],
                                     ),
                                     Row(
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,   
-                                      textBaseline: TextBaseline.alphabetic,   
-                                      children: [
-                                        const SizedBox(height: 10),
-                                        Text('${item.startDate} — ${item.endDate}',
-                                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                                        const SizedBox(width: 12),  
-                                        Text('(${item.useDays}일)', style: const TextStyle(fontSize: 13, color: AppColors.textMuted)),
-                                        const SizedBox(width: 70), 
-                                        // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
-                                        if (_isCancelable(item, userEmployeeNumber)) ...[
-                                          const SizedBox(height: 20),
-                                          const Divider(height: 1, color: AppColors.divider),
-                                          const SizedBox(height: 4),
-                                          Align(
-                                            alignment: Alignment.centerRight,
-                                            child: TextButton(
-                                              onPressed: isProcessing ? null : () => _confirmCancel(item),
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          const SizedBox(height: 10),
+                                          Text(
+                                              '${item.startDate} — ${item.endDate}',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600)),
+                                          const SizedBox(width: 12),
+                                          Text('(${item.useDays}일)',
+                                              style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: AppColors.textMuted)),
+                                          const SizedBox(width: 70),
+
+                                          // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
+                                          const Spacer(),
+                                          // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
+                                          // if (_isCancelable(
+                                          //     item, userEmployeeNumber)) ...[
+                                          //   const SizedBox(height: 20),
+                                          //   const Divider(
+                                          //       height: 1,
+                                          //       color: AppColors.divider),
+                                          //   const SizedBox(height: 4),
+                                          //   Align(
+                                          //     alignment: Alignment.centerRight,
+                                          //     child: TextButton(
+                                          //       onPressed: isProcessing
+                                          //           ? null
+                                          //           : () =>
+                                          //               _confirmCancel(item),
+                                          //       style: TextButton.styleFrom(
+                                          //         padding: const EdgeInsets
+                                          //             .symmetric(
+                                          //             horizontal: 4,
+                                          //             vertical: 6),
+                                          //         minimumSize: Size.zero,
+                                          //         tapTargetSize:
+                                          //             MaterialTapTargetSize
+                                          //                 .shrinkWrap,
+                                          //       ),
+                                          //       child: isProcessing
+                                          //           ? const SizedBox(
+                                          //               width: 14,
+                                          //               height: 14,
+                                          //               child:
+                                          //                   CircularProgressIndicator(
+                                          //                       strokeWidth: 2,
+                                          //                       color: AppColors
+                                          //                           .textMuted),
+                                          //             )
+                                          //           : const Text(
+                                          //               '신청 취소',
+                                          //               style: TextStyle(
+                                          //                 fontSize: 12.5,
+                                          //                 fontWeight:
+                                          //                     FontWeight.w600,
+                                          //                 color: AppColors
+                                          //                     .textMuted,
+                                          //                 decoration:
+                                          //                     TextDecoration
+                                          //                         .underline,
+                                          //                 decorationColor:
+                                          //                     AppColors
+                                          //                         .textMuted,
+                                          //               ),
+                                          //             ),
+
+                                          if (_isCancelable(
+                                              item, userEmployeeNumber)) ...[
+                                            // 2. Row 내부에 굳이 필요 없는 Divider와 큰 SizedBox, Align 위젯을 제거하여 레이아웃을 단순화합니다.
+                                            TextButton(
+                                              onPressed: isProcessing
+                                                  ? null
+                                                  : () => _confirmCancel(item),
                                               style: TextButton.styleFrom(
-                                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4,
+                                                        vertical: 6),
                                                 minimumSize: Size.zero,
-                                                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                tapTargetSize:
+                                                    MaterialTapTargetSize
+                                                        .shrinkWrap,
                                               ),
                                               child: isProcessing
                                                   ? const SizedBox(
-                                                width: 14, height: 14,
-                                                child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
-                                              )
+                                                      width: 14,
+                                                      height: 14,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color:
+                                                            AppColors.textMuted,
+                                                      ),
+                                                    )
                                                   : const Text(
-                                                '신청 취소',
-                                                style: TextStyle(
-                                                  fontSize: 12.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.textMuted,
-                                                  decoration: TextDecoration.underline,
-                                                  decorationColor: AppColors.textMuted,
-                                                ),
-                                              ),
+                                                      '신청 취소',
+                                                      style: TextStyle(
+                                                        fontSize: 12.5,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color:
+                                                            AppColors.textMuted,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .underline,
+                                                        decorationColor:
+                                                            AppColors.textMuted,
+                                                      ),
+                                                    ),
                                             ),
-                                          ),
-                                        ],
-                                      ]
-                                    )
+                                          ],
+                                        ])
                                   ],
                                 ),
                               );
                             },
                           ),
                         ),
-                    ),
+                      ),
           ),
         ],
       ),
