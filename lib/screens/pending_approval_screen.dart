@@ -290,13 +290,13 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
                   Row(
                     children: [
                       Text(
-                        '${req.startDate} — ${req.endDate}',
+                        '${req.startDate} - ${req.endDate}',
                         style: const TextStyle(
                           fontSize: 13.5,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 4),
                       // Text(
                       //   '(${req.useDays}일)',
                       //   style: const TextStyle(
