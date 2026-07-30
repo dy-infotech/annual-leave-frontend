@@ -72,8 +72,7 @@ class LeaveRequestListProvider extends ChangeNotifier {
 
   // 반차(오전/오후) 여부
   bool _isHalf(String leaveType) {
-    return leaveType == LeaveType.amHalf.code ||
-        leaveType == LeaveType.pmHalf.code;
+    return (leaveType == LeaveType.amHalf.code) || (leaveType == LeaveType.pmHalf.code);
   }
 
   // 캘린더에 별표 표시할 날짜인지 확인 (대기/승인 상태만)
@@ -92,5 +91,36 @@ class LeaveRequestListProvider extends ChangeNotifier {
       final itemEnd = normalize(DateTime.parse(item.endDate));
       return !target.isBefore(itemStart) && !target.isAfter(itemEnd);
     });
+  }
+
+  // 특정 날짜의 반차 신청 상태 (오전/오후 각각)
+  ({bool hasAm, bool hasPm}) halfDayStatus(DateTime dateTime) {
+    DateTime normalize(DateTime d) {
+      final local = d.toLocal();
+      return DateTime(local.year, local.month, local.day);
+    }
+
+    final target = normalize(dateTime);
+    bool hasAm = false;
+    bool hasPm = false;
+
+    for (final item in _items.where((item) => item.status == LeaveState.pending.code || item.status == LeaveState.approved.code)) {
+      final itemStart = normalize(DateTime.parse(item.startDate));
+      final itemEnd = normalize(DateTime.parse(item.endDate));
+      final inRange = !target.isBefore(itemStart) && !target.isAfter(itemEnd);
+      if (!inRange) continue;
+
+      if (item.leaveType == LeaveType.amHalf.code) {
+        hasAm = true;
+      } else if (item.leaveType == LeaveType.pmHalf.code) {
+        hasPm = true;
+      } else {
+        // 종일 등 반차가 아닌 신청은 오전/오후 모두 점유
+        hasAm = true;
+        hasPm = true;
+      }
+    }
+
+    return (hasAm: hasAm, hasPm: hasPm);
   }
 }

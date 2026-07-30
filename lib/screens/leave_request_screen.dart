@@ -201,14 +201,36 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   String _formatDate(DateTime date) =>
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
+  // 별의 왼쪽(오전) 또는 오른쪽(오후) 절반만 그리기
+  Widget _buildHalfStar({required bool isLeft, double size = 32}) {
+    return ClipRect(
+      clipper: _HalfClipper(isLeft: isLeft),
+      child: Icon(Icons.star_rounded, size: size, color: Colors.yellow),
+    );
+  }
+
   Widget _buildDayCell({
     required int day,
     required Color? backgroundColor,
     required Color textColor,
-    required bool isRequested,
+    required bool hasAm,   // 오전 반차 있음
+    required bool hasPm,   // 오후 반차 있음
     bool isToday = false,
   }) {
-    // 셀 본체: 신청된 날짜는 별표, 그 외는 원형 배경 + 숫자
+    final isRequested = hasAm || hasPm;
+
+    // 별 부분: 오전/오후 상태에 따라 왼쪽/오른쪽/완전한 별
+    Widget buildStar() {
+      if (hasAm && hasPm) {
+        // 둘 다 → 완전한 별
+        return const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
+      } else if (hasAm) {
+        return _buildHalfStar(isLeft: true);   // 오전 -> 왼쪽 반쪽
+      } else {
+        return _buildHalfStar(isLeft: false);  // 오후 -> 오른쪽 반쪽
+      }
+    }
+
     final Widget body = isRequested
         ? Container(
       margin: const EdgeInsets.all(2),
@@ -216,11 +238,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const Icon(
-            Icons.star_rounded,
-            size: 32,
-            color: Colors.yellow,
-          ),
+          buildStar(),
           Text(
             '$day',
             style: const TextStyle(
@@ -245,10 +263,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       ),
     );
 
-    // 오늘이 아니면 본체만 반환
     if (!isToday) return body;
 
-    // 오늘이면 날짜 밑에 빨간 밑줄 추가
     return Stack(
       alignment: Alignment.center,
       clipBehavior: Clip.none,
@@ -492,8 +508,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             children: [
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),
@@ -542,8 +557,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 child: MouseRegion(
                                   cursor: SystemMouseCursors.help,
                                   child: Tooltip(
-                                    message:
-                                        'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
+                                    message: 'PL은 0xFFC9A66B를 원했으나, 망막 보호를 위해 0xFF2B3A4A를 적용함',
                                     triggerMode: TooltipTriggerMode.tap,
                                     showDuration: const Duration(seconds: 3),
                                     child: Container(
@@ -669,29 +683,30 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     final isWeekend = day.weekday == DateTime.saturday ||
                         day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
-                    final isRequested = (isGrayed == false) &&
-                        leaveReqProvider.isRequestedDate(day);
+
+                    // 오전/오후 반차 상태 조회
+                    final half = (isGrayed == false)
+                        ? leaveReqProvider.halfDayStatus(day)
+                        : (hasAm: false, hasPm: false);
 
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
-                        backgroundColor: isGrayed
-                            ? Colors.grey.withOpacity(0.3)
-                            : AppColors.slate,
-                        textColor:
-                            isGrayed ? AppColors.textMuted : Colors.white,
-                        isRequested: isRequested,
+                        backgroundColor:
+                        isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
+                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        hasAm: half.hasAm,
+                        hasPm: half.hasPm,
                       );
                     }
 
-                    // 범위 밖이지만 공휴일이거나 신청된 날짜인 경우
-                    if (isHoliday || isRequested) {
+                    if (isHoliday || half.hasAm || half.hasPm) {
                       return _buildDayCell(
                         day: day.day,
                         backgroundColor: null,
-                        textColor:
-                            isHoliday ? AppColors.coral : AppColors.textPrimary,
-                        isRequested: isRequested,
+                        textColor: isHoliday ? AppColors.coral : AppColors.textPrimary,
+                        hasAm: half.hasAm,
+                        hasPm: half.hasPm,
                       );
                     }
 
@@ -699,20 +714,24 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   },
                   todayBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday ||
+                        day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
-                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
+
+                    // 오전/오후 반차 상태 조회
+                    final half = (isGrayed == false)
+                        ? leaveReqProvider.halfDayStatus(day)
+                        : (hasAm: false, hasPm: false);
 
                     // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
-                        backgroundColor: isGrayed
-                            ? Colors.grey.withOpacity(0.3)
-                            : AppColors.slate,
-                        textColor:
-                            isGrayed ? AppColors.textMuted : Colors.white,
-                        isRequested: isRequested,
+                        backgroundColor:
+                        isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
+                        textColor: isGrayed ? AppColors.textMuted : Colors.white,
+                        hasAm: half.hasAm,
+                        hasPm: half.hasPm,
                         isToday: true,
                       );
                     }
@@ -721,9 +740,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     return _buildDayCell(
                       day: day.day,
                       backgroundColor: null,
-                      textColor:
-                          isGrayed ? AppColors.coral : AppColors.textPrimary,
-                      isRequested: isRequested,
+                      textColor: isGrayed ? AppColors.coral : AppColors.textPrimary,
+                      hasAm: half.hasAm,
+                      hasPm: half.hasPm,
                       isToday: true,
                     );
                   },
@@ -797,9 +816,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   // }
                                   if (isHalfDay) {
                                     // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
-                                    if (_startDate != null &&
-                                        _endDate != null &&
-                                        _startDate != _endDate) {
+                                    if (_startDate != null && _endDate != null && _startDate != _endDate) {
                                       _startDate = null;
                                       _endDate = null;
                                       _useDaysController.text = '0';
@@ -900,7 +917,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide(color: AppColors.divider),
+                    borderSide: const BorderSide(color: AppColors.divider),
                   ),
                 ),
               ),
@@ -937,4 +954,19 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       ),
     );
   }
+}
+
+class _HalfClipper extends CustomClipper<Rect> {
+  final bool isLeft;
+  _HalfClipper({required this.isLeft});
+
+  @override
+  Rect getClip(Size size) {
+    return isLeft
+        ? Rect.fromLTRB(0, 0, size.width / 2, size.height)  // 왼쪽 절반
+        : Rect.fromLTRB(size.width / 2, 0, size.width, size.height);  // 오른쪽 절반
+  }
+
+  @override
+  bool shouldReclip(_HalfClipper old) => old.isLeft != isLeft;
 }
