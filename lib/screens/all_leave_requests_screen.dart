@@ -1,6 +1,4 @@
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
-import 'package:annual_leave_frontend/providers/leave_request_list_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/api_client.dart';
