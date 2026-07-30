@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "749318451543",
+    "project_id": "annual-leave-backend",
+    "storage_bucket": "annual-leave-backend.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:749318451543:android:120ac47f25c8977bd04e12",
+        "android_client_info": {
+          "package_name": "com.dyinfotech.annual_leave_frontend"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBUvb7w11uZGaEYjh7G4KihC5FG-iu1meA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

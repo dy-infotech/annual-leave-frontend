@@ -1,13 +1,21 @@
 class LoginRequest {
   final String employeeNumber;
   final String password;
+  final String? fcmToken;
+  final String deviceOs;
 
-  LoginRequest({required this.employeeNumber, required this.password});
+  LoginRequest(
+      {required this.employeeNumber,
+      required this.password,
+      required this.fcmToken,
+      required this.deviceOs});
 
   Map<String, dynamic> toJson() => {
-    'employeeNumber': employeeNumber,
-    'password': password,
-  };
+        'employeeNumber': employeeNumber,
+        'password': password,
+        'fcmToken': fcmToken,
+        'deviceOs': deviceOs,
+      };
 }
 
 class LoginResponse {
@@ -42,9 +50,9 @@ class SignUpRequest {
   SignUpRequest({required this.employeeNumber, required this.password});
 
   Map<String, dynamic> toJson() => {
-    'employeeNumber': employeeNumber,
-    'password': password,
-  };
+        'employeeNumber': employeeNumber,
+        'password': password,
+      };
 }
 
 class AdminAuthRegisterRequest {
@@ -56,14 +64,14 @@ class AdminAuthRegisterRequest {
   final String email;
   final String hireDate;
 
-  AdminAuthRegisterRequest({required this.name
-                          , required this.department
-                          , required this.team
-                          , required this.position
-                          , required this.role
-                          , required this.email
-                          , required this.hireDate
-                          });
+  AdminAuthRegisterRequest(
+      {required this.name,
+      required this.department,
+      required this.team,
+      required this.position,
+      required this.role,
+      required this.email,
+      required this.hireDate});
 
   Map<String, dynamic> toJson() => {
         'name': name,
