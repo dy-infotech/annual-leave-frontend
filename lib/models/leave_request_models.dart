@@ -32,6 +32,7 @@ class LeaveRequestListItem {
   final String employeeNumber;
   final String position;
   final String department;
+  final String leaveType;
   final String requestedAt;
   final String startDate;
   final String endDate;
@@ -45,6 +46,7 @@ class LeaveRequestListItem {
     required this.employeeNumber,
     required this.position,
     required this.department,
+    required this.leaveType,
     required this.requestedAt,
     required this.startDate,
     required this.endDate,
@@ -60,6 +62,7 @@ class LeaveRequestListItem {
       employeeNumber: json['employeeNumber'],
       position: json['position'] ?? '',
       department: json['department'] ?? '',
+      leaveType: json['leaveType'],
       requestedAt: json['requestedAt'],
       startDate: json['startDate'],
       endDate: json['endDate'],
