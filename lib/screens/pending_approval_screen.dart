@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/main.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
@@ -12,7 +13,7 @@ class PendingApprovalScreen extends StatefulWidget {
   State<PendingApprovalScreen> createState() => _PendingApprovalScreenState();
 }
 
-class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
+class _PendingApprovalScreenState extends State<PendingApprovalScreen> with RouteAware{
   List<PendingLeaveRequest> _requests = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -47,9 +48,29 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final route = ModalRoute.of(context);
+
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+
+  @override
   void dispose() {
     _scrollController.dispose();
+    routeObserver.unsubscribe(this);
     super.dispose();
+  }
+
+
+  @override
+  void didPopNext() {
+    // 다른 화면에서 돌아왔을 때
+    _fetchPendingList();
   }
 
   // 승인 전 확인 다이얼로그
@@ -250,6 +271,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
         controller: _scrollController,
         interactive: true,
         child: ListView.builder(
+          controller: _scrollController,
           padding: const EdgeInsets.all(20),
           itemCount: _requests.length,
           itemBuilder: (context, index) {
