@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import '../models/enums/LeaveType.dart';
-import '../providers/dashboard_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/leave_request_list_provider.dart';
 import '../services/api_client.dart';
@@ -381,8 +380,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<DashboardProvider>();
-    provider.fetchDashboard(); // 화면 진입 시 대시보드 정보 갱신
     final authProvider = context.watch<AuthProvider>().employeeInfo;
     final holidayProvider = context.watch<PublicHolidayProvider>();
     final leaveReqProvider = context.watch<LeaveRequestListProvider>();
@@ -443,7 +440,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               // ],
                               children: [
                                 if (authProvider != null)
-                                  // ✨ 가로로 배치하기 위해 Row 사용
                                   Row(
                                     children: [
                                       // 이름과 직급 (좌측 고정, 크고 진하게)
@@ -455,7 +451,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                             color: AppColors.textPrimary),
                                       ),
 
-                                      // ✨ 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냅니다.
+                                      // 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냄
                                       const Expanded(child: SizedBox()),
 
                                       // 부서 정보 (우측 끝 고정, 작고 연하게)
@@ -509,7 +505,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     if (authProvider != null)
-                                      // ✨ 가로로 배치하기 위해 Row 사용
                                       Row(
                                         children: [
                                           // 이름과 직급 (좌측 고정, 크고 진하게)
@@ -521,7 +516,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                                 color: AppColors.textPrimary),
                                           ),
 
-                                          // ✨ 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냅니다.
+                                          // 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냄
                                           const Expanded(child: SizedBox()),
 
                                           // 부서 정보 (우측 끝 고정, 작고 연하게)
@@ -533,8 +528,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                                 color: AppColors.textMuted,
                                                 fontWeight: FontWeight.w400),
                                           ),
-                                          const SizedBox(
-                                              width: 4), // 우측 테두리와의 최소 여백
+                                          const SizedBox(width: 4), // 우측 테두리와의 최소 여백
                                         ],
                                       ),
                                     const SizedBox(height: 3),
@@ -583,7 +577,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 ),
                 const SizedBox(width: 10),
 
-                // ✨ Expanded를 조건문 바깥으로 빼서 날짜가 없어도 항상 공간을 차지하게 합니다.
+                // Expanded를 조건문 바깥으로 빼서 날짜가 없어도 항상 공간을 차지
                 Expanded(
                   child: _startDate != null
                       ? Text(
@@ -596,14 +590,14 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               color: AppColors.textMuted,
                               fontWeight: FontWeight.w600),
                         )
-                      : const SizedBox(), // ✨ 날짜가 없을 때는 빈 공간으로 채워 우측 텍스트를 밀어냅니다.
+                      : const SizedBox(), // 날짜가 없을 때는 빈 공간으로 채워 우측 텍스트를 밀어냄
                 ),
 
                 // 우측 끝에 완전히 고정되는 잔여 연차 표시
                 Padding(
                   padding: const EdgeInsets.only(left: 10, right: 4),
                   child: Text(
-                    '잔여 ${provider.data?.myLeaveInfo.remainingLeaveDays ?? 0}일',
+                    '잔여 ${authProvider?.remainingLeaveDays ?? 0}일',
                     style: const TextStyle(
                         fontSize: 12, color: AppColors.textMuted),
                   ),
