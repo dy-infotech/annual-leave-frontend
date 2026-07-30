@@ -310,7 +310,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
               child: Row(
                 children: [
                   Text(
-                      '${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
+                      '${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textMuted)),
                   const SizedBox(width: 6),
