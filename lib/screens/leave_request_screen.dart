@@ -123,6 +123,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   Future<void> _handleSubmit() async {
+    final authProvider = context.read<AuthProvider>();
+    final listProvider = context.read<LeaveRequestListProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
     if (_startDate == null) {
       setState(() => _errorMessage = '날짜를 선택해주세요.');
       return;
@@ -154,18 +158,31 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
 
+    } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context,).showSnackBar(
-            const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
+        setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
       }
+      return; // 신청 실패 시 여기서 종료 (갱신 또는 초기화 진행 안 함)
 
-      // 잔여 연차 갱신 (사용 연차가 차감 반영)
-      await context.read<AuthProvider>().fetchMyInfo();
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
 
-      // 휴가 신청 목록 갱신 (캘린더 별표 반영)
-      await context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
+    // 신청 성공 이후 처리
+    messenger.showSnackBar(
+      const SnackBar(content: Text('휴가 신청이 완료되었습니다.')),
+    );
 
-      // 선택 상태 초기화 (다음 신청을 위해)
+    // 데이터 갱신
+    try {
+      await authProvider.fetchMyInfo(); // 잔여 연차 차감 반영
+      await listProvider.fetchMyLeaveRequestList(); // 캘린더 별표 반영
+    } catch (_) {
+      // 이 시점에서 신청은 완료됐기 때문에 갱신 실패의 경우 무시
+    }
+
+    // 선택한 상태 초기화
+    if (mounted) {
       setState(() {
         _startDate = null;
         _endDate = null;
@@ -174,11 +191,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         _reasonController.clear();
         _leaveReason = null;
       });
-
-    } catch (e) {
-      setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
     }
   }
 
