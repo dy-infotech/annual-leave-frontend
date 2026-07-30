@@ -3,6 +3,7 @@ import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
+import 'package:intl/intl.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});
@@ -32,8 +33,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
 
     try {
       final response = await ApiClient().dio.get(
-        '/api/admin/leave-requests/pending',
-      );
+            '/api/admin/leave-requests/pending',
+          );
       final list = (response.data as List)
           .map((json) => PendingLeaveRequest.fromJson(json))
           .toList();
@@ -97,8 +98,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     setState(() => _processingIds.add(requestId));
     try {
       await ApiClient().dio.post(
-        '/api/admin/leave-requests/$requestId/approve',
-      );
+            '/api/admin/leave-requests/$requestId/approve',
+          );
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -236,126 +237,145 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen> {
     }
 
     return Theme(
-              data: Theme.of(context).copyWith(
-                scrollbarTheme: ScrollbarThemeData(
-                  thumbColor: WidgetStatePropertyAll(
-                    Colors.black.withValues(alpha: 0.3),
-                  ),
-                  thickness: WidgetStatePropertyAll(5),
-                  radius: const Radius.circular(8),
-                ),
-              ),
-              child: Scrollbar(
-                controller: _scrollController,
-                interactive: true,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(20),
-                  itemCount: _requests.length,
-                  itemBuilder: (context, index) {
-                    final req = _requests[index];
-                    final isProcessing = _processingIds.contains(req.requestId);
+      data: Theme.of(context).copyWith(
+        scrollbarTheme: ScrollbarThemeData(
+          thumbColor: WidgetStatePropertyAll(
+            Colors.black.withValues(alpha: 0.3),
+          ),
+          thickness: WidgetStatePropertyAll(5),
+          radius: const Radius.circular(8),
+        ),
+      ),
+      child: Scrollbar(
+        controller: _scrollController,
+        interactive: true,
+        child: ListView.builder(
+          padding: const EdgeInsets.all(20),
+          itemCount: _requests.length,
+          itemBuilder: (context, index) {
+            final req = _requests[index];
+            final isProcessing = _processingIds.contains(req.requestId);
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 14),
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: AppColors.divider),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${req.employeeName} ${req.position} (${req.employeeNumber})',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w800,
-                                  fontSize: 15.5,
-                                ),
-                              ),
-                              Text(
-                                req.department,
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 12.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              Text(
-                                '${req.startDate} — ${req.endDate}',
-                                style: const TextStyle(
-                                  fontSize: 13.5,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Text(
-                                '(${req.useDays}일)',
-                                style: const TextStyle(
-                                  color: AppColors.textMuted,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: isProcessing
-                                      ? null
-                                      : () => _confirmApprove(req),
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: const Size(0, 30),  // 높이 줄임, 너비는 Expanded가 맞춤
-                                    padding: const EdgeInsets.symmetric(vertical: 6),
-                                  ),
-                                  child: isProcessing
-                                      ? const SizedBox(
-                                          width: 16,
-                                          height: 16,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                            color: Colors.white,
-                                          ),
-                                        )
-                                      : const Text('승인'),
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: OutlinedButton(
-                                  onPressed: isProcessing
-                                      ? null
-                                      : () => _showRejectDialog(req),
-                                  
-                                  style: OutlinedButton.styleFrom(
-                                    minimumSize: const Size(0, 30),  // 버튼 높이 작게
-                                    padding: const EdgeInsets.symmetric(vertical: 6),
-                                    foregroundColor: AppColors.coral,
-                                    side: const BorderSide(
-                                      color: AppColors.coral,
-                                      width: 1.3,
-                                    ),
-                                  ),
-                                  child: const Text('반려'),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 14),
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.divider),
               ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${req.employeeName} ${req.position} (${req.employeeNumber})',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15.5,
+                        ),
+                      ),
+                      Text(
+                        req.department,
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Text(
+                        '${req.startDate} - ${req.endDate}',
+                        style: const TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      // Text(
+                      //   '(${req.useDays}일)',
+                      //   style: const TextStyle(
+                      //     color: AppColors.textMuted,
+                      //     fontSize: 13,
+                      //   ),
+                      // ),
+
+                      Text(
+                        '(${req.useDays}일)',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600, // 원하시면 굵기 조절
+                        ),
+                      ),
+
+                      // 2. 중간 여백을 가득 채워 우측 텍스트를 끝으로 밀어냅니다.
+                      const Spacer(),
+
+                      // 3. 우측 고정: 신청일 표시
+                      Text(
+                        '신청일: ${DateFormat('yyyy-MM-dd').format(DateTime.parse(req.createdAt))}',
+                        style: const TextStyle(
+                          color: AppColors.textMuted,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed:
+                              isProcessing ? null : () => _confirmApprove(req),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize:
+                                const Size(0, 30), // 높이 줄임, 너비는 Expanded가 맞춤
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                          ),
+                          child: isProcessing
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('승인'),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isProcessing
+                              ? null
+                              : () => _showRejectDialog(req),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 30), // 버튼 높이 작게
+                            padding: const EdgeInsets.symmetric(vertical: 6),
+                            foregroundColor: AppColors.coral,
+                            side: const BorderSide(
+                              color: AppColors.coral,
+                              width: 1.3,
+                            ),
+                          ),
+                          child: const Text('반려'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 }
