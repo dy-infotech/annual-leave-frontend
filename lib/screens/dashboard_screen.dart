@@ -5,6 +5,7 @@ import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import '../screens/all_leave_requests_screen.dart';
+import '../screens/pending_approval_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -68,17 +69,20 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
 
   Widget _buildBody(DashboardProvider dashboard) {
     if (dashboard.isLoading && dashboard.data == null) {
-      return const Center(child: CircularProgressIndicator(color: AppColors.slate));
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.slate));
     }
     if (dashboard.errorMessage != null && dashboard.data == null) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(dashboard.errorMessage!, style: const TextStyle(color: AppColors.textMuted)),
+            Text(dashboard.errorMessage!,
+                style: const TextStyle(color: AppColors.textMuted)),
             const SizedBox(height: 12),
             OutlinedButton(
-              onPressed: () => context.read<DashboardProvider>().fetchDashboard(),
+              onPressed: () =>
+                  context.read<DashboardProvider>().fetchDashboard(),
               child: const Text('다시 시도'),
             ),
           ],
@@ -99,7 +103,6 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
           _StatItem('잔여', data.myLeaveInfo.remainingLeaveDays, AppColors.sage),
         ]),
         const SizedBox(height: 28),
-
         const _SectionLabel('내 휴가 신청 현황'),
         _StatRow(items: [
           _StatItem(
@@ -110,7 +113,9 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'my')),
+                MaterialPageRoute(
+                    builder: (context) => AllLeaveRequestsScreen(
+                        status: 'PENDING', filter: 'my')),
               );
             },
           ),
@@ -122,7 +127,9 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'my')),
+                MaterialPageRoute(
+                    builder: (context) => AllLeaveRequestsScreen(
+                        status: 'APPROVED', filter: 'my')),
               );
             },
           ),
@@ -134,7 +141,9 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             onTap: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'my')),
+                MaterialPageRoute(
+                    builder: (context) => AllLeaveRequestsScreen(
+                        status: 'REJECTED', filter: 'my')),
               );
             },
           ),
@@ -149,10 +158,13 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.slate.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(6), 
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Text('관리자',
-                    style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColors.slate)),
+                    style: TextStyle(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.slate)),
               ),
             ],
           ),
@@ -165,7 +177,11 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'all')),
+                  //MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'PENDING', filter: 'all')),
+                  MaterialPageRoute(
+                      builder: (context) => PendingApprovalScreen(
+                          //status: 'PENDING', filter: 'all'
+                          )),
                 );
               },
             ),
@@ -177,7 +193,9 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'APPROVED', filter: 'all')),
+                  MaterialPageRoute(
+                      builder: (context) => AllLeaveRequestsScreen(
+                          status: 'APPROVED', filter: 'all')),
                 );
               },
             ),
@@ -189,7 +207,9 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => AllLeaveRequestsScreen(status: 'REJECTED', filter: 'all')),
+                  MaterialPageRoute(
+                      builder: (context) => AllLeaveRequestsScreen(
+                          status: 'REJECTED', filter: 'all')),
                 );
               },
             ),
@@ -208,7 +228,10 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+      style: const TextStyle(
+          fontSize: 13.5,
+          fontWeight: FontWeight.w700,
+          color: AppColors.textPrimary),
     );
   }
 }
@@ -218,14 +241,14 @@ class _StatItem extends StatelessWidget {
   final double value;
   final Color color;
   final bool isCount;
-  final VoidCallback? onTap;  // 클릭 시 실행할 함수
+  final VoidCallback? onTap; // 클릭 시 실행할 함수
 
   const _StatItem(
     this.label,
     this.value,
     this.color, {
     this.isCount = false,
-    this.onTap,   // optional parameter로 추가!
+    this.onTap, // optional parameter로 추가!
     Key? key,
   }) : super(key: key);
 
@@ -281,13 +304,20 @@ class _StatRow extends StatelessWidget {
                   Container(
                     width: 28,
                     height: 3,
-                    decoration: BoxDecoration(color: item.color, borderRadius: BorderRadius.circular(2)),
+                    decoration: BoxDecoration(
+                        color: item.color,
+                        borderRadius: BorderRadius.circular(2)),
                   ),
                   const SizedBox(height: 10),
                   Text(displayValue,
-                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                      style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary)),
                   const SizedBox(height: 4),
-                  Text(item.label, style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
+                  Text(item.label,
+                      style: const TextStyle(
+                          fontSize: 12, color: AppColors.textMuted)),
                 ],
               ),
             ),

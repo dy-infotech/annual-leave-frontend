@@ -378,20 +378,20 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                                             style: const TextStyle(
                                                 fontWeight: FontWeight.w700,
                                                 fontSize: 14.5)),
-                                        // Text(item.department,
-                                        //     style: const TextStyle(
-                                        //         color: AppColors.textMuted,
-                                        //         fontSize: 12)),
-                                        // LeaveStatusBadge(status: item.status),
+                                        // 2. 이름과 부서 사이의 좁은 가로 간격
+                                        const SizedBox(width: 8),
 
+                                        // 3. 부서명 (이제 직급 바로 옆에 붙습니다)
                                         Text(
-                                            '신청일: ' +
-                                                DateFormat('yyyy-MM-dd').format(
-                                                    DateTime.parse(
-                                                        item.requestedAt)),
-                                            style: const TextStyle(
-                                                color: AppColors.textMuted,
-                                                fontSize: 12)),
+                                          item.department,
+                                          style: const TextStyle(
+                                            color: AppColors.textMuted,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+
+                                        // 4. 중간 빈 공간을 전부 채워서 배지를 오른쪽 끝으로 밀어냅니다
+                                        const Spacer(),
                                         LeaveStatusBadge(status: item.status),
                                       ],
                                     ),
@@ -406,7 +406,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
                                               style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600)),
-                                          const SizedBox(width: 12),
+                                          const SizedBox(width: 4),
                                           Text('(${item.useDays}일)',
                                               style: const TextStyle(
                                                   fontSize: 13,
@@ -415,58 +415,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> {
 
                                           // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
                                           const Spacer(),
-                                          // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
-                                          // if (_isCancelable(
-                                          //     item, userEmployeeNumber)) ...[
-                                          //   const SizedBox(height: 20),
-                                          //   const Divider(
-                                          //       height: 1,
-                                          //       color: AppColors.divider),
-                                          //   const SizedBox(height: 4),
-                                          //   Align(
-                                          //     alignment: Alignment.centerRight,
-                                          //     child: TextButton(
-                                          //       onPressed: isProcessing
-                                          //           ? null
-                                          //           : () =>
-                                          //               _confirmCancel(item),
-                                          //       style: TextButton.styleFrom(
-                                          //         padding: const EdgeInsets
-                                          //             .symmetric(
-                                          //             horizontal: 4,
-                                          //             vertical: 6),
-                                          //         minimumSize: Size.zero,
-                                          //         tapTargetSize:
-                                          //             MaterialTapTargetSize
-                                          //                 .shrinkWrap,
-                                          //       ),
-                                          //       child: isProcessing
-                                          //           ? const SizedBox(
-                                          //               width: 14,
-                                          //               height: 14,
-                                          //               child:
-                                          //                   CircularProgressIndicator(
-                                          //                       strokeWidth: 2,
-                                          //                       color: AppColors
-                                          //                           .textMuted),
-                                          //             )
-                                          //           : const Text(
-                                          //               '신청 취소',
-                                          //               style: TextStyle(
-                                          //                 fontSize: 12.5,
-                                          //                 fontWeight:
-                                          //                     FontWeight.w600,
-                                          //                 color: AppColors
-                                          //                     .textMuted,
-                                          //                 decoration:
-                                          //                     TextDecoration
-                                          //                         .underline,
-                                          //                 decorationColor:
-                                          //                     AppColors
-                                          //                         .textMuted,
-                                          //               ),
-                                          //             ),
-
+                                        ]),
+                                    Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          const SizedBox(height: 10),
+                                          Text(
+                                              '신청일 : ${DateFormat('yyyy-MM-dd').format(DateTime.parse(item.requestedAt))}',
+                                              style: const TextStyle(
+                                                  color: AppColors.textMuted,
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600)),
+                                          const SizedBox(width: 12),
+                                          // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
+                                          const Spacer(),
                                           if (_isCancelable(
                                               item, userEmployeeNumber)) ...[
                                             // 2. Row 내부에 굳이 필요 없는 Divider와 큰 SizedBox, Align 위젯을 제거하여 레이아웃을 단순화합니다.
