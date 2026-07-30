@@ -155,11 +155,26 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
-        Navigator.pop(context);
+        ScaffoldMessenger.of(context,).showSnackBar(
+            const SnackBar(content: Text('휴가 신청이 완료되었습니다.')));
       }
+
+      // 잔여 연차 갱신 (사용 연차가 차감 반영)
+      await context.read<AuthProvider>().fetchMyInfo();
+
+      // 휴가 신청 목록 갱신 (캘린더 별표 반영)
+      await context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
+
+      // 선택 상태 초기화 (다음 신청을 위해)
+      setState(() {
+        _startDate = null;
+        _endDate = null;
+        _useDaysController.text = '0';
+        _selectedLeaveType = LeaveType.full;
+        _reasonController.clear();
+        _leaveReason = null;
+      });
+
     } catch (e) {
       setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
     } finally {
