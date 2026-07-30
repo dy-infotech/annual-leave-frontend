@@ -119,9 +119,15 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 12),
                       TextField(
                         controller: _employeeNumberController,
-                        decoration: const InputDecoration(labelText: '사번'),
+                        decoration: const InputDecoration(
+                          labelText: '사번',
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(
+                              vertical: 18, horizontal: 16),
+                        ),
                         keyboardType: TextInputType.text,
                         textCapitalization: TextCapitalization.characters,
                       ),

@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/main.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
@@ -13,7 +14,7 @@ class SearchEmployeeNumberScreen extends StatefulWidget {
   State<SearchEmployeeNumberScreen> createState() => _SearchEmployeeNumberScreenState();
 }
 
-class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen> {
+class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen> with RouteAware{
   List<Employee> _items = [];
   bool _isLoading = true;
   //String? _searchFilter; // null = 전체
@@ -23,15 +24,30 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   void initState() {
     super.initState();
     
-    /* if(widget.status != null){
-      _statusFilter = widget.status;
+    _fetch();
+  }
 
-      if(widget.filter != null){
-        _buttonLabel = widget.filter! == 'my' ? "내 신청": "전체";
-      }
-      _setFilter(widget.status);
-    } */
-    
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    final route = ModalRoute.of(context);
+
+    if (route is PageRoute) {
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void dispose() {
+    //_scrollController.dispose();
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  void didPopNext() {
+    // 다른 화면에서 돌아왔을 때
     _fetch();
   }
 
@@ -53,6 +69,8 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
       setState(() => _isLoading = false);
     }
   }
+
+  
 
   @override
   Widget build(BuildContext context) {
