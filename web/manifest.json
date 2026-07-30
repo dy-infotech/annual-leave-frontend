@@ -3,9 +3,9 @@
     "short_name": "annual_leave_frontend",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "Annual leave management app for dy-infotech employees.",
+    "background_color": "#F9F9F8",
+    "theme_color": "#F9F9F8",
+    "description": "디와이정보기술 임직원 전용 연차 관리 시스템",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
