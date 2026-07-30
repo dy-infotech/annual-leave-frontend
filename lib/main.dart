@@ -19,7 +19,7 @@ import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
 import 'screens/signup_manage_screen.dart';
 
-final RouteObserver<PageRoute> routeObserver = RouteObserver<PageRoute>();
+final RouteObserver<PageRoute<dynamic>> routeObserver = RouteObserver<PageRoute<dynamic>>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
