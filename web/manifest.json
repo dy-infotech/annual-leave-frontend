@@ -1,11 +1,11 @@
 {
-    "name": "근태 관리",
-    "short_name": "근태 관리",
+    "name": "근태관리",
+    "short_name": "근태관리",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#F9F9F8",
     "theme_color": "#F9F9F8",
-    "description": "디와이정보기술 임직원 전용 연차 관리 시스템",
+    "description": "디와이정보기술 임직원 전용 근태관리 시스템",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [
