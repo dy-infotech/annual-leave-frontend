@@ -4,6 +4,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:annual_leave_frontend/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart'
+    show RemoteMessage, FirebaseMessaging;
+import 'firebase_options.dart';
 import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/leave_request_list_provider.dart';
@@ -19,11 +23,22 @@ import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
 import 'screens/signup_manage_screen.dart';
 
-final RouteObserver<PageRoute<dynamic>> routeObserver = RouteObserver<PageRoute<dynamic>>();
+final RouteObserver<PageRoute<dynamic>> routeObserver =
+    RouteObserver<PageRoute<dynamic>>();
+
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  debugPrint('백그라운드 FCM: ${message.messageId}');
+}
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('ko_KR', null);
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
 }
 
@@ -71,7 +86,8 @@ class MyApp extends StatelessWidget {
           //사용자 등록 관리 화면
           '/signup_manage_screen': (context) => const SignupManageScreen(),
           //사용자 사번 조회 화면
-          '/search_employee_number_screen': (context) => const SearchEmployeeNumberScreen(),
+          '/search_employee_number_screen': (context) =>
+              const SearchEmployeeNumberScreen(),
           // 내 정보 화면
           '/my-info': (context) => const MyInfoScreen(),
         },
