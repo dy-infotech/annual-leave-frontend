@@ -211,39 +211,39 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 셀 본체: 신청된 날짜는 별표, 그 외는 원형 배경 + 숫자
     final Widget body = isRequested
         ? Container(
-            margin: const EdgeInsets.all(4),
-            alignment: Alignment.center,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                const Icon(
-                  Icons.star_rounded,
-                  size: 40,
-                  color: Colors.yellow,
-                ),
-                Text(
-                  '$day',
-                  style: const TextStyle(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
+      margin: const EdgeInsets.all(2),
+      alignment: Alignment.center,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const Icon(
+            Icons.star_rounded,
+            size: 32,
+            color: Colors.yellow,
+          ),
+          Text(
+            '$day',
+            style: const TextStyle(
+              color: AppColors.textPrimary,
+              fontWeight: FontWeight.w700,
+              fontSize: 11,
             ),
-          )
+          ),
+        ],
+      ),
+    )
         : Container(
-            margin: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: backgroundColor,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              '$day',
-              style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
-            ),
-          );
+      margin: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        shape: BoxShape.circle,
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        '$day',
+        style: TextStyle(color: textColor, fontWeight: FontWeight.w700),
+      ),
+    );
 
     // 오늘이 아니면 본체만 반환
     if (!isToday) return body;
@@ -255,10 +255,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       children: [
         body,
         Positioned(
-          bottom: 6,
+          bottom: 3,
           child: Container(
-            width: 16,
-            height: 3,
+            width: 14,
+            height: 2,
             decoration: BoxDecoration(
               color: AppColors.coral,
               borderRadius: BorderRadius.circular(2),
@@ -355,7 +355,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return result ?? false; // 바깥 탭으로 닫히면 false
   }
 
-// 확인 다이얼로그 내부의 한 줄 (라벨 + 값)
+ // 확인 다이얼로그 내부의 한 줄 (라벨 + 값)
   Widget _confirmRow(String label, String value) {
     return Row(
       children: [
@@ -463,8 +463,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                             color: AppColors.textMuted,
                                             fontWeight: FontWeight.w400),
                                       ),
-                                      const SizedBox(
-                                          width: 4), // 우측 테두리와의 최소 여백
+                                      const SizedBox(width: 4), // 우측 테두리와의 최소 여백
                                     ],
                                   ),
                                 const SizedBox(height: 3),
@@ -700,11 +699,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   },
                   todayBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday ||
-                        day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
-                    final isRequested = (isGrayed == false) &&
-                        leaveReqProvider.isRequestedDate(day);
+                    final isRequested = (isGrayed == false) && leaveReqProvider.isRequestedDate(day);
 
                     // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
