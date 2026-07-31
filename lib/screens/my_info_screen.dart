@@ -76,10 +76,10 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     }
   }
 
-  Future<void> _handleChangeEmail() async {
+  Future<bool> _handleChangeEmail() async {
     if (_emailController.text.isEmpty) {
       setState(() => _emailErrorMessage = '이메일 정보를 입력해주세요.');
-      return;
+      return false;
     }
 
     setState(() {
@@ -88,11 +88,11 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     });
 
     try {
-
       await ApiClient().dio.patch(
         '/api/employees/me/email',
         data: {"email":_emailController.text}
       );
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
@@ -102,8 +102,13 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
 
         _emailController.clear();
       }
+
+      return true;
+
     } catch (e) {
       setState(() => _emailErrorMessage = '이메일 변경에 실패했습니다.');
+      return false;
+
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -190,11 +195,15 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                             ),
                             onPressed: () async {
                               if (isEditingEmail) {
-                                await _handleChangeEmail();
+                                final success = await _handleChangeEmail();
+                                if (success) {
+                                  setState(() => isEditingEmail = false); // 성공 시 편집 모드 종료
+                                }
+                              } else {
+                                setState(() {
+                                  isEditingEmail = !isEditingEmail;
+                                });
                               }
-                              setState(() {
-                                isEditingEmail = !isEditingEmail;
-                              });
                             },
                             child: Icon(
                               isEditingEmail ? Icons.check : Icons.edit,
