@@ -3,6 +3,7 @@ class Employee {
   final String name;
   final String position;
   final String department;
+  final String? team;
   final String? hireDate;
   final String? role;
   final String? email;
@@ -14,22 +15,22 @@ class Employee {
   final String? approverDepartment;
   final bool? isRegisted;
 
-  Employee({
-    required this.employeeNumber,
-    required this.name,
-    required this.position,
-    required this.department,
-    this.hireDate,
-    this.role,
-    this.email,
-    required this.currTotalLeaveDays,
-    required this.remainingLeaveDays,
-    this.approverNumber,
-    this.approverName,
-    this.approverPosition,
-    this.approverDepartment,
-    required this.isRegisted
-  });
+  Employee(
+      {required this.employeeNumber,
+      required this.name,
+      required this.position,
+      required this.department,
+      required this.team,
+      this.hireDate,
+      this.role,
+      this.email,
+      required this.currTotalLeaveDays,
+      required this.remainingLeaveDays,
+      this.approverNumber,
+      this.approverName,
+      this.approverPosition,
+      this.approverDepartment,
+      required this.isRegisted});
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
@@ -37,11 +38,14 @@ class Employee {
       name: json['name'],
       position: json['position'] ?? '',
       department: json['department'] ?? '',
+      team: json['team'] ?? '',
       hireDate: json['hireDate'],
       role: json['role'],
       email: json['email'],
-      currTotalLeaveDays: (json['currTotalLeaveDays'] as num?)?.toDouble() ?? 0.0,
-      remainingLeaveDays: (json['remainingLeaveDays'] as num?)?.toDouble() ?? 0.0,
+      currTotalLeaveDays:
+          (json['currTotalLeaveDays'] as num?)?.toDouble() ?? 0.0,
+      remainingLeaveDays:
+          (json['remainingLeaveDays'] as num?)?.toDouble() ?? 0.0,
       approverNumber: json['approverNumber'] ?? '',
       approverName: json['approverName'] ?? '',
       approverPosition: json['approverPosition'] ?? '',
@@ -51,27 +55,27 @@ class Employee {
   }
 
   // copyWith 메서드 추가
-  Employee copyWith({
-    String? employeeNumber,
-    String? name,
-    String? position,
-    String? department,
-    String? hireDate,
-    String? role,
-    String? email,
-    double? currTotalLeaveDays,
-    double? remainingLeaveDays,
-    String? approverNumber,
-    String? approverName,
-    String? approverPosition,
-    String? approverDepartment,
-    bool? isRegisted
-  }) {
+  Employee copyWith(
+      {String? employeeNumber,
+      String? name,
+      String? position,
+      String? department,
+      String? hireDate,
+      String? role,
+      String? email,
+      double? currTotalLeaveDays,
+      double? remainingLeaveDays,
+      String? approverNumber,
+      String? approverName,
+      String? approverPosition,
+      String? approverDepartment,
+      bool? isRegisted}) {
     return Employee(
       employeeNumber: employeeNumber ?? this.employeeNumber,
       name: name ?? this.name,
       position: position ?? this.position,
       department: department ?? this.department,
+      team: team ?? this.team,
       hireDate: hireDate ?? this.hireDate,
       role: role ?? this.role,
       email: email ?? this.email,
