@@ -2,6 +2,7 @@ import 'dart:async' show StreamSubscription;
 import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import '../models/auth_models.dart';
 import '../models/employee.dart';
 import '../services/api_client.dart';
@@ -49,32 +50,53 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> login(String employeeNumber, String password) async {
     final messaging = FirebaseMessaging.instance;
+    LoginRequest request =
+        LoginRequest(employeeNumber: employeeNumber, password: password);
+    try {
+      // 알림 권한 요청 시도
+      NotificationSettings settings = await messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      if (settings.authorizationStatus == AuthorizationStatus.authorized) {
+        debugPrint('사용자가 알림 권한을 승인했습니다.');
 
-    await messaging.requestPermission();
-
-    final fcmToken = kIsWeb
-        ? await messaging.getToken(
-            vapidKey:
-                "BK0OMc8V4bjy1iL0C1OUY2L_u3XaMHaHAdyMjDnmXTeDPb1LALjEeYQDZD_uQ0VkYVZIiArZ9OMSwRC7NPZBjfI",
-          )
-        : await messaging.getToken();
+        request = LoginRequest(
+            employeeNumber: employeeNumber,
+            password: password,
+            fcmToken: kIsWeb
+                ? await messaging.getToken(
+                    vapidKey:
+                        "BK0OMc8V4bjy1iL0C1OUY2L_u3XaMHaHAdyMjDnmXTeDPb1LALjEeYQDZD_uQ0VkYVZIiArZ9OMSwRC7NPZBjfI",
+                  )
+                : await messaging.getToken(),
+            deviceOs: kIsWeb
+                ? "Web"
+                : Platform.isAndroid
+                    ? "Android"
+                    : Platform.isIOS
+                        ? "iOS"
+                        : "Unknown");
+      } else if (settings.authorizationStatus == AuthorizationStatus.denied) {
+        debugPrint('사용자가 알림 권한을 거부했습니다.');
+      }
+    } on PlatformException catch (e) {
+      // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
+      if (e.code == 'permission-blocked' ||
+          e.message?.contains('permission-blocked') == true) {
+        debugPrint('시크릿 모드 또는 브라우저 정책에 의해 알림 권한이 차단되었습니다.');
+      } else {
+        debugPrint('기타 플랫폼 에러 발생: ${e.message}');
+      }
+    } catch (e) {
+      debugPrint('알 수 없는 에러 발생: $e');
+    }
 
     final response = await _apiClient.dio.post(
       '/api/auth/signin',
-      data: LoginRequest(
-              employeeNumber: employeeNumber,
-              password: password,
-              fcmToken: fcmToken,
-              deviceOs: kIsWeb
-                  ? "Web"
-                  : Platform.isAndroid
-                      ? "Android"
-                      : Platform.isIOS
-                          ? "iOS"
-                          : "Unknown")
-          .toJson(),
+      data: request.toJson(),
     );
-
     final loginResponse = LoginResponse.fromJson(response.data);
     await _apiClient.saveToken(loginResponse.token);
 
