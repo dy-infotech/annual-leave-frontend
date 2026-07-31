@@ -47,7 +47,7 @@ class _SignupScreenState extends State<SignupScreen> {
     } catch (e) {
       setState(
         () => _errorMessage = e.toString().contains('DioException')
-            ? e.toString() + '등록되지 않은 사번이거나 이미 가입된 사번입니다.11'
+            ? e.toString()
             : '사용 등록에 실패했습니다.',
       );
     } finally {
