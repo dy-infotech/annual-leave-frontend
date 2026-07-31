@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../providers/dashboard_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/email_autocomplete_field.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -77,10 +77,16 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     }
   }
 
-  Future<void> _handleChangeEmail() async {
+  Future<bool> _handleChangeEmail() async {
     if (_emailController.text.isEmpty) {
-      setState(() => _emailErrorMessage = '이메일 정보를 입력해주세요.');
-      return;
+      setState(() => _emailErrorMessage = '이메일 정보를 입력해 주세요.');
+      return false;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
+    if (!emailRegex.hasMatch(_emailController.text)) {
+      setState(() => _emailErrorMessage = '올바른 이메일 형식이 아닙니다.');
+      return false;
     }
 
     setState(() {
@@ -89,22 +95,26 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     });
 
     try {
-
       await ApiClient().dio.patch(
         '/api/employees/me/email',
         data: {"email":_emailController.text}
       );
+
       if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('이메일이 변경되었습니다.')));
-        //AuthProvider.updateEmail();
         context.read<AuthProvider>().updateEmail(_emailController.text);
 
         _emailController.clear();
       }
+
+      return true;
+
     } catch (e) {
       setState(() => _emailErrorMessage = '이메일 변경에 실패했습니다.');
+      return false;
+
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -113,8 +123,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
   @override
   Widget build(BuildContext context) {
     final info = context.watch<AuthProvider>().employeeInfo;
-    final dashboard = context.watch<DashboardProvider>();
-    
+
     return Scaffold(
       appBar: AppBar(title: const Text('내 정보')),
       drawer: const AppDrawer(),
@@ -152,7 +161,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   _InfoRow(
                     label: '연차정보',
                     value: Text(
-                      '${dashboard.data?.myLeaveInfo.remainingLeaveDays.toString() ?? '-'} / ${dashboard.data?.myLeaveInfo.totalLeaveDays.toString() ?? '-'} 일',
+                      '${info?.remainingLeaveDays.toString() ?? '-'} / ${info?.currTotalLeaveDays.toString() ?? '-'} 일',
                     ),
                   ),
                   const _InfoDivider(),
@@ -167,20 +176,19 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                             child: _InfoRow(
                               label: '이메일',
                               value: isEditingEmail
-                                  ? TextField(
-                                      controller: _emailController,
-                                      style: const TextStyle(fontSize: 16),
-                                      cursorHeight: 18, // 폰트 크기와 비슷하거나 조금 더 크게
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                      ),
-                                    )
-                                  : Text(
-                                      info?.email ?? '-',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
+                                ? EmailAutocompleteField(
+                                  controller: _emailController,
+                                  onSubmitted: () async {
+                                    final success = await _handleChangeEmail();
+                                    if (success && mounted) {
+                                      setState(() => isEditingEmail = false);
+                                    }
+                                },
+                                )
+                                : Text(
+                                    info?.email ?? '-',
+                                    style: const TextStyle(fontSize: 16),
+                                ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -192,11 +200,14 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                             ),
                             onPressed: () async {
                               if (isEditingEmail) {
-                                await _handleChangeEmail();
+                                final success = await _handleChangeEmail();
+                                if (success) {
+                                  setState(() => isEditingEmail = false);
+                                }
+                              } else {
+                                _emailController.text = info?.email ?? '';
+                                setState(() => isEditingEmail = true);
                               }
-                              setState(() {
-                                isEditingEmail = !isEditingEmail;
-                              });
                             },
                             child: Icon(
                               isEditingEmail ? Icons.check : Icons.edit,

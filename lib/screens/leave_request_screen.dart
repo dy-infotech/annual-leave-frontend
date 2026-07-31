@@ -82,8 +82,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     setState(() {
       _focusedDay = focusedDay;
 
-      final isHalfDay = _selectedLeaveType == LeaveType.amHalf ||
-          _selectedLeaveType == LeaveType.pmHalf;
+      // 날짜를 새로 선택하면 이전 에러 메시지 제거
+      _errorMessage = null;
+
+      final isHalfDay = _selectedLeaveType == LeaveType.amHalf || _selectedLeaveType == LeaveType.pmHalf;
 
       if (isHalfDay) {
         _startDate = selectedDay;
@@ -126,13 +128,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final listProvider = context.read<LeaveRequestListProvider>();
     final messenger = ScaffoldMessenger.of(context);
 
-    if (_startDate == null) {
+    if (_startDate == null || _endDate == null) {
       setState(() => _errorMessage = '날짜를 선택해주세요.');
       return;
     }
 
     if (_useDays <= 0) {
-      setState(() => _errorMessage = '사용일수를 입력해주세요.');
+      setState(() => _errorMessage = '사용 일수가 변경되지 않았습니다. 날짜를 다시 선택해 주세요.');
       return;
     }
 
@@ -222,7 +224,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 별 부분: 오전/오후 상태에 따라 왼쪽/오른쪽/완전한 별
     Widget buildStar() {
       if (hasAm && hasPm) {
-        // 둘 다 → 완전한 별
+        // 둘 다 -> 완전한 별
         return const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
       } else if (hasAm) {
         return _buildHalfStar(isLeft: true);   // 오전 -> 왼쪽 반쪽
@@ -714,8 +716,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   },
                   todayBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday ||
-                        day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
                     // 오전/오후 반차 상태 조회
@@ -794,12 +795,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
-                                final wasHalfDay =
-                                    _selectedLeaveType == LeaveType.amHalf ||
-                                        _selectedLeaveType == LeaveType.pmHalf;
-                                final isHalfDay = value == LeaveType.amHalf ||
-                                    value == LeaveType.pmHalf;
-
+                                final wasHalfDay = _selectedLeaveType == LeaveType.amHalf || _selectedLeaveType == LeaveType.pmHalf;
+                                final isHalfDay = value == LeaveType.amHalf || value == LeaveType.pmHalf;
                                 final willShowReason = ![
                                   LeaveType.full,
                                   LeaveType.amHalf,
@@ -809,11 +806,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 setState(() {
                                   _selectedLeaveType = value;
 
-                                  // if (isHalfDay) {
-                                  //   _useDaysController.text = '0.5';
-                                  // } else if (wasHalfDay) {
-                                  //   _useDaysController.text = '0';
-                                  // }
                                   if (isHalfDay) {
                                     // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
                                     if (_startDate != null && _endDate != null && _startDate != _endDate) {

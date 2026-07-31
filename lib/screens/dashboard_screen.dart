@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/screens/admin_search_leave_requests_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart' show routeObserver;
@@ -194,8 +195,8 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AllLeaveRequestsScreen(
-                          status: 'APPROVED', filter: 'all')),
+                      builder: (context) => AdminSearchLeaveRequestsScreen(
+                          status: 'APPROVED', filter: 'admin_approved')),
                 );
               },
             ),
@@ -208,8 +209,8 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                      builder: (context) => AllLeaveRequestsScreen(
-                          status: 'REJECTED', filter: 'all')),
+                      builder: (context) => AdminSearchLeaveRequestsScreen(
+                          status: 'REJECTED', filter: 'admin_rejected')),
                 );
               },
             ),
