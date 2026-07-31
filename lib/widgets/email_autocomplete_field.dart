@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 class EmailAutocompleteField extends StatefulWidget {
   final TextEditingController controller;
   final VoidCallback? onSubmitted;
@@ -79,27 +81,37 @@ class _EmailAutocompleteFieldState extends State<EmailAutocompleteField> {
         );
       },
       optionsViewBuilder: (context, onSelected, options) {
+        // 방향키로 하이라이트된 현재 인덱스
+        final highlightedIndex = AutocompleteHighlightedOption.of(context);
+
         return Align(
           alignment: Alignment.topLeft,
           child: Material(
             elevation: 4,
             borderRadius: BorderRadius.circular(8),
             child: ConstrainedBox(
-              constraints:
-              const BoxConstraints(maxHeight: 200, maxWidth: 280),
+              constraints: const BoxConstraints(maxHeight: 200, maxWidth: 280),
               child: ListView.builder(
                 padding: EdgeInsets.zero,
                 shrinkWrap: true,
                 itemCount: options.length,
                 itemBuilder: (context, index) {
                   final option = options.elementAt(index);
-                  return InkWell(
-                    onTap: () => onSelected(option),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 10),
-                      child: Text(option,
-                          style: const TextStyle(fontSize: 14)),
+                  final isHighlighted = index == highlightedIndex;
+
+                  return Container(
+                    // 하이라이트된 항목 배경색
+                    color: isHighlighted
+                        ? AppColors.slate.withOpacity(0.12)
+                        : null,
+                    child: InkWell(
+                      onTap: () => onSelected(option),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                        child: Text(option,
+                            style: const TextStyle(fontSize: 14)),
+                      ),
                     ),
                   );
                 },
