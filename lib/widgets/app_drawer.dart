@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
@@ -116,11 +117,19 @@ class AppDrawer extends StatelessWidget {
               color: AppColors.coral,
               onTap: () async {
                 Navigator.pop(context);
-                await context.read<AuthProvider>().logout();
-                if (context.mounted) {
-                  Navigator.pushNamedAndRemoveUntil(
-                      context, '/login', (route) => false);
-                }
+                final dashboardProvider = context.read<DashboardProvider>();
+                final authProvider = context.read<AuthProvider>();
+
+                await dashboardProvider.closeSubscription();
+                await authProvider.logout();
+
+                if (!context.mounted) return;
+
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (_) => false,
+                );
               },
             ),
             const SizedBox(height: 12),
@@ -156,7 +165,7 @@ class _NavItem extends StatelessWidget {
       decoration: BoxDecoration(
         // 아이콘이 없으므로 배경색을 미세하게 조정하여 눈이 편안한 네이비 슬레이트 베이지를 연출합니다.
         color: isAdmin
-            ? const Color(0xFF1E293B).withOpacity(0.04)
+            ? const Color(0xFF1E293B).withValues(alpha: 0.04)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
       ),
