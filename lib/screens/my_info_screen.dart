@@ -4,6 +4,7 @@ import '../providers/auth_provider.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
+import '../widgets/email_autocomplete_field.dart';
 
 class MyInfoScreen extends StatefulWidget {
   const MyInfoScreen({super.key});
@@ -175,20 +176,19 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                             child: _InfoRow(
                               label: '이메일',
                               value: isEditingEmail
-                                  ? TextField(
-                                      controller: _emailController,
-                                      style: const TextStyle(fontSize: 16),
-                                      cursorHeight: 18, // 폰트 크기와 비슷하거나 조금 더 크게
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                                      ),
-                                    )
-                                  : Text(
-                                      info?.email ?? '-',
-                                      style: const TextStyle(fontSize: 16),
-                                    ),
+                                ? EmailAutocompleteField(
+                                  controller: _emailController,
+                                  onSubmitted: () async {
+                                    final success = await _handleChangeEmail();
+                                    if (success && mounted) {
+                                      setState(() => isEditingEmail = false);
+                                    }
+                                },
+                                )
+                                : Text(
+                                    info?.email ?? '-',
+                                    style: const TextStyle(fontSize: 16),
+                                ),
                             ),
                           ),
                           const SizedBox(width: 8),
