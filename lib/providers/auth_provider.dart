@@ -25,11 +25,13 @@ class AuthProvider extends ChangeNotifier {
   Future<void> fetchMyInfo() async {
     final response = await _apiClient.dio.get('/api/employees/me');
     _employeeInfo = Employee.fromJson(response.data);
+    notifyListeners();
   }
 
   // 앱 시작 시 저장된 JWT가 있을 경우 로그인 상태로 간주
   Future<void> tryAutoLogin() async {
     final token = await _apiClient.getToken();
+
     if (token == null) {
       return;
     }
@@ -37,10 +39,8 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isLoggedIn = true;
       await fetchMyInfo();
-      notifyListeners();
     } catch (e) {
-      // 저장된 JWT가 만료됐거나 서버 응답 실패 시,
-      // JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
+      // 저장된 JWT가 만료됐거나 서버 응답 실패 시, JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
       await _apiClient.clearToken();
       _isLoggedIn = false;
       notifyListeners();
