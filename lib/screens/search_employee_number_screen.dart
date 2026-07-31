@@ -1,5 +1,6 @@
 import 'package:annual_leave_frontend/main.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
+import 'employee_detail_screen.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -7,32 +8,29 @@ import '../widgets/app_drawer.dart';
 import '../widgets/registe_status_badge.dart';
 
 class SearchEmployeeNumberScreen extends StatefulWidget {
-  
   const SearchEmployeeNumberScreen({super.key});
 
   @override
-  State<SearchEmployeeNumberScreen> createState() => _SearchEmployeeNumberScreenState();
+  State<SearchEmployeeNumberScreen> createState() =>
+      _SearchEmployeeNumberScreenState();
 }
 
-class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen> with RouteAware{
+class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
+    with RouteAware {
   List<Employee> _items = [];
   bool _isLoading = true;
-  //String? _searchFilter; // null = 전체
-  final TextEditingController _searchParamController  = TextEditingController();
+  final TextEditingController _searchParamController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    
     _fetch();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-
     final route = ModalRoute.of(context);
-
     if (route is PageRoute) {
       routeObserver.subscribe(this, route);
     }
@@ -40,37 +38,36 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
   @override
   void dispose() {
-    //_scrollController.dispose();
+    _searchParamController.dispose(); // 메모리 누수 방지
     routeObserver.unsubscribe(this);
     super.dispose();
   }
 
   @override
   void didPopNext() {
-    // 다른 화면에서 돌아왔을 때
     _fetch();
   }
 
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-
       final response = await ApiClient().dio.get(
-        '/api/admin/employees/all',
-        queryParameters: _searchParamController.text.isEmpty ? null : {'searchParam': _searchParamController.text},
-      );
+            '/api/admin/employees/all',
+            queryParameters: _searchParamController.text.isEmpty
+                ? null
+                : {'searchParam': _searchParamController.text},
+          );
       setState(() {
         _items = (response.data as List)
             .map((json) => Employee.fromJson(json))
             .toList();
       });
-
+    } catch (e) {
+      // 에러 처리 로직 필요 시 추가
     } finally {
       setState(() => _isLoading = false);
     }
   }
-
-  
 
   @override
   Widget build(BuildContext context) {
@@ -84,16 +81,20 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.end, // 우측 정렬
+                mainAxisAlignment: MainAxisAlignment.end,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.5,
                     child: TextField(
                       controller: _searchParamController,
+                      textInputAction:
+                          TextInputAction.search, // 키보드 엔터키를 검색 모양으로 변경
+                      onSubmitted: (_) => _fetch(), // 엔터키 누르면 바로 조회 실행
                       decoration: InputDecoration(
                         hintText: '사번 또는 성명',
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                           borderSide: BorderSide(color: Colors.grey.shade400),
@@ -102,21 +103,20 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                       ),
                     ),
                   ),
-                  const SizedBox(width: 10), // 인풋 박스와 버튼 사이 간격
+                  const SizedBox(width: 10),
                   ElevatedButton(
-                    onPressed: () {
-                      _fetch();
-                    },
+                    onPressed: _fetch,
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 8),
                       minimumSize: const Size(70, 36),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.search, size: 20),
-                        const SizedBox(width: 1),  // 간격 줄임 (기본은 8~12 정도)
-                        const Text(
+                        Icon(Icons.search, size: 20),
+                        SizedBox(width: 1),
+                        Text(
                           '조회',
                           style: TextStyle(fontSize: 15),
                         ),
@@ -129,61 +129,81 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.slate))
                 : _items.isEmpty
-                    ? const Center(child: Text('조회된 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
+                    ? const Center(
+                        child: Text('조회된 내역이 없습니다.',
+                            style: TextStyle(color: AppColors.textMuted)))
                     : ListView.builder(
                         padding: const EdgeInsets.all(20),
                         itemCount: _items.length,
                         itemBuilder: (context, index) {
                           final item = _items[index];
-                          //final isProcessing = _processingIds.contains(item.requestId);
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.divider),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    // 사번, 성명, 직급, 등록여부 한 줄에 표시
-                                    Expanded(
-                                      child: Text(
-                                        '${item.name} ${item.position}  (${item.employeeNumber})',
-                                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14.5),
-                                        overflow: TextOverflow.ellipsis,
+                          return InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                    builder: (context) =>
+                                        EmployeeDetailScreen(employee: item)),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                              decoration: BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.divider),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          '${item.name} ${item.position} (${item.employeeNumber})',
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                              fontSize: 14.5),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                    RegisteStatusBadge(status: item.isRegisted == true ? '등록' : '미등록'),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),  // 여백 조금 추가
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        item.email ?? '',
-                                        style: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-                                        overflow: TextOverflow.ellipsis,
+                                      RegisteStatusBadge(
+                                          status: item.isRegisted == true
+                                              ? '등록'
+                                              : '미등록'),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          item.email ?? '',
+                                          style: const TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
                                       ),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           );
                         },
-                    
-          ),),
+                      ),
+          ),
         ],
       ),
     );
   }
 }
-
