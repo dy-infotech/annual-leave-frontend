@@ -82,8 +82,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     setState(() {
       _focusedDay = focusedDay;
 
-      final isHalfDay = _selectedLeaveType == LeaveType.amHalf ||
-          _selectedLeaveType == LeaveType.pmHalf;
+      // 날짜를 새로 선택하면 이전 에러 메시지 제거
+      _errorMessage = null;
+
+      final isHalfDay = _selectedLeaveType == LeaveType.amHalf || _selectedLeaveType == LeaveType.pmHalf;
 
       if (isHalfDay) {
         _startDate = selectedDay;
@@ -804,11 +806,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                 setState(() {
                                   _selectedLeaveType = value;
 
-                                  // if (isHalfDay) {
-                                  //   _useDaysController.text = '0.5';
-                                  // } else if (wasHalfDay) {
-                                  //   _useDaysController.text = '0';
-                                  // }
                                   if (isHalfDay) {
                                     // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
                                     if (_startDate != null && _endDate != null && _startDate != _endDate) {
