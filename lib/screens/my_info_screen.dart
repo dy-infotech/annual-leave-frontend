@@ -78,7 +78,13 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
 
   Future<bool> _handleChangeEmail() async {
     if (_emailController.text.isEmpty) {
-      setState(() => _emailErrorMessage = '이메일 정보를 입력해주세요.');
+      setState(() => _emailErrorMessage = '이메일 정보를 입력해 주세요.');
+      return false;
+    }
+
+    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
+    if (!emailRegex.hasMatch(_emailController.text)) {
+      setState(() => _emailErrorMessage = '올바른 이메일 형식이 아닙니다.');
       return false;
     }
 
@@ -97,7 +103,6 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(const SnackBar(content: Text('이메일이 변경되었습니다.')));
-        //AuthProvider.updateEmail();
         context.read<AuthProvider>().updateEmail(_emailController.text);
 
         _emailController.clear();
