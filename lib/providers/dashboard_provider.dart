@@ -14,6 +14,8 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  String? _registeredFcmToken;
+
   DashboardData? get data => _data;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -36,7 +38,7 @@ class DashboardProvider extends ChangeNotifier {
       notifyListeners();
 
       if (data?.allEmployeeRequestSummary != null &&
-          _foregroundNotificationSubscription != null) {
+          _registeredFcmToken != null) {
         final messaging = FirebaseMessaging.instance;
         try {
           var settings = await messaging.getNotificationSettings();
@@ -68,6 +70,7 @@ class DashboardProvider extends ChangeNotifier {
                       ? "iOS"
                       : "Unknown";
           if (token != null) {
+            _registeredFcmToken = token;
             await _apiClient.dio.post(
               '/api/admin/auth/sync-fcm-token',
               data: SyncFcmTokenRequest(
