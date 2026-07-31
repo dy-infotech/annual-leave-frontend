@@ -126,13 +126,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final listProvider = context.read<LeaveRequestListProvider>();
     final messenger = ScaffoldMessenger.of(context);
 
-    if (_startDate == null) {
+    if (_startDate == null || _endDate == null) {
       setState(() => _errorMessage = '날짜를 선택해주세요.');
       return;
     }
 
     if (_useDays <= 0) {
-      setState(() => _errorMessage = '사용일수를 입력해주세요.');
+      setState(() => _errorMessage = '사용 일수가 변경되지 않았습니다. 날짜를 다시 선택해 주세요.');
       return;
     }
 
@@ -222,7 +222,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 별 부분: 오전/오후 상태에 따라 왼쪽/오른쪽/완전한 별
     Widget buildStar() {
       if (hasAm && hasPm) {
-        // 둘 다 → 완전한 별
+        // 둘 다 -> 완전한 별
         return const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
       } else if (hasAm) {
         return _buildHalfStar(isLeft: true);   // 오전 -> 왼쪽 반쪽
@@ -714,8 +714,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   },
                   todayBuilder: (context, day, focusedDay) {
                     final isHoliday = holidayProvider.isHoliday(day);
-                    final isWeekend = day.weekday == DateTime.saturday ||
-                        day.weekday == DateTime.sunday;
+                    final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
                     // 오전/오후 반차 상태 조회
@@ -794,12 +793,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
-                                final wasHalfDay =
-                                    _selectedLeaveType == LeaveType.amHalf ||
-                                        _selectedLeaveType == LeaveType.pmHalf;
-                                final isHalfDay = value == LeaveType.amHalf ||
-                                    value == LeaveType.pmHalf;
-
+                                final wasHalfDay = _selectedLeaveType == LeaveType.amHalf || _selectedLeaveType == LeaveType.pmHalf;
+                                final isHalfDay = value == LeaveType.amHalf || value == LeaveType.pmHalf;
                                 final willShowReason = ![
                                   LeaveType.full,
                                   LeaveType.amHalf,
