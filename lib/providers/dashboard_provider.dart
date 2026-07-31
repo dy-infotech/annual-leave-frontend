@@ -3,6 +3,8 @@ import 'dart:async' show StreamSubscription;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart' show PlatformException;
+import 'package:shared_preferences/shared_preferences.dart'
+    show SharedPreferences;
 import '../models/dashboard_models.dart';
 import '../services/api_client.dart';
 import '../models/auth_models.dart' show SyncFcmTokenRequest;
@@ -14,14 +16,15 @@ class DashboardProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  String? _registeredFcmToken;
+  final String _fcmTokenKey = 'registered_fcm_token';
+
+  StreamSubscription? _foregroundNotificationSubscription;
+  StreamSubscription? _openedNotificationSubscription;
 
   DashboardData? get data => _data;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-
-  StreamSubscription? _foregroundNotificationSubscription;
-  StreamSubscription? _openedNotificationSubscription;
+  String get fcmTokenKey => _fcmTokenKey;
 
   Future<void> fetchDashboard() async {
     _isLoading = true;
@@ -37,8 +40,7 @@ class DashboardProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      if (data?.allEmployeeRequestSummary != null &&
-          _registeredFcmToken != null) {
+      if (data?.allEmployeeRequestSummary != null) {
         final messaging = FirebaseMessaging.instance;
         try {
           var settings = await messaging.getNotificationSettings();
@@ -62,6 +64,16 @@ class DashboardProvider extends ChangeNotifier {
             debugPrint("FCM token timeout");
             return null;
           });
+          if (token == null) {
+            return;
+          }
+
+          final prefs = await SharedPreferences.getInstance();
+          final registeredToken = prefs.getString(fcmTokenKey);
+          if (registeredToken == token) {
+            return;
+          }
+
           final deviceOs = kIsWeb
               ? "Web"
               : Platform.isAndroid
@@ -69,16 +81,14 @@ class DashboardProvider extends ChangeNotifier {
                   : Platform.isIOS
                       ? "iOS"
                       : "Unknown";
-          if (token != null) {
-            _registeredFcmToken = token;
-            await _apiClient.dio.post(
-              '/api/admin/auth/sync-fcm-token',
-              data: SyncFcmTokenRequest(
-                fcmToken: token,
-                deviceOs: deviceOs,
-              ).toJson(),
-            );
-          }
+          await _apiClient.dio.post(
+            '/api/admin/auth/sync-fcm-token',
+            data: SyncFcmTokenRequest(
+              fcmToken: token,
+              deviceOs: deviceOs,
+            ).toJson(),
+          );
+          await prefs.setString(fcmTokenKey, token);
         } on PlatformException catch (e) {
           // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
           if (e.code == 'permission-blocked' ||
