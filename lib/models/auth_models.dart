@@ -2,19 +2,19 @@ class LoginRequest {
   final String employeeNumber;
   final String password;
   final String? fcmToken;
-  final String deviceOs;
+  final String? deviceOs;
 
   LoginRequest(
       {required this.employeeNumber,
       required this.password,
-      required this.fcmToken,
-      required this.deviceOs});
+      this.fcmToken,
+      this.deviceOs});
 
   Map<String, dynamic> toJson() => {
         'employeeNumber': employeeNumber,
         'password': password,
-        'fcmToken': fcmToken,
-        'deviceOs': deviceOs,
+        if (fcmToken != null) 'fcmToken': fcmToken,
+        if (deviceOs != null) 'deviceOs': deviceOs,
       };
 }
 
