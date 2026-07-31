@@ -197,12 +197,11 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                               if (isEditingEmail) {
                                 final success = await _handleChangeEmail();
                                 if (success) {
-                                  setState(() => isEditingEmail = false); // 성공 시 편집 모드 종료
+                                  setState(() => isEditingEmail = false);
                                 }
                               } else {
-                                setState(() {
-                                  isEditingEmail = !isEditingEmail;
-                                });
+                                _emailController.text = info?.email ?? '';
+                                setState(() => isEditingEmail = true);
                               }
                             },
                             child: Icon(
