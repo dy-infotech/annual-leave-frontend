@@ -35,7 +35,8 @@ class DashboardProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      if (data?.allEmployeeRequestSummary != null) {
+      if (data?.allEmployeeRequestSummary != null &&
+          _foregroundNotificationSubscription != null) {
         final messaging = FirebaseMessaging.instance;
         try {
           var settings = await messaging.getNotificationSettings();
