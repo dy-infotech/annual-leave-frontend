@@ -77,7 +77,7 @@ class LeaveRequestListItem {
 
 // 휴가 신청 상세 정보 모델
 class LeaveRequestDetail {
-  // 휴가자 정보
+  // 휴가자
   final String employeeNumber;
   final String employeeName;
   final String position;
@@ -89,13 +89,14 @@ class LeaveRequestDetail {
   final String endDate;
   final double useDays;
   final String status;
-  final String? leaveReason; // 권한 없으면 null로 내려옴 (본인 및 관리자만 값 존재)
+  final String? leaveReason; // 권한 없으면 null
 
-  // 결재자 정보
-  final String approverNumber;
-  final String approverName;
-  final String approverPosition;
-  final String approverDepartment;
+  // 결재자 (미배정 시 null)
+  final String? approverNumber;
+  final String? approverName;
+  final String? approverPosition;
+  final String? approverDepartment;
+  final String? managedAt;
 
   LeaveRequestDetail({
     required this.employeeNumber,
@@ -107,11 +108,12 @@ class LeaveRequestDetail {
     required this.endDate,
     required this.useDays,
     required this.status,
-    this.leaveReason, // nullable
-    required this.approverNumber,
-    required this.approverName,
-    required this.approverPosition,
-    required this.approverDepartment,
+    this.leaveReason,
+    this.approverNumber,
+    this.approverName,
+    this.approverPosition,
+    this.approverDepartment,
+    this.managedAt,
   });
 
   factory LeaveRequestDetail.fromJson(Map<String, dynamic> json) {
@@ -125,11 +127,12 @@ class LeaveRequestDetail {
       endDate: json['endDate'] ?? '',
       useDays: (json['useDays'] ?? 0).toDouble(),
       status: json['status'] ?? '',
-      leaveReason: json['leaveReason'], // 없으면 자동으로 null
-      approverNumber: json['approverNumber'] ?? '',
-      approverName: json['approverName'] ?? '',
-      approverPosition: json['approverPosition'] ?? '',
-      approverDepartment: json['approverDepartment'] ?? '',
+      leaveReason: json['leaveReason'],
+      approverNumber: json['approverNumber'],
+      approverName: json['approverName'],
+      approverPosition: json['approverPosition'],
+      approverDepartment: json['approverDepartment'],
+      managedAt: json['managedAt'],
     );
   }
 }
