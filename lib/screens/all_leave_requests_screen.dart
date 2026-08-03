@@ -20,7 +20,8 @@ class AllLeaveRequestsScreen extends StatefulWidget {
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
 }
 
-class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with RouteAware{
+class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
+    with RouteAware {
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
@@ -98,14 +99,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
     }
   }
 
-
   @override
   void dispose() {
     _scrollController.dispose();
     routeObserver.unsubscribe(this);
     super.dispose();
   }
-
 
   @override
   void didPopNext() {
@@ -281,16 +280,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                         children: searchFilterList.map((item) {
                           final label = item['label']!;
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 0.0),
+                            // 다음 라디오 버튼('내 신청')과의 간격을 벌리기 위해 오른쪽에만 여백을 줍니다.
+                            padding: const EdgeInsets.only(right: 12.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Radio<String>(
                                   value: label,
-                                  // ignore: deprecated_member_use
                                   groupValue: _buttonLabel,
-                                  // ignore: deprecated_member_use
+                                  // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
+                                  visualDensity: const VisualDensity(
+                                    horizontal: VisualDensity.minimumDensity,
+                                    vertical: VisualDensity.minimumDensity,
+                                  ),
+                                  // 2. 기본 터치 영역(48x48) 제한을 풀고 아이콘 크기만큼 압축합니다.
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   onChanged: (value) {
                                     setState(() {
                                       _buttonLabel = value!;
@@ -298,6 +303,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                                     });
                                   },
                                 ),
+                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격을 지정합니다.
+                                const SizedBox(width: 2),
                                 Text(label),
                               ],
                             ),
