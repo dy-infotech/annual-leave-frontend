@@ -225,7 +225,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.transparent,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -339,7 +339,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
             // ★ 첫 번째 아이템 자리에 상단 우측 끝 "조회건수" 라벨 배치
             if (index == 0) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 12, right: 4),
+                padding: const EdgeInsets.only(bottom: 10, right: 4),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
@@ -370,7 +370,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
             final String leaveTypeNm = leaveTypeMap[rawType] ?? rawType;
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 14),
+              margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
                 color: AppColors.surface,
                 borderRadius: BorderRadius.circular(18),
@@ -455,16 +455,15 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                         fontWeight: FontWeight.w600)),
                               ],
                             ),
-                            const SizedBox(height: 12),
-
-                            // 세 번째 줄: 신청일 정보
-                            Align(
-                              alignment: Alignment.centerRight,
-                              child: Text(
-                                '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
-                                style: const TextStyle(
-                                    color: AppColors.textMuted, fontSize: 13),
-                              ),
+                            Row(
+                              children: [
+                                const Spacer(), // 왼쪽 공간을 모두 차지하여 Text를 우측 끝으로 밀어냄
+                                Text(
+                                  '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
+                                  style: const TextStyle(
+                                      color: AppColors.textMuted, fontSize: 13),
+                                ),
+                              ],
                             ),
                           ],
                         ),
