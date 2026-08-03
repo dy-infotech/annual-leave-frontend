@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  static const slate = Color(0xFF2B3A4A);       // Primary
+  static const slate = Color(0xFF2B3A4A); // Primary
   static const slateLight = Color(0xFF44576B);
-  static const sage = Color(0xFF7FA88A);        // 승인/잔여/긍정
-  static const amber = Color(0xFFC9A66B);       // 대기 상태
-  static const coral = Color(0xFFC97B63);       // 반려/경고
-  static const background = Color(0xFFF7F6F3);  // 배경
+  static const sage = Color(0xFF7FA88A); // 승인/잔여/긍정
+  static const amber = Color(0xFFC9A66B); // 대기 상태
+  static const coral = Color(0xFFC97B63); // 반려/경고
+  static const background = Color(0xFFF7F6F3); // 배경
   static const surface = Color(0xFFFFFFFF);
   static const textPrimary = Color(0xFF23292F);
   static const textMuted = Color(0xFF8B8F94);
@@ -78,8 +78,10 @@ class AppTheme {
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w700),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle:
+              GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -87,14 +89,17 @@ class AppTheme {
           foregroundColor: AppColors.coral,
           side: const BorderSide(color: AppColors.coral, width: 1.3),
           padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle: GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w700),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          textStyle:
+              GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: AppColors.surface,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.divider),
@@ -111,4 +116,5 @@ class AppTheme {
       ),
       drawerTheme: const DrawerThemeData(backgroundColor: AppColors.surface),
     );
-  }}
+  }
+}

@@ -423,18 +423,18 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  '${req.employeeName} ${req.position} (${req.employeeNumber})',
+                                  '${req.employeeName} ${req.position} (${req.department})',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
                                     fontSize: 15.5,
                                     height: 1.0, // 불필요한 위아래 폰트 행간 마진 제거
                                   ),
                                 ),
-                                Text(req.department,
-                                    style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 12.5,
-                                        height: 1.0)),
+                                Text(
+                                  '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
+                                  style: const TextStyle(
+                                      color: AppColors.textMuted, fontSize: 13),
+                                ),
                               ],
                             ),
                             const SizedBox(height: 12),
@@ -453,16 +453,6 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                     style: const TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600)),
-                              ],
-                            ),
-                            Row(
-                              children: [
-                                const Spacer(), // 왼쪽 공간을 모두 차지하여 Text를 우측 끝으로 밀어냄
-                                Text(
-                                  '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
-                                  style: const TextStyle(
-                                      color: AppColors.textMuted, fontSize: 13),
-                                ),
                               ],
                             ),
                           ],
