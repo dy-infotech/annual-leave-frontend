@@ -20,7 +20,8 @@ class AllLeaveRequestsScreen extends StatefulWidget {
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
 }
 
-class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with RouteAware{
+class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
+    with RouteAware {
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
@@ -98,14 +99,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
     }
   }
 
-
   @override
   void dispose() {
     _scrollController.dispose();
     routeObserver.unsubscribe(this);
     super.dispose();
   }
-
 
   @override
   void didPopNext() {
@@ -138,7 +137,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
         title:
             const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
-          '${item.startDate} — ${item.endDate} (${item.useDays}일)\n신청을 취소하시겠습니까?',
+          '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))} (${item.useDays}일)\n신청을 취소하시겠습니까?',
           style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
@@ -281,16 +280,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                         children: searchFilterList.map((item) {
                           final label = item['label']!;
                           return Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 0.0),
+                            // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백을 줍니다.
+                            padding: const EdgeInsets.only(right: 10.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Radio<String>(
                                   value: label,
-                                  // ignore: deprecated_member_use
                                   groupValue: _buttonLabel,
-                                  // ignore: deprecated_member_use
+                                  // 1. 아이콘 주변의 불필요한 기본 빈 공백을 완전히 지웁니다.
+                                  visualDensity: const VisualDensity(
+                                    horizontal: VisualDensity.minimumDensity,
+                                    vertical: VisualDensity.minimumDensity,
+                                  ),
+                                  // 2. 터치 영역 제한(48x48)을 풀어 글자와 완전히 밀착시킵니다.
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
                                   onChanged: (value) {
                                     setState(() {
                                       _buttonLabel = value!;
@@ -298,12 +303,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                                     });
                                   },
                                 ),
+                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격(4px)을 지정합니다.
+                                const SizedBox(width: 2),
                                 Text(label),
                               ],
                             ),
                           );
                         }).toList(),
                       ),
+
                       const SizedBox(width: 10), // 두 버튼 간격
                       ElevatedButton.icon(
                         onPressed: () {
@@ -350,6 +358,24 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                 ],
               ),
             ),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다.
+                Text(
+                  '${_items.length}건 조회됨',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
+                    fontWeight: FontWeight.w700, // 숫자를 두껍게 처리하여 가독성을 높입니다.
+                  ),
+                ),
+              ],
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(
@@ -379,6 +405,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                               final item = _items[index];
                               final isProcessing =
                                   _processingIds.contains(item.requestId);
+                              // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
+                              final Map<String, String> leaveTypeMap = {
+                                'FULL': '연차',
+                                'AM_HALF': '반차(오전)',
+                                'PM_HALF': '반차(오후)',
+                                'ALTERNATIVE': '대체 휴가',
+                                'PARENTAL': '출산 휴가',
+                                'FAMILY': '가족 돌봄 휴가',
+                                'OTHER': '기타',
+                              };
+
+                              // 2. 현재 아이템의 휴가 종류 값을 가져와 매핑 (데이터 필드명에 맞게 item.leaveType 등으로 수정 가능)
+                              final String rawType = item.leaveType ?? 'FULL';
+                              final String leaveTypeNm =
+                                  leaveTypeMap[rawType] ?? rawType;
+
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding:
@@ -424,17 +466,17 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen> with Ro
                                         children: [
                                           const SizedBox(height: 10),
                                           Text(
-                                              '${item.startDate} — ${item.endDate}',
+                                              '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
                                               style: const TextStyle(
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600)),
                                           const SizedBox(width: 4),
-                                          Text('(${item.useDays}일)',
+                                          Text(
+                                              '(${item.useDays}일) [${leaveTypeNm}]',
                                               style: const TextStyle(
                                                   fontSize: 13,
                                                   color: AppColors.textMuted)),
                                           const SizedBox(width: 70),
-
                                           // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
                                           const Spacer(),
                                         ]),
