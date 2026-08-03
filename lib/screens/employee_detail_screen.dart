@@ -195,7 +195,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('사원 정보 및 팀 역할이 성공적으로 수정되었습니다.')),
+          const SnackBar(content: Text('사원 정보가 성공적으로 수정되었습니다.')),
         );
       }
 
@@ -220,7 +220,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     final authProvider = context.watch<AuthProvider>().employeeInfo;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('사원 정보 상세'),
+        title: const Text('사용자 정보 상세'),
         actions: [
           _isSaving
               ? const Padding(
@@ -312,7 +312,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     // ),
                     const SizedBox(height: 24),
 
-                    const Text('기본 정보 관리',
+                    const Text('사용자 정보 관리',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
@@ -334,7 +334,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 4.0),
                         child: Text(
-                          '잔여 연차 : ${authProvider?.remainingLeaveDays ?? 0}일 / ${authProvider?.currTotalLeaveDays ?? 0}일',
+                          '잔여 연차 : ${widget.employee.remainingLeaveDays.toString()}일 / 총 연차 : ${widget.employee.currTotalLeaveDays.toString()}일',
                           style: const TextStyle(fontSize: 14),
                         ),
                       ),
@@ -523,66 +523,32 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                     //         ),
                     // ),
                     // 9. 입사일 달력 팝업 연동 로우 영역 (3페이지 수정)
+
                     _buildRow(
-                        '입사일',
-                        _isEditing
-                            ? TextFormField(
-                                controller: _hireDateController,
-                                readOnly: true, // 키보드 차단
-                                onTap: _selectHireDate, // 💡 클릭 시 달력 호출
-                                style: const TextStyle(fontSize: 14),
-                                decoration: InputDecoration(
-                                    isDense: true,
-                                    border: const OutlineInputBorder(),
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.calendar_month,
-                                          size: 18),
-                                      onPressed:
-                                          _selectHireDate, // 💡 아이콘 클릭 시 달력 호출
-                                    )),
-                                validator: (val) =>
-                                    val == null || val.trim().isEmpty
-                                        ? '입사일 정보를 입력해 주세요.'
-                                        : null,
-                              )
-                            : Text(_hireDateController.text,
-                                style: const TextStyle(fontSize: 14))),
-                    // 등록일자 표시 로우 (수정 불가 고정)
-                    // _buildRow(
-                    //   '등록일자',
-                    //   Align(
-                    //     alignment: Alignment.centerLeft,
-                    //     child: Padding(
-                    //       padding: const EdgeInsets.only(
-                    //           left: 12, top: 12, bottom: 12),
-                    //       child: Text(
-                    //         widget.employee.createdAt.contains('T')
-                    //             ? widget.employee.createdAt.split('T')[0]
-                    //             : widget.employee.createdAt,
-                    //         style: TextStyle(
-                    //             fontSize: 14,
-                    //             color: Colors.black.withOpacity(0.65)),
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
-                    // // 8. 강제 비밀번호 변경 로우
-                    // if (_isEditing) ...[
-                    //   const Padding(
-                    //       padding: EdgeInsets.symmetric(vertical: 8.0),
-                    //       child: Divider(color: AppColors.divider)),
-                    //   _buildRow(
-                    //       '비밀번호 변경',
-                    //       TextFormField(
-                    //         controller: _passwordController,
-                    //         obscureText: true,
-                    //         style: const TextStyle(fontSize: 14),
-                    //         decoration: const InputDecoration(
-                    //             isDense: true,
-                    //             border: OutlineInputBorder(),
-                    //             hintText: '변경 시에만 입력하세요'),
-                    //       )),
-                    // ],
+                      '입사일',
+                      // 수정 모드이고 && 아직 사용 등록이 안 된 상태(false)일 때만 TextFormField 표시
+                      _isEditing && !(widget.employee.isRegisted ?? false)
+                          ? TextFormField(
+                              controller: _hireDateController,
+                              readOnly: true,
+                              onTap: _selectHireDate,
+                              style: const TextStyle(fontSize: 14),
+                              decoration: InputDecoration(
+                                  isDense: true,
+                                  border: const OutlineInputBorder(),
+                                  suffixIcon: IconButton(
+                                    icon: const Icon(Icons.calendar_month,
+                                        size: 18),
+                                    onPressed: _selectHireDate,
+                                  )),
+                              validator: (val) =>
+                                  val == null || val.trim().isEmpty
+                                      ? '입사일 정보를 입력해 주세요.'
+                                      : null,
+                            )
+                          : Text(_hireDateController.text,
+                              style: const TextStyle(fontSize: 14)),
+                    )
                   ],
                 ),
               ),

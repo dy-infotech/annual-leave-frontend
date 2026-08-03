@@ -103,7 +103,7 @@ class AppDrawer extends StatelessWidget {
                   adminTextColor: navyPrimary,
                   onTap: () => _navigate(context, '/signup_manage_screen')),
               _NavItem(
-                  label: '사용자 사번 정보 조회',
+                  label: '사용자 정보 조회',
                   isAdmin: true,
                   adminTextColor: navyPrimary,
                   onTap: () =>

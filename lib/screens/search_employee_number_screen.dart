@@ -72,7 +72,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('사용자 사번 조회')),
+      appBar: AppBar(title: const Text('사용자 조회')),
       drawer: const AppDrawer(),
       body: Column(
         children: [
