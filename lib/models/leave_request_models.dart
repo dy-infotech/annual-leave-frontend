@@ -1,3 +1,4 @@
+// 휴가 신청 모델
 class LeaveRequestCreate {
   final String leaveType;
   final DateTime startDate;
@@ -26,6 +27,7 @@ class LeaveRequestCreate {
   }
 }
 
+// 휴가 신청 리스트 요소 모델
 class LeaveRequestListItem {
   final int requestId;
   final String employeeName;
@@ -73,6 +75,66 @@ class LeaveRequestListItem {
   }
 }
 
+// 휴가 신청 상세 정보 모델
+class LeaveRequestDetail {
+  // 휴가자 정보
+  final String employeeNumber;
+  final String employeeName;
+  final String position;
+  final String department;
+
+  // 휴가 정보
+  final String leaveType;
+  final String startDate;
+  final String endDate;
+  final double useDays;
+  final String status;
+  final String? leaveReason; // 권한 없으면 null로 내려옴 (본인 및 관리자만 값 존재)
+
+  // 결재자 정보
+  final String approverNumber;
+  final String approverName;
+  final String approverPosition;
+  final String approverDepartment;
+
+  LeaveRequestDetail({
+    required this.employeeNumber,
+    required this.employeeName,
+    required this.position,
+    required this.department,
+    required this.leaveType,
+    required this.startDate,
+    required this.endDate,
+    required this.useDays,
+    required this.status,
+    this.leaveReason, // nullable
+    required this.approverNumber,
+    required this.approverName,
+    required this.approverPosition,
+    required this.approverDepartment,
+  });
+
+  factory LeaveRequestDetail.fromJson(Map<String, dynamic> json) {
+    return LeaveRequestDetail(
+      employeeNumber: json['employeeNumber'] ?? '',
+      employeeName: json['employeeName'] ?? '',
+      position: json['position'] ?? '',
+      department: json['department'] ?? '',
+      leaveType: json['leaveType'] ?? 'FULL',
+      startDate: json['startDate'] ?? '',
+      endDate: json['endDate'] ?? '',
+      useDays: (json['useDays'] ?? 0).toDouble(),
+      status: json['status'] ?? '',
+      leaveReason: json['leaveReason'], // 없으면 자동으로 null
+      approverNumber: json['approverNumber'] ?? '',
+      approverName: json['approverName'] ?? '',
+      approverPosition: json['approverPosition'] ?? '',
+      approverDepartment: json['approverDepartment'] ?? '',
+    );
+  }
+}
+
+// 승인 대기 상태 휴가 정보 모델
 class PendingLeaveRequest {
   final int requestId;
   final String employeeNumber;
