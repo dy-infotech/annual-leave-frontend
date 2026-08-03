@@ -362,7 +362,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             padding:
                 const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.start,
+              //mainAxisAlignment: MainAxisAlignment.start,
+              // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다.
                 Text(
@@ -399,7 +401,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           interactive: true,
                           child: ListView.builder(
                             controller: _scrollController, // 추가
-                            padding: const EdgeInsets.all(20),
+                            //padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.only(
+                                top: 4.0,
+                                left: 20.0,
+                                right: 20.0,
+                                bottom: 20.0),
                             itemCount: _items.length,
                             itemBuilder: (context, index) {
                               final item = _items[index];
