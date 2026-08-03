@@ -1,7 +1,4 @@
-import 'dart:async' show StreamSubscription;
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
 import '../models/auth_models.dart';
 import '../models/employee.dart';
 import '../services/api_client.dart';
@@ -18,9 +15,6 @@ class AuthProvider extends ChangeNotifier {
   bool get isAdmin => _role == 'ADMIN';
   String? get name => _name;
   Employee? get employeeInfo => _employeeInfo;
-
-  StreamSubscription? _foregroundNotificationSubscription;
-  StreamSubscription? _openedNotificationSubscription;
 
   Future<void> fetchMyInfo() async {
     final response = await _apiClient.dio.get('/api/employees/me');
@@ -48,33 +42,11 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(String employeeNumber, String password) async {
-    final messaging = FirebaseMessaging.instance;
-
-    await messaging.requestPermission();
-
-    final fcmToken = kIsWeb
-        ? await messaging.getToken(
-            vapidKey:
-                "BK0OMc8V4bjy1iL0C1OUY2L_u3XaMHaHAdyMjDnmXTeDPb1LALjEeYQDZD_uQ0VkYVZIiArZ9OMSwRC7NPZBjfI",
-          )
-        : await messaging.getToken();
-
     final response = await _apiClient.dio.post(
       '/api/auth/signin',
-      data: LoginRequest(
-              employeeNumber: employeeNumber,
-              password: password,
-              fcmToken: fcmToken,
-              deviceOs: kIsWeb
-                  ? "Web"
-                  : Platform.isAndroid
-                      ? "Android"
-                      : Platform.isIOS
-                          ? "iOS"
-                          : "Unknown")
+      data: LoginRequest(employeeNumber: employeeNumber, password: password)
           .toJson(),
     );
-
     final loginResponse = LoginResponse.fromJson(response.data);
     await _apiClient.saveToken(loginResponse.token);
 
@@ -83,42 +55,6 @@ class AuthProvider extends ChangeNotifier {
     _name = loginResponse.name;
 
     await fetchMyInfo();
-    _foregroundNotificationSubscription ??=
-        FirebaseMessaging.onMessage.listen((message) {
-      // TODO: 실행 도중 alert 팜업 필요할 수도.
-      //       나중에 팝업 필요하면 flutter_local_notifications 추가 또는
-      //       onMessage에서 local notification 호출
-      debugPrint("앱 실행 중 FCM 수신");
-      debugPrint(message.notification?.title);
-      debugPrint(message.notification?.body);
-    });
-
-    _openedNotificationSubscription ??=
-        FirebaseMessaging.onMessageOpenedApp.listen((message) {
-      // TODO: 알림 클릭시 관련 장소로 네비게이팅 필요할 수도.
-      debugPrint("알림 클릭");
-      debugPrint(message.data.toString());
-    });
-
-    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
-    if (initialMessage != null) {
-      debugPrint("종료 상태에서 알림 클릭");
-      debugPrint(initialMessage.data.toString());
-
-      // TODO: 해당 메시지를 파싱해서 신청 승인 목록으로 이동하는 네비게이팅 코드 필요.
-      //       현재 코드는 임시 의사 코드
-      // final type = initialMessage.data['type'];
-
-      // if (type == 'approval') {
-      //   final approvalId = initialMessage.data['approvalId'];
-
-      //   // 승인 상세 화면 이동
-      //   navigatorKey.currentState?.pushNamed(
-      //     '/approval-detail',
-      //     arguments: approvalId,
-      //   );
-      // }
-    }
 
     notifyListeners();
   }
@@ -169,10 +105,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _foregroundNotificationSubscription?.cancel();
-    await _openedNotificationSubscription?.cancel();
-    _foregroundNotificationSubscription = null;
-    _openedNotificationSubscription = null;
     await _apiClient.clearToken();
     _isLoggedIn = false;
     _role = null;
