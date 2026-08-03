@@ -148,6 +148,7 @@ class PendingLeaveRequest {
   final String endDate;
   final double useDays;
   final String createdAt;
+  final String leaveType;
 
   PendingLeaveRequest({
     required this.requestId,
@@ -159,6 +160,7 @@ class PendingLeaveRequest {
     required this.endDate,
     required this.useDays,
     required this.createdAt,
+    required this.leaveType,
   });
 
   factory PendingLeaveRequest.fromJson(Map<String, dynamic> json) {
@@ -172,6 +174,7 @@ class PendingLeaveRequest {
       endDate: json['endDate'],
       useDays: (json['useDays'] as num).toDouble(),
       createdAt: json['createdAt'],
+      leaveType: json['leaveType'],
     );
   }
 }

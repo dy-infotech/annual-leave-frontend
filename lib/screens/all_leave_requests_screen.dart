@@ -290,7 +290,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                 Radio<String>(
                                   value: label,
                                   groupValue: _buttonLabel,
-                                  // 1. 아이콘 주변의 불필요한 기본 빈 공백을 완전히 지웁니다.
+                                  // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
+
                                   visualDensity: const VisualDensity(
                                     horizontal: VisualDensity.minimumDensity,
                                     vertical: VisualDensity.minimumDensity,
@@ -368,7 +369,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
               // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다.
+                // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
+
                 Text(
                   '${_items.length}건 조회됨',
                   style: const TextStyle(

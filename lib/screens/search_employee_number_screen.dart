@@ -72,12 +72,12 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('사용자 사번 조회')),
+      appBar: AppBar(title: const Text('사용자 조회')),
       drawer: const AppDrawer(),
       body: Column(
         children: [
           SizedBox(
-            height: 60,
+            height: 50,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
@@ -136,7 +136,10 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
                     : ListView.builder(
-                        padding: const EdgeInsets.all(20),
+                        // padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.only(
+                            top: 10.0, left: 20.0, right: 20.0, bottom: 20.0),
+
                         itemCount: _items.length,
                         itemBuilder: (context, index) {
                           final item = _items[index];
@@ -151,9 +154,8 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                             },
                             borderRadius: BorderRadius.circular(16),
                             child: Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                              margin: const EdgeInsets.only(bottom: 10),
+                              padding: const EdgeInsets.fromLTRB(16, 5, 16, 10),
                               decoration: BoxDecoration(
                                 color: AppColors.surface,
                                 borderRadius: BorderRadius.circular(16),
