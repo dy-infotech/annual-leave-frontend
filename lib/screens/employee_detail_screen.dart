@@ -452,10 +452,14 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               '팀',
                               _isEditing
                                   ? DropdownButtonFormField<String>(
-                                      value: _teamList.contains(_selectedTeam)
+                                      // 만약 현재 값이 '기타'라면 드롭다운이 에러 나지 않도록 null 처리
+                                      value: (_selectedTeam != '기타' &&
+                                              _teamList.contains(_selectedTeam))
                                           ? _selectedTeam
                                           : null,
+                                      // 💡 .where()를 사용하여 사용자가 '기타'를 선택 목록에서 보지 못하게 원천 차단
                                       items: _teamList
+                                          .where((t) => t != '기타')
                                           .map((t) => DropdownMenuItem(
                                               value: t,
                                               child: Text(t,
@@ -464,8 +468,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                           .toList(),
                                       onChanged: (val) => setState(() {
                                         _selectedTeam = val;
-                                        if (val != '기타')
-                                          _otherTeamController.clear();
+                                        // '기타' 선택이 불가능하므로 관련 분기 및 클리어 이벤트 제거
                                       }),
                                       decoration: const InputDecoration(
                                           isDense: true,
@@ -476,6 +479,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                           val == null ? '팀을 선택해 주세요.' : null,
                                     )
                                   : TextFormField(
+                                      // 읽기 모드일 때는 원래 저장된 값(예: 기타 혹은 기존 팀명)을 그대로 보여줍니다.
                                       initialValue: _selectedTeam ?? '-',
                                       readOnly: true,
                                       style: const TextStyle(
@@ -494,29 +498,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                     ),
                             ),
 
-                            // 팀 '기타' 입력 영역
-                            if (_isEditing && _selectedTeam == '기타') ...[
-                              _buildRow(
-                                '기타 팀명',
-                                TextFormField(
-                                  controller: _otherTeamController,
-                                  style: const TextStyle(
-                                      fontSize: 14, color: Colors.black),
-                                  decoration: const InputDecoration(
-                                      isDense: true,
-                                      border: OutlineInputBorder(),
-                                      contentPadding: EdgeInsets.symmetric(
-                                          horizontal: 12, vertical: 12),
-                                      hintText: '새로운 팀명 입력'),
-                                  validator: (val) =>
-                                      val == null || val.trim().isEmpty
-                                          ? '팀명을 입력해 주세요.'
-                                          : null,
-                                ),
-                              ),
-                            ],
-
-                            // 7. 직급
+                            // 7. 직급 드롭다운 로우 (기타 팀명 조건문 아래로 명확히 분리)
                             _buildRow(
                               '직급',
                               _isEditing
@@ -526,9 +508,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                           ? _selectedPosition
                                           : null,
                                       items: _positionList
-                                          .map((p) => DropdownMenuItem(
-                                              value: p,
-                                              child: Text(p,
+                                          .map((d) => DropdownMenuItem(
+                                              value: d,
+                                              child: Text(d,
                                                   style: const TextStyle(
                                                       color: Colors.black))))
                                           .toList(),
@@ -540,7 +522,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                               horizontal: 12, vertical: 10),
                                           border: OutlineInputBorder()),
                                       validator: (val) =>
-                                          val == null ? '직급을 선택해 주세요.' : null,
+                                          val == null ? '부서를 선택해 주세요.' : null,
                                     )
                                   : TextFormField(
                                       initialValue: _selectedPosition ?? '-',
