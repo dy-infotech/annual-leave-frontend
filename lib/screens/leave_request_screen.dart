@@ -219,17 +219,24 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   //   );
   // }
 
-  Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
+  // Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
+  //   return ClipRect(
+  //     clipper: _HalfClipper(isLeft: isLeft),
+  //     child: Icon(
+  //       Icons.star_rounded,
+  //       size: size,
+  //       color: Colors.yellow,
+  //       shadows: glow
+  //           ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
+  //           : null,
+  //     ),
+  //   );
+  // }
+
+  Widget _buildHalfStar({required bool isLeft, double size = 32}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(
-        Icons.star_rounded,
-        size: size,
-        color: Colors.yellow,
-        shadows: glow
-            ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
-            : null,
-      ),
+      child: Icon(Icons.star_rounded, size: size, color: Colors.yellow),
     );
   }
 
@@ -278,6 +285,25 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       //   ),
       // ]
       //     : null, // 대기: 글로우 없음
+    );
+  }
+
+  // 승인 건 별 뒤에 까는 은은한 후광
+  Widget _halo({double size = 26}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFFFFF176).withOpacity(0.2), // 0.45 → 0.2
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFFFD54F).withOpacity(0.35), // 0.7 → 0.35
+            blurRadius: 4,      // 8 → 4
+            spreadRadius: 0,    // 1 → 0
+          ),
+        ],
+      ),
     );
   }
 
@@ -335,27 +361,61 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     //   }
     // }
 
+    // Widget buildStar() {
+    //   final amApproved = amStatus == LeaveState.approved.code;
+    //   final pmApproved = pmStatus == LeaveState.approved.code;
+    //
+    //   if (hasAm && hasPm) {
+    //     if (amStatus == pmStatus) {
+    //       // 상태 동일 -> 온전한 별 (승인이면 글로우)
+    //       return _glowStar(amStatus);
+    //     } else {
+    //       // 상태 다름 -> 좌우 분리, 각각 승인 여부로 글로우
+    //       return Stack(
+    //         children: [
+    //           _buildHalfStar(isLeft: true, glow: amApproved),
+    //           _buildHalfStar(isLeft: false, glow: pmApproved),
+    //         ],
+    //       );
+    //     }
+    //   } else if (hasAm) {
+    //     return _buildHalfStar(isLeft: true, glow: amApproved);
+    //   } else {
+    //     return _buildHalfStar(isLeft: false, glow: pmApproved);
+    //   }
+    // }
+
     Widget buildStar() {
       final amApproved = amStatus == LeaveState.approved.code;
       final pmApproved = pmStatus == LeaveState.approved.code;
 
+      // 온전한 별: 승인이면 정지, 대기면 펄스
+      Widget fullStar(bool approved) => approved
+          ? const Icon(Icons.star_rounded, size: 32, color: Colors.yellow)
+          : const _PulsingStar();
+
+      // 반쪽 별: 승인이면 정지, 대기면 펄스
+      Widget halfStar(bool isLeft, bool approved) => approved
+          ? _buildHalfStar(isLeft: isLeft)
+          : _PulsingStar(isHalf: true, isLeft: isLeft);
+
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
-          // 상태 동일 -> 온전한 별 (승인이면 글로우)
-          return _glowStar(amStatus);
+          // 오전/오후 상태 동일 -> 온전한 별 하나
+          return fullStar(amApproved);
         } else {
-          // 상태 다름 -> 좌우 분리, 각각 승인 여부로 글로우
+          // 상태 다름 -> 좌우 각각 (승인 반쪽은 정지, 대기 반쪽은 펄스)
           return Stack(
             children: [
-              _buildHalfStar(isLeft: true, glow: amApproved),
-              _buildHalfStar(isLeft: false, glow: pmApproved),
+              halfStar(true, amApproved),
+              halfStar(false, pmApproved),
             ],
           );
         }
       } else if (hasAm) {
-        return _buildHalfStar(isLeft: true, glow: amApproved);
+        return halfStar(true, amApproved);
       } else {
-        return _buildHalfStar(isLeft: false, glow: pmApproved);
+        return halfStar(false, pmApproved);
       }
     }
 
@@ -1087,4 +1147,59 @@ class _HalfClipper extends CustomClipper<Rect> {
 
   @override
   bool shouldReclip(_HalfClipper old) => old.isLeft != isLeft;
+}
+
+// 대기 건: 은은하게 깜빡이는 별 (온전한 별 or 반쪽 별)
+class _PulsingStar extends StatefulWidget {
+  final bool isHalf;  // 반쪽 여부
+  final bool isLeft;  // 반쪽일 때 왼쪽(오전) / 오른쪽(오후)
+  final double size;
+
+  const _PulsingStar({
+    this.isHalf = false,
+    this.isLeft = true,
+    this.size = 32,
+  });
+
+  @override
+  State<_PulsingStar> createState() => _PulsingStarState();
+}
+
+class _PulsingStarState extends State<_PulsingStar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2), // 느린 호흡
+    )..repeat(reverse: true);
+    _opacity = Tween(begin: 1.0, end: 0.35).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final star = Icon(Icons.star_rounded, size: widget.size, color: Colors.yellow);
+
+    return FadeTransition(
+      opacity: _opacity,
+      child: widget.isHalf
+          ? ClipRect(
+        clipper: _HalfClipper(isLeft: widget.isLeft),
+        child: star,
+      )
+          : star,
+    );
+  }
 }
