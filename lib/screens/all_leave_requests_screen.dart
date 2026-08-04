@@ -370,7 +370,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
 
                 Text(
-                  '${_items.length}건 조회됨',
+                  '조회건수: ${_items.length}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
