@@ -34,10 +34,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
   bool get _needsReason => ![
-        LeaveType.full,
-        LeaveType.amHalf,
-        LeaveType.pmHalf,
-      ].contains(_selectedLeaveType);
+    LeaveType.full,
+    LeaveType.amHalf,
+    LeaveType.pmHalf,
+  ].contains(_selectedLeaveType);
 
   @override
   void initState() {
@@ -205,104 +205,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   // 별의 왼쪽(오전) 또는 오른쪽(오후) 절반만 그리기
-  // Widget _buildHalfStar({required bool isLeft, Color color = Colors.yellow, double size = 32,}) {
-  //   return ClipRect(
-  //     clipper: _HalfClipper(isLeft: isLeft),
-  //     child: Icon(Icons.star_rounded, size: size, color: color),
-  //   );
-  // }
-
-  // Widget _buildHalfStar({required bool isLeft, IconData icon = Icons.star_rounded, double size = 32,}) {
-  //   return ClipRect(
-  //     clipper: _HalfClipper(isLeft: isLeft),
-  //     child: Icon(icon, size: size, color: Colors.yellow), // 색은 노랑 통일
-  //   );
-  // }
-
-  // Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
-  //   return ClipRect(
-  //     clipper: _HalfClipper(isLeft: isLeft),
-  //     child: Icon(
-  //       Icons.star_rounded,
-  //       size: size,
-  //       color: Colors.yellow,
-  //       shadows: glow
-  //           ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
-  //           : null,
-  //     ),
-  //   );
-  // }
-
-  Widget _buildHalfStar({required bool isLeft, double size = 32}) {
+  Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(Icons.star_rounded, size: size, color: Colors.yellow),
-    );
-  }
-
-  // 상태에 따른 별 색상 (승인=노랑, 대기=회색)
-  Color _starColor(String? status) {
-    if (status == LeaveState.approved.code) {
-      return Colors.yellow; // 승인
-    }
-    return const Color(0xFFBDBDBD); // 대기
-  }
-
-  // 상태에 따른 별 아이콘 (승인=채운 별, 대기=테두리 별)
-  IconData _starIcon(String? status) {
-    if (status == LeaveState.approved.code) {
-      return Icons.star_rounded;  // 승인
-    }
-    return Icons.star_border_rounded; // 대기
-  }
-
-  // 승인 건에 은은한 글로우를 준 별 아이콘
-  Widget _glowStar(String? status, {double size = 32}) {
-    final isApproved = status == LeaveState.approved.code;
-
-    return Icon(
-      Icons.star_rounded,
-      size: size,
-      color: Colors.yellow,
-
-      shadows: isApproved
-          ? [
-        const Shadow(color: Color(0xFFFF9800), blurRadius: 10), // 주황 글로우
-        const Shadow(color: Color(0xFFFFC107), blurRadius: 5),
-      ]
-          : null,
-
-      // shadows: isApproved
-      //     ? [
-      //   // 승인: 노란빛이 부드럽게 번지는 글로우
-      //   const Shadow(
-      //     color: Colors.yellow,
-      //     blurRadius: 8,
-      //   ),
-      //   const Shadow(
-      //     color: Color(0xFFFFE082), // 연한 노랑으로 한 겹 더
-      //     blurRadius: 4,
-      //   ),
-      // ]
-      //     : null, // 대기: 글로우 없음
-    );
-  }
-
-  // 승인 건 별 뒤에 까는 은은한 후광
-  Widget _halo({double size = 26}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFFFFF176).withOpacity(0.2), // 0.45 → 0.2
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFFFD54F).withOpacity(0.35), // 0.7 → 0.35
-            blurRadius: 4,      // 8 → 4
-            spreadRadius: 0,    // 1 → 0
-          ),
-        ],
+      child: Icon(
+        Icons.star_rounded,
+        size: size,
+        color: Colors.yellow,
+        shadows: glow
+            ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
+            : null,
       ),
     );
   }
@@ -319,98 +231,26 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final hasPm = pmStatus != null;
     final isRequested = hasAm || hasPm;
 
-    // Widget buildStar() {
-    //   if (hasAm && hasPm) {
-    //     if (amStatus == pmStatus) {
-    //       // 오전/오후 상태 동일 -> 단색 온전한 별
-    //       return Icon(Icons.star_rounded, size: 32, color: _starColor(amStatus));
-    //     } else {
-    //       // 상태 다름 -> 좌(오전)/우(오후) 색 분리
-    //       return Stack(
-    //         children: [
-    //           _buildHalfStar(isLeft: true, color: _starColor(amStatus)),
-    //           _buildHalfStar(isLeft: false, color: _starColor(pmStatus)),
-    //         ],
-    //       );
-    //     }
-    //   } else if (hasAm) {
-    //     return _buildHalfStar(isLeft: true, color: _starColor(amStatus));
-    //   } else {
-    //     return _buildHalfStar(isLeft: false, color: _starColor(pmStatus));
-    //   }
-    // }
-
-    // Widget buildStar() {
-    //   if (hasAm && hasPm) {
-    //     if (amStatus == pmStatus) {
-    //       // 오전/오후 상태 동일 -> 단색 온전한 별 (채움 or 테두리)
-    //       return Icon(_starIcon(amStatus), size: 32, color: Colors.yellow);
-    //     } else {
-    //       // 상태 다름 -> 좌(오전)/우(오후) 아이콘 분리
-    //       return Stack(
-    //         children: [
-    //           _buildHalfStar(isLeft: true, icon: _starIcon(amStatus)),
-    //           _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus)),
-    //         ],
-    //       );
-    //     }
-    //   } else if (hasAm) {
-    //     return _buildHalfStar(isLeft: true, icon: _starIcon(amStatus));
-    //   } else {
-    //     return _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus));
-    //   }
-    // }
-
-    // Widget buildStar() {
-    //   final amApproved = amStatus == LeaveState.approved.code;
-    //   final pmApproved = pmStatus == LeaveState.approved.code;
-    //
-    //   if (hasAm && hasPm) {
-    //     if (amStatus == pmStatus) {
-    //       // 상태 동일 -> 온전한 별 (승인이면 글로우)
-    //       return _glowStar(amStatus);
-    //     } else {
-    //       // 상태 다름 -> 좌우 분리, 각각 승인 여부로 글로우
-    //       return Stack(
-    //         children: [
-    //           _buildHalfStar(isLeft: true, glow: amApproved),
-    //           _buildHalfStar(isLeft: false, glow: pmApproved),
-    //         ],
-    //       );
-    //     }
-    //   } else if (hasAm) {
-    //     return _buildHalfStar(isLeft: true, glow: amApproved);
-    //   } else {
-    //     return _buildHalfStar(isLeft: false, glow: pmApproved);
-    //   }
-    // }
-
     Widget buildStar() {
       final amApproved = amStatus == LeaveState.approved.code;
       final pmApproved = pmStatus == LeaveState.approved.code;
 
-      // 온전한 별: 승인이면 정지, 대기면 펄스
       Widget fullStar(bool approved) => approved
           ? const Icon(Icons.star_rounded, size: 32, color: Colors.yellow)
           : const _PulsingStar();
 
-      // 반쪽 별: 승인이면 정지, 대기면 펄스
       Widget halfStar(bool isLeft, bool approved) => approved
           ? _buildHalfStar(isLeft: isLeft)
           : _PulsingStar(isHalf: true, isLeft: isLeft);
 
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
-          // 오전/오후 상태 동일 -> 온전한 별 하나
           return fullStar(amApproved);
         } else {
-          // 상태 다름 -> 좌우 각각 (승인 반쪽은 정지, 대기 반쪽은 펄스)
-          return Stack(
-            children: [
-              halfStar(true, amApproved),
-              halfStar(false, pmApproved),
-            ],
-          );
+          return Stack(children: [
+            halfStar(true, amApproved),
+            halfStar(false, pmApproved),
+          ]);
         }
       } else if (hasAm) {
         return halfStar(true, amApproved);
@@ -559,7 +399,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     return result ?? false; // 바깥 탭으로 닫히면 false
   }
 
- // 확인 다이얼로그 내부의 한 줄 (라벨 + 값)
+  // 확인 다이얼로그 내부의 한 줄 (라벨 + 값)
   Widget _confirmRow(String label, String value) {
     return Row(
       children: [
@@ -623,25 +463,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
-                              // children: [
-                              //   Text(
-                              //     authProvider != null
-                              //         ? '${authProvider.name} ${authProvider.position} ${authProvider.department}'
-                              //         : '',
-                              //     overflow: TextOverflow.ellipsis,
-                              //     style: const TextStyle(
-                              //         fontSize: 15,
-                              //         fontWeight: FontWeight.w800,
-                              //         color: AppColors.textPrimary),
-                              //   ),
-                              //   const SizedBox(height: 3),
-                              //   // Text(
-                              //   //   '${authProvider?.department ?? ''} · ${authProvider?.employeeNumber ?? ''}',
-                              //   //   overflow: TextOverflow.ellipsis,
-                              //   //   style: const TextStyle(
-                              //   //       fontSize: 12, color: AppColors.textMuted),
-                              //   // ),
-                              // ],
                               children: [
                                 if (authProvider != null)
                                   Row(
@@ -782,15 +603,15 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 Expanded(
                   child: _startDate != null
                       ? Text(
-                          _endDate == null
-                              ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                              : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: 13,
-                              color: AppColors.textMuted,
-                              fontWeight: FontWeight.w600),
-                        )
+                    _endDate == null
+                        ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
+                        : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600),
+                  )
                       : const SizedBox(), // 날짜가 없을 때는 빈 공간으로 채워 우측 텍스트를 밀어냄
                 ),
 
@@ -815,8 +636,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               padding: const EdgeInsets.symmetric(vertical: 8),
               child: TableCalendar(
                 locale: 'ko_KR',
-                rowHeight: 42, // 기본 52 > 42
-                daysOfWeekHeight: 22, // 기존 28 > 22 (요일 헤더도 축소)
+                rowHeight: 42,
+                daysOfWeekHeight: 22,
                 firstDay: DateTime.now().subtract(const Duration(days: 365)),
                 lastDay: DateTime.now().add(const Duration(days: 365)),
                 focusedDay: _focusedDay,
@@ -863,7 +684,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                 ),
                 selectedDayPredicate: (day) =>
-                    _startDate != null && isSameDay(day, _startDate) ||
+                _startDate != null && isSameDay(day, _startDate) ||
                     _endDate != null && isSameDay(day, _endDate),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
@@ -1014,7 +835,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                       // 이미 하루 이상 선택되어 있다면 종료일 확인 후 재계산 (holidayProvider 필요)
                                       _useDaysController
                                           .text = _calculateUsableDays(context
-                                              .read<PublicHolidayProvider>())
+                                          .read<PublicHolidayProvider>())
                                           .toString();
                                     } else {
                                       _useDaysController.text = '0';
@@ -1029,7 +850,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                       _scrollController
                                           .position.maxScrollExtent,
                                       duration:
-                                          const Duration(milliseconds: 300),
+                                      const Duration(milliseconds: 300),
                                       curve: Curves.easeOut,
                                     );
                                   });
@@ -1091,7 +912,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 decoration: InputDecoration(
                   hintText: '휴가 사유를 입력해주세요',
                   hintStyle:
-                      TextStyle(color: AppColors.textMuted.withOpacity(0.6)),
+                  TextStyle(color: AppColors.textMuted.withOpacity(0.6)),
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(16),
@@ -1117,13 +938,13 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 onPressed: _isSubmitting ? null : _handleSubmit,
                 child: _isSubmitting
                     ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
                     : const Text('신청하기'),
               ),
             ),
@@ -1149,10 +970,10 @@ class _HalfClipper extends CustomClipper<Rect> {
   bool shouldReclip(_HalfClipper old) => old.isLeft != isLeft;
 }
 
-// 대기 건: 은은하게 깜빡이는 별 (온전한 별 or 반쪽 별)
+// 대기 건: 글로우가 깜빡이는 별 (온전한 별 or 반쪽 별)
 class _PulsingStar extends StatefulWidget {
-  final bool isHalf;  // 반쪽 여부
-  final bool isLeft;  // 반쪽일 때 왼쪽(오전) / 오른쪽(오후)
+  final bool isHalf;   // 반쪽 여부 (반차)
+  final bool isLeft;   // 반쪽일 때 왼쪽(오전) / 오른쪽(오후)
   final double size;
 
   const _PulsingStar({
@@ -1169,17 +990,22 @@ class _PulsingStarState extends State<_PulsingStar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double> _opacity;
+  late final Animation<double> _scale;
+  late final Animation<double> _glow;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2), // 느린 호흡
+      duration: const Duration(milliseconds: 1400), // 깜빡임 속도
     )..repeat(reverse: true);
-    _opacity = Tween(begin: 1.0, end: 0.35).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+
+    final curve =
+    CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+    _opacity = Tween(begin: 1.0, end: 0.45).animate(curve);
+    _scale = Tween(begin: 0.8, end: 1.0).animate(curve);
+    _glow = Tween(begin: 2.0, end: 12.0).animate(curve); // 글로우 세기
   }
 
   @override
@@ -1190,16 +1016,40 @@ class _PulsingStarState extends State<_PulsingStar>
 
   @override
   Widget build(BuildContext context) {
-    final star = Icon(Icons.star_rounded, size: widget.size, color: Colors.yellow);
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final star = Icon(
+          Icons.star_rounded,
+          size: widget.size,
+          color: Colors.yellow,
+          shadows: [
+            Shadow(
+              color: const Color(0xFFFF6F00), // 글로우 컬러
+              blurRadius: _glow.value,
+            ),
+            Shadow(
+              color: const Color(0xFFFF9800), // 글로우 컬러
+              blurRadius: _glow.value / 2,
+            ),
+          ],
+        );
 
-    return FadeTransition(
-      opacity: _opacity,
-      child: widget.isHalf
-          ? ClipRect(
-        clipper: _HalfClipper(isLeft: widget.isLeft),
-        child: star,
-      )
-          : star,
+        final content = widget.isHalf
+            ? ClipRect(
+          clipper: _HalfClipper(isLeft: widget.isLeft),
+          child: star,
+        )
+            : star;
+
+        return Opacity(
+          opacity: _opacity.value,
+          child: Transform.scale(
+            scale: _scale.value,
+            child: content,
+          ),
+        );
+      },
     );
   }
 }
