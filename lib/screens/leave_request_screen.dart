@@ -2,6 +2,7 @@ import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
+import '../models/enums/LeaveState.dart';
 import '../models/enums/LeaveType.dart';
 import '../providers/auth_provider.dart';
 import '../providers/leave_request_list_provider.dart';
@@ -204,32 +205,51 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   // 별의 왼쪽(오전) 또는 오른쪽(오후) 절반만 그리기
-  Widget _buildHalfStar({required bool isLeft, double size = 32}) {
+  Widget _buildHalfStar({required bool isLeft, Color color = Colors.yellow, double size = 32,}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(Icons.star_rounded, size: size, color: Colors.yellow),
+      child: Icon(Icons.star_rounded, size: size, color: color),
     );
+  }
+
+  // 상태에 따른 별 색상 (승인=노랑, 대기=회색)
+  Color _starColor(String? status) {
+    if (status == LeaveState.approved.code) {
+      return Colors.yellow; // 승인
+    }
+    return const Color(0xFFBDBDBD); // 대기
   }
 
   Widget _buildDayCell({
     required int day,
     required Color? backgroundColor,
     required Color textColor,
-    required bool hasAm,   // 오전 반차 있음
-    required bool hasPm,   // 오후 반차 있음
+    required String? amStatus,   // 오전 상태 (null이면 없음)
+    required String? pmStatus,   // 오후 상태
     bool isToday = false,
   }) {
+    final hasAm = amStatus != null;
+    final hasPm = pmStatus != null;
     final isRequested = hasAm || hasPm;
 
-    // 별 부분: 오전/오후 상태에 따라 왼쪽/오른쪽/완전한 별
     Widget buildStar() {
       if (hasAm && hasPm) {
-        // 둘 다 -> 완전한 별
-        return const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
+        if (amStatus == pmStatus) {
+          // 오전/오후 상태 동일 -> 단색 온전한 별
+          return Icon(Icons.star_rounded, size: 32, color: _starColor(amStatus));
+        } else {
+          // 상태 다름 -> 좌(오전)/우(오후) 색 분리
+          return Stack(
+            children: [
+              _buildHalfStar(isLeft: true, color: _starColor(amStatus)),
+              _buildHalfStar(isLeft: false, color: _starColor(pmStatus)),
+            ],
+          );
+        }
       } else if (hasAm) {
-        return _buildHalfStar(isLeft: true);   // 오전 -> 왼쪽 반쪽
+        return _buildHalfStar(isLeft: true, color: _starColor(amStatus));
       } else {
-        return _buildHalfStar(isLeft: false);  // 오후 -> 오른쪽 반쪽
+        return _buildHalfStar(isLeft: false, color: _starColor(pmStatus));
       }
     }
 
@@ -686,10 +706,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
-                    // 오전/오후 반차 상태 조회
+                    // 오전/오후 휴가 상태 조회
                     final half = (isGrayed == false)
                         ? leaveReqProvider.halfDayStatus(day)
-                        : (hasAm: false, hasPm: false);
+                        : (amStatus: null, pmStatus: null);
 
                     if (_isInRange(day)) {
                       return _buildDayCell(
@@ -697,18 +717,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         backgroundColor:
                         isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
                         textColor: isGrayed ? AppColors.textMuted : Colors.white,
-                        hasAm: half.hasAm,
-                        hasPm: half.hasPm,
+                        amStatus: half.amStatus,
+                        pmStatus: half.pmStatus,
                       );
                     }
 
-                    if (isHoliday || half.hasAm || half.hasPm) {
+                    if (isHoliday || half.amStatus != null || half.pmStatus != null) {
                       return _buildDayCell(
                         day: day.day,
                         backgroundColor: null,
                         textColor: isHoliday ? AppColors.coral : AppColors.textPrimary,
-                        hasAm: half.hasAm,
-                        hasPm: half.hasPm,
+                        amStatus: half.amStatus,
+                        pmStatus: half.pmStatus,
                       );
                     }
 
@@ -719,10 +739,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     final isWeekend = day.weekday == DateTime.saturday || day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
-                    // 오전/오후 반차 상태 조회
+                    // 오전/오후 휴가 상태 조회
                     final half = (isGrayed == false)
                         ? leaveReqProvider.halfDayStatus(day)
-                        : (hasAm: false, hasPm: false);
+                        : (amStatus: null, pmStatus: null);
 
                     // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
                     if (_isInRange(day)) {
@@ -731,8 +751,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         backgroundColor:
                         isGrayed ? Colors.grey.withOpacity(0.3) : AppColors.slate,
                         textColor: isGrayed ? AppColors.textMuted : Colors.white,
-                        hasAm: half.hasAm,
-                        hasPm: half.hasPm,
+                        amStatus: half.amStatus,
+                        pmStatus: half.pmStatus,
                         isToday: true,
                       );
                     }
@@ -742,8 +762,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                       day: day.day,
                       backgroundColor: null,
                       textColor: isGrayed ? AppColors.coral : AppColors.textPrimary,
-                      hasAm: half.hasAm,
-                      hasPm: half.hasPm,
+                      amStatus: half.amStatus,
+                      pmStatus: half.pmStatus,
                       isToday: true,
                     );
                   },
