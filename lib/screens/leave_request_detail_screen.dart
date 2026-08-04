@@ -39,9 +39,8 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiClient()
-          .dio
-          .get('/api/leave-requests/${widget.requestId}');
+      final response =
+          await ApiClient().dio.get('/api/leave-requests/${widget.requestId}');
       setState(() {
         _detail = LeaveRequestDetail.fromJson(response.data);
       });
@@ -63,12 +62,12 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
       appBar: AppBar(title: const Text('휴가 신청 상세 정보')),
       body: _isLoading
           ? const Center(
-          child: CircularProgressIndicator(color: AppColors.slate))
+              child: CircularProgressIndicator(color: AppColors.slate))
           : _errorMessage != null
-          ? Center(
-          child: Text(_errorMessage!,
-              style: const TextStyle(color: AppColors.coral)))
-          : _buildContent(),
+              ? Center(
+                  child: Text(_errorMessage!,
+                      style: const TextStyle(color: AppColors.coral)))
+              : _buildContent(),
     );
   }
 
@@ -90,12 +89,12 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
 
         const SizedBox(height: 20),
 
-        // 2. 휴가 정보
-        _sectionTitle('휴가 정보'),
+        // 2. 휴가 신청건 진행 정보
+        _sectionTitle('휴가 신청건 진행 정보'),
         _card([
           _row('휴가 종류', leaveTypeNm),
-          _row('시작일', _formatDate(d.startDate)),
-          _row('종료일', _formatDate(d.endDate)),
+          _row(
+              '시작일', '${_formatDate(d.startDate)} ~ ${_formatDate(d.endDate)}'),
           _row('사용 연차', '${d.useDays}일'),
           // 상태는 배지로
           Padding(
@@ -113,9 +112,29 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
               ],
             ),
           ),
+          _row(
+              '신청일',
+              d.createdAt != null
+                  ? DateFormat('yyyy.MM.dd')
+                      .format(DateTime.parse(d.createdAt.toString()))
+                  : '-'),
+          _row(
+              '결재일',
+              (d.managedAt == null || d.managedAt.toString() == 'null')
+                  ? '-'
+                  : DateFormat('yyyy.MM.dd')
+                      .format(DateTime.parse(d.managedAt.toString()))),
+
           // 사유는 권한 있을 때(null 아님)만 표시
-          if (d.leaveReason != null)
-            _row('사유', d.leaveReason!),
+          // if (d.leaveReason != null) _row('사유', d.leaveReason!),
+          // 사유 표시 (권한 있을때만 내용 표시)
+          _row(
+              '사유',
+              (d.leaveReason == null ||
+                      d.leaveReason.toString() == 'null' ||
+                      d.leaveReason.toString().isEmpty)
+                  ? '-'
+                  : d.leaveReason!),
         ]),
 
         const SizedBox(height: 20),
@@ -125,59 +144,59 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
         _card(
           hasApprover
               ? [
-            _row('사번', d.approverNumber ?? '-'),
-            _row('이름', '${d.approverName} ${d.approverPosition ?? ''}'),
-            _row('부서', d.approverDepartment ?? '-'),
-          ]
+                  _row('사번', d.approverNumber ?? '-'),
+                  _row('이름', '${d.approverName} ${d.approverPosition ?? ''}'),
+                  _row('부서', d.approverDepartment ?? '-'),
+                ]
               : [
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('아직 승인되지 않은 요청입니다.',
-                  style: TextStyle(
-                      fontSize: 14, color: AppColors.textMuted)),
-            ),
-          ],
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text('아직 승인되지 않은 요청입니다.',
+                        style: TextStyle(
+                            fontSize: 14, color: AppColors.textMuted)),
+                  ),
+                ],
         ),
       ],
     );
   }
 
   Widget _sectionTitle(String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Text(text,
-        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
-  );
+        padding: const EdgeInsets.only(bottom: 10),
+        child: Text(text,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+      );
 
   Widget _card(List<Widget> children) => Container(
-    padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(
-      color: AppColors.surface,
-      borderRadius: BorderRadius.circular(16),
-      border: Border.all(color: AppColors.divider),
-    ),
-    child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start, children: children),
-  );
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.divider),
+        ),
+        child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start, children: children),
+      );
 
   Widget _row(String label, String value) => Padding(
-    padding: const EdgeInsets.symmetric(vertical: 8),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-            width: 80,
-            child: Text(label,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textMuted,
-                    fontWeight: FontWeight.w600))),
-        Expanded(
-            child: Text(value,
-                style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary))),
-      ],
-    ),
-  );
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+                width: 80,
+                child: Text(label,
+                    style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textMuted,
+                        fontWeight: FontWeight.w600))),
+            Expanded(
+                child: Text(value,
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary))),
+          ],
+        ),
+      );
 }
