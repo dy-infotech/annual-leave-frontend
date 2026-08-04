@@ -23,7 +23,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   LeaveType _selectedLeaveType = LeaveType.full;
   DateTime? _startDate;
   DateTime? _endDate;
-  String? _leaveReason;
   final _useDaysController = TextEditingController(text: '0');
   final _reasonController = TextEditingController();
   final _scrollController = ScrollController();
@@ -31,6 +30,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   String? _errorMessage;
 
   double get _useDays => double.tryParse(_useDaysController.text) ?? 0;
+
+  String? get _leaveReason {
+    final text = _reasonController.text.trim();
+    return text.isEmpty ? null : text;
+  }
 
   // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
   bool get _needsReason => ![
@@ -196,7 +200,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         _useDaysController.text = '0';
         _selectedLeaveType = LeaveType.full;
         _reasonController.clear();
-        _leaveReason = null;
       });
     }
   }
