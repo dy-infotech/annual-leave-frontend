@@ -160,9 +160,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     setState(() => _isSaving = true);
     try {
       String roleCode = (_selectedRole == '관리자') ? 'ADMIN' : 'EMPLOYEE';
-      String finalTeam = (_selectedTeam == '기타')
-          ? _otherTeamController.text.trim()
-          : (_selectedTeam ?? '');
+
+      // ⚙️ 변경 후 (간결하게 수정)
+      String finalTeam = _selectedTeam ?? '';
 
       // 1. 기존 사원 정보 업데이트 (Role에 따라 데이터 구조가 분기되거나 기본 수정 진행)
       await ApiClient().dio.put(
@@ -174,6 +174,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
               ? null
               : _passwordController.text.trim(),
           'department': _selectedDepartment,
+          'team': finalTeam, // 👈 'team' 키값에 finalTeam 변수가 잘 들어가 있는지 꼭 확인하세요!
           'position': _selectedPosition,
           'role': roleCode,
           'hireDate': _hireDateController.text.trim(),
