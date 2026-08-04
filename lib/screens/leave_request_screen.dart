@@ -239,12 +239,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       final pmApproved = pmStatus == LeaveState.approved.code;
 
       Widget fullStar(bool approved) => approved
-          ? const Icon(Icons.star_rounded, size: 32, color: Colors.yellow)
-          : const _PulsingStar();
+      ? const _PulsingStar()
+      : const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
 
       Widget halfStar(bool isLeft, bool approved) => approved
-          ? _buildHalfStar(isLeft: isLeft)
-          : _PulsingStar(isHalf: true, isLeft: isLeft);
+      ? _PulsingStar(isHalf: true, isLeft: isLeft)
+      : _buildHalfStar(isLeft: isLeft);
 
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
