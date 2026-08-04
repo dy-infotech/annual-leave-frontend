@@ -205,10 +205,17 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   // 별의 왼쪽(오전) 또는 오른쪽(오후) 절반만 그리기
-  Widget _buildHalfStar({required bool isLeft, Color color = Colors.yellow, double size = 32,}) {
+  // Widget _buildHalfStar({required bool isLeft, Color color = Colors.yellow, double size = 32,}) {
+  //   return ClipRect(
+  //     clipper: _HalfClipper(isLeft: isLeft),
+  //     child: Icon(Icons.star_rounded, size: size, color: color),
+  //   );
+  // }
+
+  Widget _buildHalfStar({required bool isLeft, IconData icon = Icons.star_rounded, double size = 32,}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(Icons.star_rounded, size: size, color: color),
+      child: Icon(icon, size: size, color: Colors.yellow), // 색은 노랑 통일
     );
   }
 
@@ -218,6 +225,14 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return Colors.yellow; // 승인
     }
     return const Color(0xFFBDBDBD); // 대기
+  }
+
+  // 상태에 따른 별 아이콘 (승인=채운 별, 대기=테두리 별)
+  IconData _starIcon(String? status) {
+    if (status == LeaveState.approved.code) {
+      return Icons.star_rounded;  // 승인
+    }
+    return Icons.star_border_rounded; // 대기
   }
 
   Widget _buildDayCell({
@@ -232,24 +247,45 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final hasPm = pmStatus != null;
     final isRequested = hasAm || hasPm;
 
+    // Widget buildStar() {
+    //   if (hasAm && hasPm) {
+    //     if (amStatus == pmStatus) {
+    //       // 오전/오후 상태 동일 -> 단색 온전한 별
+    //       return Icon(Icons.star_rounded, size: 32, color: _starColor(amStatus));
+    //     } else {
+    //       // 상태 다름 -> 좌(오전)/우(오후) 색 분리
+    //       return Stack(
+    //         children: [
+    //           _buildHalfStar(isLeft: true, color: _starColor(amStatus)),
+    //           _buildHalfStar(isLeft: false, color: _starColor(pmStatus)),
+    //         ],
+    //       );
+    //     }
+    //   } else if (hasAm) {
+    //     return _buildHalfStar(isLeft: true, color: _starColor(amStatus));
+    //   } else {
+    //     return _buildHalfStar(isLeft: false, color: _starColor(pmStatus));
+    //   }
+    // }
+
     Widget buildStar() {
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
-          // 오전/오후 상태 동일 -> 단색 온전한 별
-          return Icon(Icons.star_rounded, size: 32, color: _starColor(amStatus));
+          // 오전/오후 상태 동일 -> 단색 온전한 별 (채움 or 테두리)
+          return Icon(_starIcon(amStatus), size: 32, color: Colors.yellow);
         } else {
-          // 상태 다름 -> 좌(오전)/우(오후) 색 분리
+          // 상태 다름 -> 좌(오전)/우(오후) 아이콘 분리
           return Stack(
             children: [
-              _buildHalfStar(isLeft: true, color: _starColor(amStatus)),
-              _buildHalfStar(isLeft: false, color: _starColor(pmStatus)),
+              _buildHalfStar(isLeft: true, icon: _starIcon(amStatus)),
+              _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus)),
             ],
           );
         }
       } else if (hasAm) {
-        return _buildHalfStar(isLeft: true, color: _starColor(amStatus));
+        return _buildHalfStar(isLeft: true, icon: _starIcon(amStatus));
       } else {
-        return _buildHalfStar(isLeft: false, color: _starColor(pmStatus));
+        return _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus));
       }
     }
 
