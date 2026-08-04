@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 class DateInputDialog extends StatefulWidget {
+  
   const DateInputDialog({
     super.key,
     this.initialDate,
@@ -9,7 +10,8 @@ class DateInputDialog extends StatefulWidget {
     this.firstDate,
     this.lastDate,
   });
-
+  
+  //final DateTime now = DateTime.now();
   final DateTime? initialDate;
   final DateTime? firstDate;
   final DateTime? lastDate;
@@ -21,10 +23,12 @@ class DateInputDialog extends StatefulWidget {
 
 class _DateInputDialogState extends State<DateInputDialog> {
   late final TextEditingController _controller;
+  //late final DateTime selectedDate;
 
   @override
   void initState() {
     super.initState();
+    //widget.initialDate ?? DateTime.now();
 
     _controller = TextEditingController(
       text: _formatDate(widget.initialDate),
@@ -116,7 +120,7 @@ class _DateInputDialogState extends State<DateInputDialog> {
             const _DateFormatter(),
           ],
           decoration: InputDecoration(
-            hintText: 'yyyy-MM-dd',
+            hintText: _formatDate(widget.initialDate),//'yyyy-MM-dd',
             suffixIcon: IconButton(
               icon: const Icon(Icons.calendar_today),
               onPressed: _pickDate,
