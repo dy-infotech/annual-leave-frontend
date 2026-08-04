@@ -208,17 +208,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';
 
   // 별의 왼쪽(오전) 또는 오른쪽(오후) 절반만 그리기
-  Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
+  Widget _buildHalfStar({required bool isLeft, Color color = Colors.yellow, double size = 32,}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(
-        Icons.star_rounded,
-        size: size,
-        color: Colors.yellow,
-        shadows: glow
-            ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
-            : null,
-      ),
+      child: Icon(Icons.star_rounded, size: size, color: color),
     );
   }
 
@@ -235,30 +228,44 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     final isRequested = hasAm || hasPm;
 
     Widget buildStar() {
-      final amApproved = amStatus == LeaveState.approved.code;
-      final pmApproved = pmStatus == LeaveState.approved.code;
+      // 온전한 별
+      Widget fullStar(String? status) {
+        if (status == LeaveState.approved.code) {
+          // 승인: 깜빡이는 별
+          return const _PulsingStar();
+        } else if (status == LeaveState.pending.code) {
+          // 대기: 노란색 별
+          return const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
+        } else {
+          // 반려: 회색 별
+          return Icon(Icons.star_rounded, size: 32, color: Colors.grey.withOpacity(0.4));
+        }
+      }
 
-      Widget fullStar(bool approved) => approved
-      ? const _PulsingStar()
-      : const Icon(Icons.star_rounded, size: 32, color: Colors.yellow);
-
-      Widget halfStar(bool isLeft, bool approved) => approved
-      ? _PulsingStar(isHalf: true, isLeft: isLeft)
-      : _buildHalfStar(isLeft: isLeft);
+      // 반쪽 별
+      Widget halfStar(bool isLeft, String? status) {
+        if (status == LeaveState.approved.code) {
+          return _PulsingStar(isHalf: true, isLeft: isLeft);
+        } else if (status == LeaveState.pending.code) {
+          return _buildHalfStar(isLeft: isLeft);
+        } else {
+          return _buildHalfStar(isLeft: isLeft, color: Colors.grey.withOpacity(0.4));
+        }
+      }
 
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
-          return fullStar(amApproved);
+          return fullStar(amStatus);
         } else {
           return Stack(children: [
-            halfStar(true, amApproved),
-            halfStar(false, pmApproved),
+            halfStar(true, amStatus),
+            halfStar(false, pmStatus),
           ]);
         }
       } else if (hasAm) {
-        return halfStar(true, amApproved);
+        return halfStar(true, amStatus);
       } else {
-        return halfStar(false, pmApproved);
+        return halfStar(false, pmStatus);
       }
     }
 
