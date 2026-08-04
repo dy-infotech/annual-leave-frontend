@@ -252,13 +252,16 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       body: _isLoadingCommon
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              // 상하 여백만 16으로 줄이고 좌우 여백은 기존과 유사하게 유지
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 4),
                     // 2. 하단 상세 정보 관리 영역 카드
                     Container(
                         width: double.infinity,
@@ -278,7 +281,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                   fontWeight: FontWeight.bold,
                                   color: Colors.black),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 24),
 
                             // 1. 사번 (항상 수정 불가능 -> 연회색 고정 바탕 및 패딩 일치)
                             _buildRow(
@@ -688,7 +691,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   // 공통 행 레이아웃 모듈 위젯
   Widget _buildRow(String label, Widget content) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
