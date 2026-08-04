@@ -212,10 +212,24 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   //   );
   // }
 
-  Widget _buildHalfStar({required bool isLeft, IconData icon = Icons.star_rounded, double size = 32,}) {
+  // Widget _buildHalfStar({required bool isLeft, IconData icon = Icons.star_rounded, double size = 32,}) {
+  //   return ClipRect(
+  //     clipper: _HalfClipper(isLeft: isLeft),
+  //     child: Icon(icon, size: size, color: Colors.yellow), // 색은 노랑 통일
+  //   );
+  // }
+
+  Widget _buildHalfStar({required bool isLeft, bool glow = false, double size = 32,}) {
     return ClipRect(
       clipper: _HalfClipper(isLeft: isLeft),
-      child: Icon(icon, size: size, color: Colors.yellow), // 색은 노랑 통일
+      child: Icon(
+        Icons.star_rounded,
+        size: size,
+        color: Colors.yellow,
+        shadows: glow
+            ? [const Shadow(color: Colors.yellow, blurRadius: 8)]
+            : null,
+      ),
     );
   }
 
@@ -233,6 +247,38 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
       return Icons.star_rounded;  // 승인
     }
     return Icons.star_border_rounded; // 대기
+  }
+
+  // 승인 건에 은은한 글로우를 준 별 아이콘
+  Widget _glowStar(String? status, {double size = 32}) {
+    final isApproved = status == LeaveState.approved.code;
+
+    return Icon(
+      Icons.star_rounded,
+      size: size,
+      color: Colors.yellow,
+
+      shadows: isApproved
+          ? [
+        const Shadow(color: Color(0xFFFF9800), blurRadius: 10), // 주황 글로우
+        const Shadow(color: Color(0xFFFFC107), blurRadius: 5),
+      ]
+          : null,
+
+      // shadows: isApproved
+      //     ? [
+      //   // 승인: 노란빛이 부드럽게 번지는 글로우
+      //   const Shadow(
+      //     color: Colors.yellow,
+      //     blurRadius: 8,
+      //   ),
+      //   const Shadow(
+      //     color: Color(0xFFFFE082), // 연한 노랑으로 한 겹 더
+      //     blurRadius: 4,
+      //   ),
+      // ]
+      //     : null, // 대기: 글로우 없음
+    );
   }
 
   Widget _buildDayCell({
@@ -268,24 +314,48 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     //   }
     // }
 
+    // Widget buildStar() {
+    //   if (hasAm && hasPm) {
+    //     if (amStatus == pmStatus) {
+    //       // 오전/오후 상태 동일 -> 단색 온전한 별 (채움 or 테두리)
+    //       return Icon(_starIcon(amStatus), size: 32, color: Colors.yellow);
+    //     } else {
+    //       // 상태 다름 -> 좌(오전)/우(오후) 아이콘 분리
+    //       return Stack(
+    //         children: [
+    //           _buildHalfStar(isLeft: true, icon: _starIcon(amStatus)),
+    //           _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus)),
+    //         ],
+    //       );
+    //     }
+    //   } else if (hasAm) {
+    //     return _buildHalfStar(isLeft: true, icon: _starIcon(amStatus));
+    //   } else {
+    //     return _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus));
+    //   }
+    // }
+
     Widget buildStar() {
+      final amApproved = amStatus == LeaveState.approved.code;
+      final pmApproved = pmStatus == LeaveState.approved.code;
+
       if (hasAm && hasPm) {
         if (amStatus == pmStatus) {
-          // 오전/오후 상태 동일 -> 단색 온전한 별 (채움 or 테두리)
-          return Icon(_starIcon(amStatus), size: 32, color: Colors.yellow);
+          // 상태 동일 -> 온전한 별 (승인이면 글로우)
+          return _glowStar(amStatus);
         } else {
-          // 상태 다름 -> 좌(오전)/우(오후) 아이콘 분리
+          // 상태 다름 -> 좌우 분리, 각각 승인 여부로 글로우
           return Stack(
             children: [
-              _buildHalfStar(isLeft: true, icon: _starIcon(amStatus)),
-              _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus)),
+              _buildHalfStar(isLeft: true, glow: amApproved),
+              _buildHalfStar(isLeft: false, glow: pmApproved),
             ],
           );
         }
       } else if (hasAm) {
-        return _buildHalfStar(isLeft: true, icon: _starIcon(amStatus));
+        return _buildHalfStar(isLeft: true, glow: amApproved);
       } else {
-        return _buildHalfStar(isLeft: false, icon: _starIcon(pmStatus));
+        return _buildHalfStar(isLeft: false, glow: pmApproved);
       }
     }
 
