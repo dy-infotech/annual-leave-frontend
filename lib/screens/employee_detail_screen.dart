@@ -38,7 +38,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   final List<String> _departmentList = [];
   final List<String> _teamList = [];
   final List<String> _positionList = [];
-  final List<String> _roleList = ['맴버', '관리자']; // 💡 사원등록 권한타입 대응용 고정 풀
 
   String? _selectedDepartment;
   String? _selectedTeam;
@@ -147,7 +146,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
-        _formatDate = DateFormat('yyyy-MM-dd').format(picked);
+        _formatDate = DateFormat('yyyy.MM.dd').format(picked);
         _hireDateController.text =
             '${picked.year}년 ${picked.month}월 ${picked.day}일';
       });
@@ -253,302 +252,419 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       body: _isLoadingCommon
           ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
+              // 상하 여백만 16으로 줄이고 좌우 여백은 기존과 유사하게 유지
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+
               child: Form(
                 key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 상단 프로필 요약 카드
-                    // Container(
-                    //   width: double.infinity,
-                    //   padding: const EdgeInsets.all(20),
-                    //   decoration: BoxDecoration(
-                    //     color: AppColors.surface,
-                    //     borderRadius: BorderRadius.circular(16),
-                    //     border: Border.all(color: AppColors.divider),
-                    //   ),
-                    //   child: Column(
-                    //     crossAxisAlignment: CrossAxisAlignment.start,
-                    //     children: [
-                    //       Row(
-                    //         mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    //         children: [
-                    //           _isEditing
-                    //               ? SizedBox(
-                    //                   width: MediaQuery.of(context).size.width *
-                    //                       0.4,
-                    //                   child: TextFormField(
-                    //                     controller: _nameController,
-                    //                     style: const TextStyle(
-                    //                         fontSize: 22,
-                    //                         fontWeight: FontWeight.bold),
-                    //                     decoration: const InputDecoration(
-                    //                         isDense: true),
-                    //                     validator: (val) =>
-                    //                         val == null || val.trim().isEmpty
-                    //                             ? '사용자명을 입력해 주세요.'
-                    //                             : null,
-                    //                   ),
-                    //                 )
-                    //               : Text(_nameController.text,
-                    //                   style: const TextStyle(
-                    //                       fontSize: 22,
-                    //                       fontWeight: FontWeight.bold)),
-                    //           RegisteStatusBadge(
-                    //               status: widget.employee.isRegisted == true
-                    //                   ? '등록'
-                    //                   : '미등록'),
-                    //         ],
-                    //       ),
-                    //       const SizedBox(height: 8),
-                    //       Text(
-                    //         '${_selectedPosition ?? "-"} / 팀: ${_selectedTeam ?? "-"} / 사번: ${widget.employee.employeeNumber}',
-                    //         style: const TextStyle(
-                    //             fontSize: 15, color: AppColors.textMuted),
-                    //       ),
-                    //     ],
-                    //   ),
-                    // ),
-                    const SizedBox(height: 24),
-
-                    const Text('사용자 정보 관리',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 12),
-                    // 1. 사번 표시 로우 (수정 불가 고정)
-                    _buildRow(
-                      '사번',
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(
-                          widget
-                              .employee.employeeNumber, // 사번 데이터 매핑 및 수정 불가 고정
-                          style: const TextStyle(fontSize: 14),
+                    const SizedBox(height: 4),
+                    // 2. 하단 상세 정보 관리 영역 카드
+                    Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface, // 상단 카드와 일치하는 배경
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.divider),
                         ),
-                      ),
-                    ),
-                    // 2. 연차 정보 표시 로우 (수정 불가 고정)
-                    _buildRow(
-                      '연차 정보',
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(
-                          '잔여 연차 : ${widget.employee.remainingLeaveDays.toString()}일 / 총 연차 : ${widget.employee.currTotalLeaveDays.toString()}일',
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ),
-                    // 3. 사용자명 입력 로우
-                    _buildRow(
-                      '사용자명',
-                      _isEditing
-                          ? TextFormField(
-                              controller: _nameController, // 사용자명 컨트롤러 적용
-                              style: const TextStyle(fontSize: 14),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (val) =>
-                                  val == null || val.trim().isEmpty
-                                      ? '사용자명을 입력해 주세요.'
-                                      : null,
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Text(
-                                _nameController.text, // 읽기 모드일 때는 텍스트만 표시
-                                style: const TextStyle(fontSize: 14),
-                              ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '사용자 정보 관리',
+                              style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black),
                             ),
-                    ),
+                            const SizedBox(height: 24),
 
-                    // 4. 이메일 입력 로우
-                    _buildRow(
-                      '이메일',
-                      _isEditing
-                          ? TextFormField(
-                              controller: _emailController,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                              ),
-                              validator: (val) =>
-                                  val == null || val.trim().isEmpty
-                                      ? '이메일 정보를 입력해 주세요.'
-                                      : null,
-                            )
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.symmetric(vertical: 4.0),
-                              // 기존 텍스트 필드의 컨트롤러에서 현재 값을 가져와 일반 텍스트로 표시합니다.
-                              child: Text(
-                                _emailController.text,
-                                style: const TextStyle(fontSize: 14),
-                              ),
-                            ),
-                    ),
-
-                    // 5. 부서 드롭다운 로우
-                    _buildRow(
-                        '부서',
-                        _isEditing
-                            ? DropdownButtonFormField<String>(
-                                value: _departmentList
-                                        .contains(_selectedDepartment)
-                                    ? _selectedDepartment
-                                    : null,
-                                items: _departmentList
-                                    .map((d) => DropdownMenuItem(
-                                        value: d, child: Text(d)))
-                                    .toList(),
-                                onChanged: (val) =>
-                                    setState(() => _selectedDepartment = val),
-                                decoration: const InputDecoration(
-                                    isDense: true,
-                                    border: OutlineInputBorder()),
-                                validator: (val) =>
-                                    val == null ? '부서를 선택해 주세요.' : null,
-                              )
-                            : Text(_selectedDepartment ?? '-',
-                                style: const TextStyle(fontSize: 14))),
-
-                    // 6. 팀 드롭다운 로우
-                    _buildRow(
-                        '팀',
-                        _isEditing
-                            ? DropdownButtonFormField<String>(
-                                value: _teamList.contains(_selectedTeam)
-                                    ? _selectedTeam
-                                    : null,
-                                items: _teamList
-                                    .map((t) => DropdownMenuItem(
-                                        value: t, child: Text(t)))
-                                    .toList(),
-                                onChanged: (val) => setState(() {
-                                  _selectedTeam = val;
-                                  if (val != '기타') _otherTeamController.clear();
-                                }),
-                                decoration: const InputDecoration(
-                                    isDense: true,
-                                    border: OutlineInputBorder()),
-                                validator: (val) =>
-                                    val == null ? '팀을 선택해 주세요.' : null,
-                              )
-                            : Text(_selectedTeam ?? '-',
-                                style: const TextStyle(fontSize: 14))),
-
-                    // 팀 드롭다운 '기타' 활성화 분기 영역
-                    if (_isEditing && _selectedTeam == '기타') ...[
-                      _buildRow(
-                          '기타 팀명',
-                          TextFormField(
-                            controller: _otherTeamController,
-                            style: const TextStyle(fontSize: 14),
-                            decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                hintText: '새로운 팀명 입력'),
-                            validator: (val) =>
-                                val == null || val.trim().isEmpty
-                                    ? '팀명을 입력해 주세요.'
-                                    : null,
-                          )),
-                    ],
-
-                    // 7. 직급 드롭다운 로우
-                    _buildRow(
-                        '직급',
-                        _isEditing
-                            ? DropdownButtonFormField<String>(
-                                value: _positionList.contains(_selectedPosition)
-                                    ? _selectedPosition
-                                    : null,
-                                items: _positionList
-                                    .map((p) => DropdownMenuItem(
-                                        value: p, child: Text(p)))
-                                    .toList(),
-                                onChanged: (val) =>
-                                    setState(() => _selectedPosition = val),
-                                decoration: const InputDecoration(
-                                    isDense: true,
-                                    border: OutlineInputBorder()),
-                                validator: (val) =>
-                                    val == null ? '직급을 선택해 주세요.' : null,
-                              )
-                            : Text(_selectedPosition ?? '-',
-                                style: const TextStyle(fontSize: 14))),
-
-                    // 8. 권한 설정 드롭다운 로우
-
-                    _buildRow(
-                      '관리자 여부',
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 4.0),
-                        child: Text(
-                          RoleType.employee.label, // 관리자 여부를 표시 (기본값은 '멤버')
-                          style: const TextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ),
-
-                    // _buildRow(
-                    //   '관리자 여부',
-                    //   _isEditing
-                    //       ? DropdownButtonFormField<RoleType?>(
-                    //           decoration: const InputDecoration(
-                    //             isDense: true,
-                    //             border: OutlineInputBorder(),
-                    //           ),
-                    //           value: _selectedManagerYn,
-                    //           items: RoleType.values.map((role) {
-                    //             return DropdownMenuItem<RoleType>(
-                    //               value: role,
-                    //               child: Text(role.label),
-                    //             );
-                    //           }).toList(),
-                    //           onChanged: (value) {
-                    //             setState(() {
-                    //               _selectedManagerYn = value;
-                    //             });
-                    //           },
-                    //         )
-                    //       : Text(
-                    //           _selectedManagerYn?.label ??
-                    //               '멤버', // 선택된 Enum의 한글 라벨 표시
-                    //           style: const TextStyle(fontSize: 14),
-                    //         ),
-                    // ),
-                    // 9. 입사일 달력 팝업 연동 로우 영역 (3페이지 수정)
-
-                    _buildRow(
-                      '입사일',
-                      // 수정 모드이고 && 아직 사용 등록이 안 된 상태(false)일 때만 TextFormField 표시
-                      _isEditing && !(widget.employee.isRegisted ?? false)
-                          ? TextFormField(
-                              controller: _hireDateController,
-                              readOnly: true,
-                              onTap: _selectHireDate,
-                              style: const TextStyle(fontSize: 14),
-                              decoration: InputDecoration(
+                            // 1. 사번 (항상 수정 불가능 -> 연회색 고정 바탕 및 패딩 일치)
+                            _buildRow(
+                              '사번',
+                              TextFormField(
+                                initialValue: widget.employee.employeeNumber,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
                                   isDense: true,
-                                  border: const OutlineInputBorder(),
-                                  suffixIcon: IconButton(
-                                    icon: const Icon(Icons.calendar_month,
-                                        size: 18),
-                                    onPressed: _selectHireDate,
-                                  )),
-                              validator: (val) =>
-                                  val == null || val.trim().isEmpty
-                                      ? '입사일 정보를 입력해 주세요.'
-                                      : null,
-                            )
-                          : Text(_hireDateController.text,
-                              style: const TextStyle(fontSize: 14)),
-                    )
+                                  filled: true,
+                                  fillColor: _isEditing
+                                      ? Colors.grey.shade100
+                                      : Colors.grey.shade50,
+                                  border: const OutlineInputBorder(
+                                      borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ),
+
+                            // 2. 연차 정보 (항상 수정 불가능)
+                            _buildRow(
+                              '연차 정보',
+                              TextFormField(
+                                initialValue:
+                                    '잔여 연차 : ${widget.employee.remainingLeaveDays}일 / 총 연차 : ${widget.employee.currTotalLeaveDays}일',
+                                readOnly: true,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: true,
+                                  fillColor: _isEditing
+                                      ? Colors.grey.shade100
+                                      : Colors.grey.shade50,
+                                  border: const OutlineInputBorder(
+                                      borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ),
+                            // 3. 사용자명 정보 (수정 가능)
+                            _buildRow(
+                              '사용자명',
+                              TextFormField(
+                                controller: _nameController,
+                                // _isEditing이 true일 때만 입력 가능
+                                readOnly: !_isEditing,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: true,
+                                  // 수정 중일 때는 흰색, 아닐 때는 회색 바탕
+                                  fillColor: _isEditing
+                                      ? Colors.white
+                                      : Colors.grey.shade50,
+                                  // 수정 중일 때는 기본 테두리 노출, 아닐 때는 테두리 숨김
+                                  border: _isEditing
+                                      ? const OutlineInputBorder()
+                                      : const OutlineInputBorder(
+                                          borderSide: BorderSide.none),
+                                  // 포커스(클릭)되었을 때의 테두리 스타일 (필요시 색상 변경 가능)
+                                  focusedBorder: _isEditing
+                                      ? OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .primaryColor,
+                                              width: 2))
+                                      : const OutlineInputBorder(
+                                          borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ),
+                            // 4. 이메일 정보 (수정 가능)
+
+                            _buildRow(
+                              '사용자명',
+                              TextFormField(
+                                controller: _emailController,
+                                // _isEditing이 true일 때만 입력 가능
+                                readOnly: !_isEditing,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: true,
+                                  // 수정 중일 때는 흰색, 아닐 때는 회색 바탕
+                                  fillColor: _isEditing
+                                      ? Colors.white
+                                      : Colors.grey.shade50,
+                                  // 수정 중일 때는 기본 테두리 노출, 아닐 때는 테두리 숨김
+                                  border: _isEditing
+                                      ? const OutlineInputBorder()
+                                      : const OutlineInputBorder(
+                                          borderSide: BorderSide.none),
+                                  // 포커스(클릭)되었을 때의 테두리 스타일 (필요시 색상 변경 가능)
+                                  focusedBorder: _isEditing
+                                      ? OutlineInputBorder(
+                                          borderSide: BorderSide(
+                                              color: Theme.of(context)
+                                                  .primaryColor,
+                                              width: 2))
+                                      : const OutlineInputBorder(
+                                          borderSide: BorderSide.none),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                                validator: (val) =>
+                                    val == null || val.trim().isEmpty
+                                        ? '이메일 정보를 입력해 주세요.'
+                                        : null,
+                              ),
+                            ),
+
+                            // 5. 부서 (드롭다운과 인풋박스 외곽 사이즈 일치 정렬)
+                            _buildRow(
+                              '부서',
+                              _isEditing
+                                  ? DropdownButtonFormField<String>(
+                                      value: _departmentList
+                                              .contains(_selectedDepartment)
+                                          ? _selectedDepartment
+                                          : null,
+                                      items: _departmentList
+                                          .map((d) => DropdownMenuItem(
+                                              value: d,
+                                              child: Text(d,
+                                                  style: const TextStyle(
+                                                      color: Colors.black))))
+                                          .toList(),
+                                      onChanged: (val) => setState(
+                                          () => _selectedDepartment = val),
+                                      decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 10),
+                                          border: OutlineInputBorder()),
+                                      validator: (val) =>
+                                          val == null ? '부서를 선택해 주세요.' : null,
+                                    )
+                                  : TextFormField(
+                                      initialValue: _selectedDepartment ?? '-',
+                                      readOnly: true,
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.grey.shade50,
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.transparent)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12),
+                                      ),
+                                    ),
+                            ),
+                            // 6. 팀
+                            _buildRow(
+                              '팀',
+                              _isEditing
+                                  ? DropdownButtonFormField<String>(
+                                      value: _teamList.contains(_selectedTeam)
+                                          ? _selectedTeam
+                                          : null,
+                                      items: _teamList
+                                          .map((t) => DropdownMenuItem(
+                                              value: t,
+                                              child: Text(t,
+                                                  style: const TextStyle(
+                                                      color: Colors.black))))
+                                          .toList(),
+                                      onChanged: (val) => setState(() {
+                                        _selectedTeam = val;
+                                        if (val != '기타')
+                                          _otherTeamController.clear();
+                                      }),
+                                      decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 10),
+                                          border: OutlineInputBorder()),
+                                      validator: (val) =>
+                                          val == null ? '팀을 선택해 주세요.' : null,
+                                    )
+                                  : TextFormField(
+                                      initialValue: _selectedTeam ?? '-',
+                                      readOnly: true,
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.grey.shade50,
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.transparent)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12),
+                                      ),
+                                    ),
+                            ),
+
+                            // 팀 '기타' 입력 영역
+                            if (_isEditing && _selectedTeam == '기타') ...[
+                              _buildRow(
+                                '기타 팀명',
+                                TextFormField(
+                                  controller: _otherTeamController,
+                                  style: const TextStyle(
+                                      fontSize: 14, color: Colors.black),
+                                  decoration: const InputDecoration(
+                                      isDense: true,
+                                      border: OutlineInputBorder(),
+                                      contentPadding: EdgeInsets.symmetric(
+                                          horizontal: 12, vertical: 12),
+                                      hintText: '새로운 팀명 입력'),
+                                  validator: (val) =>
+                                      val == null || val.trim().isEmpty
+                                          ? '팀명을 입력해 주세요.'
+                                          : null,
+                                ),
+                              ),
+                            ],
+
+                            // 7. 직급
+                            _buildRow(
+                              '직급',
+                              _isEditing
+                                  ? DropdownButtonFormField<String>(
+                                      value: _positionList
+                                              .contains(_selectedPosition)
+                                          ? _selectedPosition
+                                          : null,
+                                      items: _positionList
+                                          .map((p) => DropdownMenuItem(
+                                              value: p,
+                                              child: Text(p,
+                                                  style: const TextStyle(
+                                                      color: Colors.black))))
+                                          .toList(),
+                                      onChanged: (val) => setState(
+                                          () => _selectedPosition = val),
+                                      decoration: const InputDecoration(
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 10),
+                                          border: OutlineInputBorder()),
+                                      validator: (val) =>
+                                          val == null ? '직급을 선택해 주세요.' : null,
+                                    )
+                                  : TextFormField(
+                                      initialValue: _selectedPosition ?? '-',
+                                      readOnly: true,
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.grey.shade50,
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.transparent)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12),
+                                      ),
+                                    ),
+                            ),
+
+                            // 8. 관리자 여부 (항상 수정 불가능)
+                            _buildRow(
+                              '관리자 여부',
+                              TextFormField(
+                                initialValue: RoleType.employee.label,
+                                readOnly: true,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: true,
+                                  fillColor: _isEditing
+                                      ? Colors.grey.shade100
+                                      : Colors.grey.shade50,
+                                  border: const OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.transparent)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ),
+
+                            // 9. 입사일 (기등록 회원일 경우 수정 불가 제어 및 크기 고정)
+                            _buildRow(
+                              '입사일',
+                              _isEditing &&
+                                      !(widget.employee.isRegisted ?? false)
+                                  ? TextFormField(
+                                      controller: _hireDateController,
+                                      readOnly: true,
+                                      onTap: _selectHireDate,
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        border: const OutlineInputBorder(),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12),
+                                        suffixIcon: IconButton(
+                                            icon: const Icon(
+                                                Icons.calendar_month,
+                                                size: 18),
+                                            onPressed: _selectHireDate),
+                                      ),
+                                      validator: (val) =>
+                                          val == null || val.trim().isEmpty
+                                              ? '입사일 정보를 입력해 주세요.'
+                                              : null,
+                                    )
+                                  : TextFormField(
+                                      controller: _hireDateController,
+                                      readOnly: true,
+                                      style: const TextStyle(
+                                          fontSize: 14, color: Colors.black),
+                                      decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: _isEditing &&
+                                                (widget.employee.isRegisted ??
+                                                    false)
+                                            ? Colors.grey.shade100
+                                            : Colors.grey.shade50,
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.transparent)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12),
+                                      ),
+                                    ),
+                            ),
+
+                            // 10. 등록일 (항상 수정 불가능)
+                            _buildRow(
+                              '등록일',
+                              TextFormField(
+                                initialValue: widget.employee.createdAt !=
+                                            null &&
+                                        widget.employee.createdAt!.isNotEmpty
+                                    ? DateFormat('yyyy.MM.dd').format(
+                                        DateTime.parse(
+                                            widget.employee.createdAt!))
+                                    : '-',
+                                readOnly: true,
+                                style: const TextStyle(
+                                    fontSize: 14, color: Colors.black),
+                                decoration: InputDecoration(
+                                  isDense: true,
+                                  filled: true,
+                                  fillColor: _isEditing
+                                      ? Colors.grey.shade100
+                                      : Colors.grey.shade50,
+                                  border: const OutlineInputBorder(
+                                      borderSide: BorderSide(
+                                          color: Colors.transparent)),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 12),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )),
                   ],
                 ),
               ),
@@ -575,7 +691,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   // 공통 행 레이아웃 모듈 위젯
   Widget _buildRow(String label, Widget content) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      padding: const EdgeInsets.symmetric(vertical: 6.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [

@@ -64,9 +64,11 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
           _departmentList.addAll(List<String>.from(data['department']));
           _teamList.addAll(List<String>.from(data['team']));
           _positionList.addAll(List<String>.from(data['position']));
+          
+          DateTime today = DateTime.now();
+          _selectedDate = _selectedDate ?? today;
+          _hireDateController.text =DateFormat('${_selectedDate?.year}년 ${_selectedDate?.month}월 ${_selectedDate?.day}일').format(_selectedDate!);
 
-          
-          
         } else {
           // 데이터가 이상할 때 대비한 예외처리
           setState(() => _errorMessage = '기초데이터 조회에 실패했습니다.');
@@ -139,16 +141,12 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   }
 
   Future<void> _selectDate() async {
-    /*final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
-      locale: const Locale('ko'),
-    );*/
+    //DateTime today = DateTime.now();
+    //_selectedDate = _selectedDate ?? today;
 
     final DateTime? picked = await showDialog<DateTime>(
-    context: context,
+  
+      context: context,
       builder: (_) => DateInputDialog(
         initialDate: _selectedDate,
       ),
@@ -169,9 +167,9 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
     final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
     String userPosition = info != null ? info.position: '';
-    if(auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')){
+    if(auth.isAdmin && userPosition == "사장" && !_teamList.contains('기타')){
       //신규 팀 정보 생성 시 필요 
-      // 관리자이고 대표이사일 때만 "기타" 추가    
+      // 관리자이고 사장일 때만 "기타" 추가    
       _teamList.add('기타');
     }
 
@@ -330,7 +328,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                   controller: _hireDateController,
                   readOnly: true,  // 직접 입력 막기 (선택만 가능)
                   decoration: InputDecoration(
-                    labelText: '입사일',
+                    labelText: '입사일',  
                     suffixIcon: IconButton(
                       icon: const Icon(Icons.calendar_today),
                       onPressed: _selectDate,

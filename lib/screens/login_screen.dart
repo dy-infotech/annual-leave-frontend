@@ -2,6 +2,8 @@ import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // 👈 암호화 저장소 임포트
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
 
@@ -18,11 +20,58 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  bool _isRememberMe = false;
+
+  // 💾 비밀번호 전용 안전 저장소 객체 생성
+  final _secureStorage = const FlutterSecureStorage();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSavedAccountInfo(); // 👈 사번 및 비밀번호 일괄 자동 로드
+  }
+
   @override
   void dispose() {
     _employeeNumberController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  // 💾 로컬 저장소에서 계정 정보(사번 + 비밀번호) 불러오기
+  Future<void> _loadSavedAccountInfo() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() async {
+      _isRememberMe = prefs.getBool('isRememberMe') ?? false;
+      if (_isRememberMe) {
+        // 일반 설정에서 사번 로드
+        _employeeNumberController.text =
+            prefs.getString('savedEmployeeNumber') ?? '';
+        // 암호화 공간에서 비밀번호 꺼내오기
+        final savedPassword =
+            await _secureStorage.read(key: 'savedPassword') ?? '';
+        _passwordController.text = savedPassword;
+      }
+    });
+  }
+
+  // 💾 로그인 성공 시 계정 정보(사번 + 암호화 비밀번호) 저장 처리
+  Future<void> _saveAccountInfoPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_isRememberMe) {
+      // 사번 일반 저장
+      await prefs.setBool('isRememberMe', true);
+      await prefs.setString(
+          'savedEmployeeNumber', _employeeNumberController.text.trim());
+      // 비밀번호 안전하게 암호화 저장
+      await _secureStorage.write(
+          key: 'savedPassword', value: _passwordController.text);
+    } else {
+      // 체크 해제 시 데이터 전부 일괄 소거
+      await prefs.remove('isRememberMe');
+      await prefs.remove('savedEmployeeNumber');
+      await _secureStorage.delete(key: 'savedPassword'); // 암호 저장소 삭제
+    }
   }
 
   Future<void> _handleLogin() async {
@@ -43,7 +92,9 @@ class _LoginScreenState extends State<LoginScreen> {
             _passwordController.text,
           );
 
-      // 로그인 성공 후 공휴일 정보 미리 로드
+      // 로그인이 최종 성공한 시점에 로컬 저장소 값 업데이트 수행 (사번+비번)
+      await _saveAccountInfoPreference();
+
       if (mounted) {
         await context.read<PublicHolidayProvider>().fetchPublicHoliday();
       }
@@ -52,8 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Navigator.pushReplacementNamed(context, '/dashboard');
       }
     } catch (e) {
-      setState(() => _errorMessage = e.toString()); // 임시로 실제 에러 내용 확인
-      //setState(() => _errorMessage = '사번 또는 비밀번호가 일치하지 않습니다...11');
+      setState(() => _errorMessage = e.toString());
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -138,6 +188,46 @@ class _LoginScreenState extends State<LoginScreen> {
                         obscureText: true,
                         onSubmitted: (_) => _handleLogin(),
                       ),
+
+                      const SizedBox(height: 8),
+
+                      // 🛠️ 계정 정보(사번+비번) 저장 체크박스 UI 레이아웃 영역
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: Checkbox(
+                              value: _isRememberMe,
+                              activeColor: AppColors.slate, // 테마 컬러 연동
+                              onChanged: (value) {
+                                setState(() {
+                                  _isRememberMe = value ?? false;
+                                });
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _isRememberMe =
+                                    !_isRememberMe; // 텍스트 영역 클릭 시에도 토글
+                              });
+                            },
+                            child: const Text(
+                              '계정 정보 저장', // 👈 직관적으로 인지하도록 문구 수정
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                color: AppColors.slate,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
                       if (_errorMessage != null) ...[
                         const SizedBox(height: 12),
                         Text(
@@ -148,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(

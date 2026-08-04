@@ -14,23 +14,26 @@ class Employee {
   final String? approverPosition;
   final String? approverDepartment;
   final bool? isRegisted;
+  final String? createdAt;
 
-  Employee(
-      {required this.employeeNumber,
-      required this.name,
-      required this.position,
-      required this.department,
-      required this.team,
-      this.hireDate,
-      this.role,
-      this.email,
-      required this.currTotalLeaveDays,
-      required this.remainingLeaveDays,
-      this.approverNumber,
-      this.approverName,
-      this.approverPosition,
-      this.approverDepartment,
-      required this.isRegisted});
+  Employee({
+    required this.employeeNumber,
+    required this.name,
+    required this.position,
+    required this.department,
+    required this.team,
+    this.hireDate,
+    this.role,
+    this.email,
+    required this.currTotalLeaveDays,
+    required this.remainingLeaveDays,
+    this.approverNumber,
+    this.approverName,
+    this.approverPosition,
+    this.approverDepartment,
+    required this.isRegisted,
+    this.createdAt,
+  });
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
@@ -51,6 +54,7 @@ class Employee {
       approverPosition: json['approverPosition'] ?? '',
       approverDepartment: json['approverDepartment'] ?? '',
       isRegisted: json['isRegisted'] ?? false,
+      createdAt: json['createdAt'],
     );
   }
 
@@ -69,7 +73,8 @@ class Employee {
       String? approverName,
       String? approverPosition,
       String? approverDepartment,
-      bool? isRegisted}) {
+      bool? isRegisted,
+      String? createdAt}) {
     return Employee(
       employeeNumber: employeeNumber ?? this.employeeNumber,
       name: name ?? this.name,
@@ -86,6 +91,7 @@ class Employee {
       approverPosition: this.approverPosition,
       approverDepartment: this.approverDepartment,
       isRegisted: this.isRegisted,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 }
