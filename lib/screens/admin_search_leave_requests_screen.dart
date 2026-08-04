@@ -1,3 +1,4 @@
+import 'package:dio/src/response.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
@@ -17,57 +18,75 @@ class AdminSearchLeaveRequestsScreen extends StatefulWidget {
 }
 
 class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScreen> with RouteAware{
-  List<LeaveRequestListItem> _requests = [];
+  List<LeaveRequestListItem> _items = [];
   String? _errorMessage;
   bool _isLoading = true;
-  String? _status; // null = 전체
-  final Set<int> _processingIds = {};
+  String? _status;          // 진행 상태 (null = 전체)
+  String? _selectedTeam = '전체';    // 선택된 팀 (null = 전체)
   // 오늘 날짜 구하기
   final DateTime _today = DateTime.now();
   final ScrollController _scrollController = ScrollController();
+  final List<String> _teamList = [];       //팀 
 
   @override
   void initState() {
     super.initState();
 
     if (widget.filter != null) {
-      
-      /*if (widget.filter != null) {
-        _buttonLabel = widget.filter! == 'admin_approved' ? "내 신청" : "전체";
-      }*/
       _setFilter(widget.filter);
     }
 
+    _getComData();
+      
     _fetch();
   }
+
+  Future<void> _getComData() async{
+    //기초데이터 조회: 팀목록
+    final comResponse = await ApiClient().dio.get(
+      '/api/admin/auth/common',
+    );
+    setState(() {
+      final data = comResponse.data as Map<String, dynamic>;
+
+      if (data.length >= 3) {
+        _teamList.clear();
+        _teamList.add('전체');  //전체 item 추가
+        _teamList.addAll(List<String>.from(data['team']));
+        
+      } else {
+        // 데이터가 이상할 때 대비한 예외처리
+        setState(() => _errorMessage = '기초데이터 조회에 실패했습니다.');
+        return;
+      }
+    });
+  }
+
 
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
+      
+      //상태값 조회 파라미터 세팅     
       final queryParams = <String, dynamic>{};
       if (_status != null) {
         queryParams['status'] = _status;
       }
-
-      //기본 당해년도 조회 날짜 세팅
-      // 오늘 날짜가 속한 연도 구하기
-      int year = _today.year;
-
-      // 그 연도의 1월 1일 날짜 만들기
-      DateTime firstDayOfYear = DateTime(year, 1, 1);
-      DateTime lastDayOfYear = DateTime(year, 12, 31);
-
-      queryParams['startDate'] = _formatDate(firstDayOfYear);
-      queryParams['endDate'] = _formatDate(lastDayOfYear);
+      if (_selectedTeam != null) {
+        queryParams['team'] = _selectedTeam == '전체' ? null: _selectedTeam;
+      }
 
       final response = await ApiClient().dio.get(
             '/api/admin/leave-requests/${_status}',
             queryParameters: queryParams.isEmpty ? null : queryParams,
+            //'/api/admin/leave-requests/approved',
+            //queryParameters: null
           );
-      final list = (response.data as List)
-          .map((json) => LeaveRequestListItem.fromJson(json))
-          .toList();
-      setState(() => _requests = list);
+      setState(() {
+        _items = (response.data as List)
+            .map((json) => LeaveRequestListItem.fromJson(json))
+            .toList();
+      });
     } catch (e) {
       setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
     } finally {
@@ -80,6 +99,12 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
 
     _fetch();
   }
+
+  void _setTeamFilter(String? value) {
+    _selectedTeam = value;
+
+    _fetch();
+  }
   
   @override
   void dispose() {
@@ -87,10 +112,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
     routeObserver.unsubscribe(this);
     super.dispose();
   }
-
-
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
 
   @override
   Widget build(BuildContext context) {
@@ -101,11 +122,60 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
       drawer: const AppDrawer(),
       body: Column(
         children: [
+          SizedBox(
+            height: 60,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.4,
+                    height: 40,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: DropdownButton<String>(
+                        value: _selectedTeam,
+                        items: _teamList
+                            .map(
+                              (team) => DropdownMenuItem(
+                                value: team,
+                                child: Text(team),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: _setTeamFilter,
+                        underline: const SizedBox(),
+                        isExpanded: true,
+                      ),
+                    ),
+                  ),
+                  Transform.translate(
+                    offset: const Offset(0, 5),
+                    child: Text(
+                      '${_items.length}건 조회됨',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.slate,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           Expanded(
             child: _isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : _requests.isEmpty
+                : _items.isEmpty
                     ? const Center(
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
@@ -125,11 +195,9 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                           child: ListView.builder(
                             controller: _scrollController, // 추가
                             padding: const EdgeInsets.all(20),
-                            itemCount: _requests.length,
+                            itemCount: _items.length,
                             itemBuilder: (context, index) {
-                              final item = _requests[index];
-                              final isProcessing =
-                                  _processingIds.contains(item.requestId);
+                              final item = _items[index];
                               return Container(
                                 margin: const EdgeInsets.only(bottom: 12),
                                 padding:
@@ -210,4 +278,8 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
       ),
     );
   }
+}
+
+extension on Future<Response<dynamic>> {
+  get data => null;
 }

@@ -93,16 +93,17 @@ class LeaveRequestListProvider extends ChangeNotifier {
     });
   }
 
-  // 특정 날짜의 반차 신청 상태 (오전/오후 각각)
-  ({bool hasAm, bool hasPm}) halfDayStatus(DateTime dateTime) {
+  // 특정 날짜의 휴가 신청 상태 (오전/오후 각각의 상태)
+  // 반환값 status: null(없음) / 'PENDING' / 'APPROVED'
+  ({String? amStatus, String? pmStatus}) halfDayStatus(DateTime dateTime) {
     DateTime normalize(DateTime d) {
       final local = d.toLocal();
       return DateTime(local.year, local.month, local.day);
     }
 
     final target = normalize(dateTime);
-    bool hasAm = false;
-    bool hasPm = false;
+    String? amStatus;
+    String? pmStatus;
 
     for (final item in _items.where((item) => item.status == LeaveState.pending.code || item.status == LeaveState.approved.code)) {
       final itemStart = normalize(DateTime.parse(item.startDate));
@@ -111,16 +112,18 @@ class LeaveRequestListProvider extends ChangeNotifier {
       if (!inRange) continue;
 
       if (item.leaveType == LeaveType.amHalf.code) {
-        hasAm = true;
+        // 오전
+        amStatus = item.status;
       } else if (item.leaveType == LeaveType.pmHalf.code) {
-        hasPm = true;
+        // 오후
+        pmStatus = item.status;
       } else {
         // 종일 등 반차가 아닌 신청은 오전/오후 모두 점유
-        hasAm = true;
-        hasPm = true;
+        amStatus = item.status;
+        pmStatus = item.status;
       }
     }
 
-    return (hasAm: hasAm, hasPm: hasPm);
+    return (amStatus: amStatus, pmStatus: pmStatus);
   }
 }
