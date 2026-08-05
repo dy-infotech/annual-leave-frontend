@@ -207,7 +207,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       ),
     );
 
-    if (picked != null) {
+    // 값이 실제로 바뀌었고, 화면이 아직 살아있을 때만 반영 및 재조회
+    if (picked != null && picked != _dateRange && mounted) {
       setState(() {
         _dateRange = picked;
       });
