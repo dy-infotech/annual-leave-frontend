@@ -6,7 +6,6 @@ import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/registe_status_badge.dart';
 import '../widgets/date_input_dialog.dart';
-
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../models/employee.dart';
@@ -54,8 +53,18 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     _nameController = TextEditingController(text: widget.employee.name);
     _emailController = TextEditingController(text: widget.employee.email ?? '');
-    _hireDateController =
-        TextEditingController(text: widget.employee.hireDate ?? '');
+    // _hireDateController =
+    //     TextEditingController(text: widget.employee.hireDate ?? '');
+
+    // ✅ initState 내부에서 안전하게 YYYY.MM.DD 포맷으로 초기화합니다.
+    _hireDateController = TextEditingController(
+      text: widget.employee.hireDate != null &&
+              widget.employee.hireDate!.isNotEmpty
+          ? DateFormat('yyyy.MM.dd')
+              .format(DateTime.parse(widget.employee.hireDate!))
+          : '',
+    );
+
     _passwordController = TextEditingController();
     _otherTeamController = TextEditingController();
 
@@ -364,9 +373,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               ),
                             ),
                             // 4. 이메일 정보 (수정 가능)
-
                             _buildRow(
-                              '사용자명',
+                              '이메일',
                               TextFormField(
                                 controller: _emailController,
                                 // _isEditing이 true일 때만 입력 가능
@@ -618,7 +626,21 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                     ),
                             ),
 
-                            // 10. 등록일 (항상 수정 불가능)
+                            // 10. 상태
+                            _buildRow(
+                              '상태',
+                              // Wrap으로 감싸서 부모 크기만큼 늘어나는 것을 방지합니다.
+                              Wrap(
+                                children: [
+                                  RegisteStatusBadge(
+                                    status: widget.employee.isRegisted == true
+                                        ? '등록'
+                                        : '미등록',
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // 11. 등록일 (항상 수정 불가능)
                             _buildRow(
                               '등록일',
                               TextFormField(
@@ -665,8 +687,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     if (picked != null) {
       setState(() {
-        // yyyy-MM-dd 형식으로 텍스트창에 주입
-        _hireDateController.text = DateFormat('yyyy-MM-dd').format(picked);
+        // yyyy.MM.dd 형식으로 텍스트창에 주입
+        _hireDateController.text =
+            widget.employee.hireDate?.replaceAll('-', '.') ?? '';
+
+//        _hireDateController.text = DateFormat('yyyy.MM.dd').format(picked);
       });
     }
   }
