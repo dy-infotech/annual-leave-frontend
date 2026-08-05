@@ -120,15 +120,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       return true;
 
     return false;
-
-    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
-
-    final startDate = DateTime.parse(item.startDate);
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-
-    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly); */
   }
 
   Future<void> _confirmCancel(LeaveRequestListItem item) async {
@@ -136,7 +127,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
         title:
             const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
@@ -245,31 +236,33 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       body: Column(
         children: [
           SizedBox(
-            height: 60,
+            height: 60.h,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+              padding: EdgeInsets.fromLTRB(20.w, 12.h, 20.w, 0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.25,
-                    height: 40, // 원하는 높이로 조절
+                    width: MediaQuery.of(context).size.width * 0.2.w,
+                    height: 40.h, // 원하는 높이로 조절
                     child: Container(
                       decoration: BoxDecoration(
                         color: Colors.white, // 흰 바탕
                         border: Border.all(
                             color: Colors.grey.shade300), // 옅은 회색 테두리
-                        borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
+                        borderRadius: BorderRadius.circular(8.r), // 모서리 약간 둥글게
                       ),
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
+                          EdgeInsets.symmetric(horizontal: 8.w), // 안쪽 여백
                       child: DropdownButton<String?>(
                         value: _statusFilter,
                         items: statusOptions.map((option) {
                           return DropdownMenuItem<String?>(
                             value: option['value'],
-                            child: Text(option['label']!),
+                            child: Text(
+                              option['label']!, 
+                              style: TextStyle(fontSize: 14.sp)),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -281,7 +274,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
                     ),
                   ),
-                  const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
+                  //const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
+                  SizedBox(width: 8.w), //간격
                   Row(
                     children: [
                       // UI 코드 예시: 라디오 버튼 목록 만들기
@@ -291,7 +285,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           final label = item['label']!;
                           return Padding(
                             // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백을 줍니다.
-                            padding: const EdgeInsets.only(right: 10.0),
+                            padding: EdgeInsets.only(right: 10.w),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -299,7 +293,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                   value: label,
                                   groupValue: _buttonLabel,
                                   // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
-
                                   visualDensity: const VisualDensity(
                                     horizontal: VisualDensity.minimumDensity,
                                     vertical: VisualDensity.minimumDensity,
@@ -314,15 +307,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                     });
                                   },
                                 ),
-                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격(4px)을 지정합니다.
-                                const SizedBox(width: 2),
-                                Text(label),
+                                SizedBox(width: 2.w),
+                                Text(label, style: TextStyle(fontSize: 14.sp)),
                               ],
                             ),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(width: 10), // 두 버튼 간격
+                      SizedBox(width: 8.w), // 두 버튼 간격
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
@@ -333,8 +325,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           style: TextStyle(fontSize: 14.sp),
                         ),
                         style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 12.w, vertical: 8.h),
                           minimumSize: const Size(80, 36),
                         ),
                       ),
@@ -346,22 +338,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
           ),
           if (_dateRange != null)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding: EdgeInsets.symmetric(horizontal: 20.w),
               child: Row(
                 children: [
                   Text(
                       '${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textMuted)),
-                  const SizedBox(width: 6),
+                      style: TextStyle(
+                          fontSize: 12.sp, color: AppColors.textMuted)),
+                  SizedBox(width: 6.w),
                   InkWell(
                     onTap: () {
                       setState(() => _dateRange = null);
                       _fetch();
                     },
-                    child: const Text('지우기',
+                    child: Text('지우기',
                         style: TextStyle(
-                            fontSize: 12,
+                            fontSize: 12.sp,
                             color: AppColors.coral,
                             fontWeight: FontWeight.w600)),
                   ),
@@ -370,7 +362,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             ),
           Padding(
             padding:
-                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                EdgeInsets.symmetric(horizontal: 24.0.w, vertical: 8.0.h),
             child: Row(
               //mainAxisAlignment: MainAxisAlignment.start,
               // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
@@ -380,8 +372,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
 
                 Text(
                   '${_items.length}건',
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: TextStyle(
+                    fontSize: 13.sp,
                     color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
                     fontWeight: FontWeight.w700, // 숫자를 두껍게 처리하여 가독성을 높입니다.
                   ),
@@ -413,11 +405,11 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           child: ListView.builder(
                             controller: _scrollController, // 추가
                             //padding: const EdgeInsets.all(20),
-                            padding: const EdgeInsets.only(
-                                top: 4.0,
-                                left: 20.0,
-                                right: 20.0,
-                                bottom: 20.0),
+                            padding: EdgeInsets.only(
+                                top: 4.0.h,
+                                left: 20.0.w,
+                                right: 20.0.w,
+                                bottom: 20.0.h),
                             itemCount: _items.length,
                             itemBuilder: (context, index) {
                               final item = _items[index];
@@ -440,10 +432,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                   leaveTypeMap[rawType] ?? rawType;
 
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
+                                padding: EdgeInsets.only(bottom: 12.h),
                                 child: Material(
                                   color: AppColors.surface,
-                                  borderRadius: BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(16.r),
                                   child: InkWell(
                                     onTap: () {
                                       Navigator.push(
@@ -454,11 +446,11 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                         ),
                                       );
                                     },
-                                    borderRadius: BorderRadius.circular(16),
+                                    borderRadius: BorderRadius.circular(16.r),
                                     child: Container(
-                                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                      padding: EdgeInsets.fromLTRB(16.w, 10.h, 16.w, 10.w),
                                       decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(16),
+                                        borderRadius: BorderRadius.circular(16.r),
                                         border: Border.all(color: AppColors.divider),
                                       ),
                                       child: Column(
@@ -468,14 +460,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                             children: [
                                               Text('${item.employeeName} ${item.position}',
-                                                  style: const TextStyle(
-                                                      fontWeight: FontWeight.w700, fontSize: 14.5)),
-                                              const SizedBox(width: 8),
+                                                  style: TextStyle(
+                                                      fontWeight: FontWeight.w700, fontSize: 14.5.sp)),
+                                              SizedBox(width: 8.w),
                                               Text(
                                                 item.department,
-                                                style: const TextStyle(
+                                                style: TextStyle(
                                                   color: AppColors.textMuted,
-                                                  fontSize: 12,
+                                                  fontSize: 12.sp,
                                                 ),
                                               ),
                                               const Spacer(),
@@ -486,53 +478,53 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                               crossAxisAlignment: CrossAxisAlignment.baseline,
                                               textBaseline: TextBaseline.alphabetic,
                                               children: [
-                                                const SizedBox(height: 10),
+                                                SizedBox(height: 10.h),
                                                 Text(
                                                     '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
-                                                    style: const TextStyle(
-                                                        fontSize: 13, fontWeight: FontWeight.w600)),
-                                                const SizedBox(width: 4),
+                                                    style: TextStyle(
+                                                        fontSize: 13.sp, fontWeight: FontWeight.w600)),
+                                                SizedBox(width: 4.w),
                                                 Text('(${item.useDays}일) [$leaveTypeNm]',
-                                                    style: const TextStyle(
-                                                        fontSize: 13, color: AppColors.textMuted)),
+                                                    style: TextStyle(
+                                                        fontSize: 13.sp, color: AppColors.textMuted)),
                                                 const Spacer(),
                                               ]),
                                           Row(
                                               crossAxisAlignment: CrossAxisAlignment.baseline,
                                               textBaseline: TextBaseline.alphabetic,
                                               children: [
-                                                const SizedBox(height: 10),
+                                                SizedBox(height: 10.h),
                                                 Text(
                                                     '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                         color: AppColors.textMuted,
-                                                        fontSize: 12,
+                                                        fontSize: 12.sp,
                                                         fontWeight: FontWeight.w600)),
-                                                const SizedBox(width: 12),
+                                                SizedBox(width: 12.w),
                                                 const Spacer(),
                                                 if (_isCancelable(item, userEmployeeNumber)) ...[
                                                   TextButton(
                                                     onPressed:
                                                     isProcessing ? null : () => _confirmCancel(item),
                                                     style: TextButton.styleFrom(
-                                                      padding: const EdgeInsets.symmetric(
-                                                          horizontal: 4, vertical: 6),
+                                                      padding: EdgeInsets.symmetric(
+                                                          horizontal: 4.w, vertical: 6.h),
                                                       minimumSize: Size.zero,
                                                       tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                                                     ),
                                                     child: isProcessing
-                                                        ? const SizedBox(
-                                                      width: 14,
-                                                      height: 14,
+                                                        ? SizedBox(
+                                                      width: 14.w,
+                                                      height: 14.h,
                                                       child: CircularProgressIndicator(
                                                         strokeWidth: 2,
                                                         color: AppColors.textMuted,
                                                       ),
                                                     )
-                                                        : const Text(
+                                                        : Text(
                                                       '신청 취소',
                                                       style: TextStyle(
-                                                        fontSize: 12.5,
+                                                        fontSize: 12.5.sp,
                                                         fontWeight: FontWeight.w600,
                                                         color: AppColors.textMuted,
                                                         decoration: TextDecoration.underline,
