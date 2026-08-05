@@ -333,7 +333,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         child: ListView.builder(
           controller: _scrollController,
           padding:
-              const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+              const EdgeInsets.only(left: 20, right: 20, top: 5, bottom: 100),
           itemCount: _requests.length + 1,
           itemBuilder: (context, index) {
             // ★ 첫 번째 아이템 자리에 상단 우측 끝 "조회건수" 라벨 배치
@@ -343,7 +343,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    '조회건수: ${_requests.length}건',
+                    '${_requests.length}건',
                     style: const TextStyle(
                       color: Color(0xFF555555),
                       fontSize: 13,
@@ -385,9 +385,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                   setState(() => _selectedRequestId = req.requestId);
                 },
                 child: Padding(
-                  // 하단 여백을 살짝 늘려 안정감을 주었습니다.
+                  // 하단 여백을 살짝 늘림
                   padding: const EdgeInsets.only(
-                      left: 16, right: 18, top: 14, bottom: 16),
+                      left: 13, right: 15, top: 14, bottom: 16),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -396,8 +396,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                         padding: const EdgeInsets.only(
                             top: 1), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
                         child: Container(
-                          width: 18,
-                          height: 18,
+                          width: 16,
+                          height: 16,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -411,7 +411,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12), // 라디오 원과 텍스트 사이 간격 확보
+                      const SizedBox(width: 10), // 라디오 원과 텍스트 사이 간격 확보
 
                       // 2. 우측: 텍스트 상세 영역
                       Expanded(
@@ -426,7 +426,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                   '${req.employeeName} ${req.position} (${req.department})',
                                   style: const TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 15.5,
+                                    fontSize: 14.5,
                                     height: 1.0, // 불필요한 위아래 폰트 행간 마진 제거
                                   ),
                                 ),
@@ -437,22 +437,21 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 7),
 
                             // 두 번째 줄: 휴가 일자 정보
                             Row(
                               children: [
                                 Text(
-                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} - ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}',
+                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}',
                                   style: const TextStyle(
-                                      fontSize: 13.5,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w600),
                                 ),
                                 const SizedBox(width: 4),
                                 Text('(${req.useDays}일) [$leaveTypeNm]',
                                     style: const TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600)),
+                                        color: AppColors.textMuted, fontSize: 13)),
                               ],
                             ),
                           ],

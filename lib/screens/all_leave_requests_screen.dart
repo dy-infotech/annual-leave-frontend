@@ -372,7 +372,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
 
                 Text(
-                  '조회건수: ${_items.length}건',
+                  '${_items.length}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
@@ -485,10 +485,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                                     style: const TextStyle(
                                                         fontSize: 13, fontWeight: FontWeight.w600)),
                                                 const SizedBox(width: 4),
-                                                Text('(${item.useDays}일) [${leaveTypeNm}]',
+                                                Text('(${item.useDays}일) [$leaveTypeNm]',
                                                     style: const TextStyle(
                                                         fontSize: 13, color: AppColors.textMuted)),
-                                                const SizedBox(width: 70),
                                                 const Spacer(),
                                               ]),
                                           Row(
@@ -497,7 +496,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                               children: [
                                                 const SizedBox(height: 10),
                                                 Text(
-                                                    '신청일 : ${DateFormat('yyyy-MM-dd').format(DateTime.parse(item.requestedAt))}',
+                                                    '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
                                                     style: const TextStyle(
                                                         color: AppColors.textMuted,
                                                         fontSize: 12,

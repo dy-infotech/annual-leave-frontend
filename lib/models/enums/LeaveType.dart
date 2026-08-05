@@ -10,4 +10,13 @@ enum LeaveType {
   final String code;
   final String label;
   const LeaveType(this.code, this.label);
+
+  static String getLabel(String code) {
+    return LeaveType.values
+      .firstWhere(
+        (e) => e.code == code,
+        orElse: () => LeaveType.other,
+      )
+      .label;
+  }
 }
