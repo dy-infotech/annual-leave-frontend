@@ -1,5 +1,6 @@
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/screens/leave_request_detail_screen.dart';
 import 'package:dio/src/response.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -140,7 +141,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
           // 사장인 경우만 팀 콤보 표시
           //if (isCeo)
             SizedBox(
-              height: 60,
+              height: 50,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
                 child: Row(
@@ -151,7 +152,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                     Flexible(
                       flex: 1,
                       child: Container(
-                        height: 40,
+                        height: 37,
                         padding: const EdgeInsets.symmetric(horizontal: 8),
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -173,7 +174,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                             return _teamList.map(
                               (team) => Container(
                                 alignment: Alignment.centerLeft,
-                                height: 40,
+                                height: 35,
                                 child: Text(
                                   team,
                                   overflow: TextOverflow.ellipsis,
@@ -192,8 +193,8 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                     // 검색 조건
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.only(left: 2),
-                        height: 40,
+                        padding: const EdgeInsets.only(left: 4),
+                        height: 35,
                         clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -206,15 +207,22 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                               child: TextField(
                                 controller: _searchEmployeeController,
                                 textInputAction: TextInputAction.search,
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                ),
                                 onSubmitted: (_) => _fetch(),
                                 decoration: const InputDecoration(
                                   hintText: '사번 또는 성명',
+                                  hintStyle: TextStyle(
+                                    fontSize: 14, // placeholder 크기 조정
+                                    color: AppColors.textMuted,
+                                  ),
                                   border: InputBorder.none,
                                   enabledBorder: InputBorder.none,
                                   focusedBorder: InputBorder.none,
                                   disabledBorder: InputBorder.none,
                                   contentPadding: EdgeInsets.only(
-                                    left: 8,
+                                    left: 6,
                                     right: 10,
                                     top: 10,
                                     bottom: 10,
@@ -304,72 +312,85 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                             itemBuilder: (context, index) {
                               final item = _items[index];
                               final leaveTypeNm = LeaveType.getLabel(item.leaveType);
-                              return Container(
-                                margin: const EdgeInsets.only(bottom: 12),
-                                padding:
-                                    const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surface,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: AppColors.divider),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                            '${item.employeeName} ${item.position}',
-                                            style: const TextStyle(
-                                                fontWeight: FontWeight.w700,
-                                                fontSize: 14.5)),
-                                        // 2. 이름과 부서 사이의 좁은 가로 간격
-                                        const SizedBox(width: 8),
-                                        // 3. 부서명 
-                                        Text(
-                                          item.department,
-                                          style: const TextStyle(
-                                            color: AppColors.textMuted,
-                                            fontSize: 12,
-                                          ),
-                                        ),
-                                      ],
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LeaveRequestDetailScreen(
+                                        requestId: item.requestId,
+                                      ),
                                     ),
-                                    Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
+                                  );
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppColors.divider),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
-                                          const SizedBox(height: 10),
                                           Text(
-                                              '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                              '${item.employeeName} ${item.position}',
                                               style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600)),
-                                          const SizedBox(width: 4),
-                                          Text('(${item.useDays}일) [$leaveTypeNm]',
-                                              style: const TextStyle(
-                                                  fontSize: 13,
-                                                  color: AppColors.textMuted)),
-                                          // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
-                                          const Spacer(),
-                                        ]),
-                                    Row(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.baseline,
-                                        textBaseline: TextBaseline.alphabetic,
-                                        children: [
-                                          const SizedBox(height: 10),
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 14.5)),
+                                          // 2. 이름과 부서 사이의 좁은 가로 간격
+                                          const SizedBox(width: 8),
+                                          // 3. 부서명 
                                           Text(
-                                              '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
-                                              style: const TextStyle(
-                                                  color: AppColors.textMuted,
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w600)),
-                                        ])
-                                  ],
+                                            item.department,
+                                            style: const TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            const SizedBox(height: 10),
+                                            Text(
+                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600)),
+                                            const SizedBox(width: 4),
+                                            Text('(${item.useDays}일) [$leaveTypeNm]',
+                                                style: const TextStyle(
+                                                    fontSize: 13,
+                                                    color: AppColors.textMuted)),
+                                            // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
+                                            const Spacer(),
+                                          ]),
+                                      Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            const SizedBox(height: 10),
+                                            Text(
+                                                '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
+                                                style: const TextStyle(
+                                                    color: AppColors.textMuted,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600)),
+                                          ])
+                                    ],
+                                  ),
                                 ),
                               );
                             },

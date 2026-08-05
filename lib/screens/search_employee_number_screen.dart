@@ -76,81 +76,85 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
       drawer: const AppDrawer(),
       body: Column(
         children: [
-          // 💡 높이 제한을 없애거나 60으로 늘려 글자와 인풋 박스가 겹치지 않게 합니다.
           Container(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 4),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                // 3. 우측 검색 입력창
                 // 검색 조건
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.only(left: 2),
-                        height: 40,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchParamController,
-                                textInputAction: TextInputAction.search,
-                                onSubmitted: (_) => _fetch(),
-                                decoration: const InputDecoration(
-                                  hintText: '사번 또는 성명',
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.only(
-                                    left: 8,
-                                    right: 10,
-                                    top: 10,
-                                    bottom: 10,
-                                  ),
-                                  isDense: true,
-                                ),
-                              ),
-                            ),
-                            Container(
-                              width: 1,
-                              color: Colors.grey.shade300,
-                            ),
-                            InkWell(
-                              onTap: _fetch,
-                              child: Container(
-                                width: 42,
-                                height: double.infinity,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF1F3A5F), // 네이비
-                                  borderRadius: BorderRadius.only(
-                                    topRight: Radius.circular(8),
-                                    bottomRight: Radius.circular(8),
-                                  ),
-                                ),
-                                alignment: Alignment.center,
-                                child: const Icon(
-                                  Icons.search,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.only(left: 2),
+                    height: 35,
+                    clipBehavior: Clip.antiAlias,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border.all(color: Colors.grey.shade400),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                const SizedBox(width: 10),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _searchParamController,
+                            textInputAction: TextInputAction.search,
+                            style: const TextStyle(
+                              fontSize: 14,
+                            ),
+                            onSubmitted: (_) => _fetch(),
+                            decoration: const InputDecoration(
+                              hintText: '사번 또는 성명',
+                              hintStyle: TextStyle(
+                                fontSize: 14, // placeholder 크기 조정
+                                color: AppColors.textMuted,
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.only(
+                                left: 8,
+                                right: 10,
+                                top: 10,
+                                bottom: 10,
+                              ),
+                              isDense: true,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          color: Colors.grey.shade300,
+                        ),
+                        InkWell(
+                          onTap: _fetch,
+                          child: Container(
+                            width: 42,
+                            height: double.infinity,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1F3A5F), // 네이비
+                              borderRadius: BorderRadius.only(
+                                topRight: Radius.circular(8),
+                                bottomRight: Radius.circular(8),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.search,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 // 1. 💡 건수와 검색창 사이의 여백을 꽉 채워 검색창을 우측 끝으로 밀어냄
                 const Spacer(),
                 // 2. 💡 우측 끝에 배치될 조회 건수 텍스트 (변수나 list.length를 바인딩하세요)
                 Text(
-                  '  조회건수: ${_items.length}건', // 사용 중인 리스트 변수명으로 변경하세요.
+                  '${_items.length}건', // 사용 중인 리스트 변수명으로 변경하세요.
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
