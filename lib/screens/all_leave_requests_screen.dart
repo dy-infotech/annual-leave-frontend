@@ -186,6 +186,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
 
   Future<void> _pickDateRange() async {
+    final year = _today.year;
+    final initial = _dateRange ?? DateTimeRange(
+      start: DateTime(year, 1, 1),
+      end: DateTime(year, 12, 31),
+    );
+
     final picked = await showDialog<DateTimeRange>(
       context: context,
       barrierDismissible: false,
@@ -196,7 +202,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
               ),
         ),
         child: DateRangeDialog(
-          initialRange: _dateRange,
+          initialRange: initial,
         ),
       ),
     );
