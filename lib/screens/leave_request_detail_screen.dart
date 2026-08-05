@@ -86,15 +86,13 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
           _row('이름', '${d.employeeName} ${d.position}'),
           _row('부서', d.department),
         ]),
-
         const SizedBox(height: 20),
-
-        // 2. 휴가 신청건 진행 정보
-        _sectionTitle('휴가 신청건 진행 정보'),
+        // 2. 신청 내역
+        _sectionTitle('신청 내역'),
         _card([
           _row('휴가 종류', leaveTypeNm),
-          _row(
-              '시작일', '${_formatDate(d.startDate)} ~ ${_formatDate(d.endDate)}'),
+          _row('휴가 기간',
+              '${_formatDate(d.startDate)} ~ ${_formatDate(d.endDate)}'),
           _row('사용 연차', '${d.useDays}일'),
           // 상태는 배지로
           Padding(
@@ -112,41 +110,40 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
               ],
             ),
           ),
+          // 사유는 권한 있을 때(null 아님)만 표시
+          // if (d.leaveReason != null) _row('사유', d.leaveReason!),
+          // 사유 표시 (권한 있을때만 내용 표시)
+          _row(
+              '신청 사유',
+              (d.leaveReason == null ||
+                      d.leaveReason.toString() == 'null' ||
+                      d.leaveReason.toString().isEmpty)
+                  ? '-'
+                  : d.leaveReason!),
           _row(
               '신청일',
               d.createdAt != null
                   ? DateFormat('yyyy.MM.dd')
                       .format(DateTime.parse(d.createdAt.toString()))
                   : '-'),
-          _row(
-              '결재일',
-              (d.managedAt == null || d.managedAt.toString() == 'null')
-                  ? '-'
-                  : DateFormat('yyyy.MM.dd')
-                      .format(DateTime.parse(d.managedAt.toString()))),
-
-          // 사유는 권한 있을 때(null 아님)만 표시
-          // if (d.leaveReason != null) _row('사유', d.leaveReason!),
-          // 사유 표시 (권한 있을때만 내용 표시)
-          _row(
-              '사유',
-              (d.leaveReason == null ||
-                      d.leaveReason.toString() == 'null' ||
-                      d.leaveReason.toString().isEmpty)
-                  ? '-'
-                  : d.leaveReason!),
         ]),
 
         const SizedBox(height: 20),
 
-        // 3. 승인자
-        _sectionTitle('승인자'),
+        // 3. 결재 내역
+        _sectionTitle('결재 내역'),
         _card(
           hasApprover
               ? [
                   _row('사번', d.approverNumber ?? '-'),
                   _row('이름', '${d.approverName} ${d.approverPosition ?? ''}'),
                   _row('부서', d.approverDepartment ?? '-'),
+                  _row(
+                      '결재일',
+                      (d.managedAt == null || d.managedAt.toString() == 'null')
+                          ? '-'
+                          : DateFormat('yyyy.MM.dd')
+                              .format(DateTime.parse(d.managedAt.toString()))),
                 ]
               : [
                   const Padding(
