@@ -99,6 +99,15 @@ class _DateRangeDialogState extends State<DateRangeDialog> {
       return;
     }
 
+    if (start.year < 1900 || end.year > 3000) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("유효하지 않은 범위입니다."),
+        ),
+      );
+      return;
+    }
+
     if (start.isAfter(end)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
