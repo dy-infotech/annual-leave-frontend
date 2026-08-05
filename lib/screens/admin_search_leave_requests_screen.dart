@@ -64,7 +64,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
     });
   }
 
-
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
@@ -123,12 +122,12 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
     final statusName = _status == 'approved' ? "승인": "반려";
 
     //로그인 사용자 직급 "사장"여부 확인
-    final auth = context.watch<AuthProvider>();
+    /* final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
     bool isCeo = false;
     if(auth.isAdmin && info?.position == "사장"){
       isCeo = true;
-    }
+    } */
     
     //LeaveType leaveType = ;
     
@@ -139,7 +138,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
       body: Column(
         children: [
           // 사장인 경우만 팀 콤보 표시
-          if (isCeo)
+          //if (isCeo)
             SizedBox(
               height: 60,
               child: Padding(
@@ -169,7 +168,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                 ),
                               )
                               .toList(),
-
                           // 선택 표시 영역
                           selectedItemBuilder: (context) {
                             return _teamList.map(
@@ -183,7 +181,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                               ),
                             ).toList();
                           },
-
                           onChanged: _setTeamFilter,
                           underline: const SizedBox(),
                           isExpanded: true,
@@ -195,7 +192,9 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                     // 검색 조건
                     Expanded(
                       child: Container(
+                        padding: const EdgeInsets.only(left: 2),
                         height: 40,
+                        clipBehavior: Clip.antiAlias,
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: Colors.grey.shade400),
@@ -214,9 +213,11 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                   enabledBorder: InputBorder.none,
                                   focusedBorder: InputBorder.none,
                                   disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 10,
+                                  contentPadding: EdgeInsets.only(
+                                    left: 8,
+                                    right: 10,
+                                    top: 10,
+                                    bottom: 10,
                                   ),
                                   isDense: true,
                                 ),
@@ -229,12 +230,20 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                             InkWell(
                               onTap: _fetch,
                               child: Container(
-                                width: 35,
+                                width: 42,
                                 height: double.infinity,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1F3A5F), // 네이비
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(8),
+                                    bottomRight: Radius.circular(8),
+                                  ),
+                                ),
                                 alignment: Alignment.center,
                                 child: const Icon(
                                   Icons.search,
-                                  size: 22,
+                                  color: Colors.white,
+                                  size: 20,
                                 ),
                               ),
                             ),

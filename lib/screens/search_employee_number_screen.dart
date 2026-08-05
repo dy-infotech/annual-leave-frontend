@@ -83,48 +83,69 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 // 3. 우측 검색 입력창
-                SizedBox(
-                  width: MediaQuery.of(context).size.width *
-                      0.35, // 좌측 글자 공간 확보를 위해 비율을 0.5 -> 0.45로 미세 축소
-                  child: TextField(
-                    controller: _searchParamController,
-                    textInputAction: TextInputAction.search,
-                    onSubmitted: (_) => _fetch(),
-                    decoration: InputDecoration(
-                      hintText: '사번 또는 성명',
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 8),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide(color: Colors.grey.shade400),
+                // 검색 조건
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.only(left: 2),
+                        height: 40,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade400),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchParamController,
+                                textInputAction: TextInputAction.search,
+                                onSubmitted: (_) => _fetch(),
+                                decoration: const InputDecoration(
+                                  hintText: '사번 또는 성명',
+                                  border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
+                                  disabledBorder: InputBorder.none,
+                                  contentPadding: EdgeInsets.only(
+                                    left: 8,
+                                    right: 10,
+                                    top: 10,
+                                    bottom: 10,
+                                  ),
+                                  isDense: true,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 1,
+                              color: Colors.grey.shade300,
+                            ),
+                            InkWell(
+                              onTap: _fetch,
+                              child: Container(
+                                width: 42,
+                                height: double.infinity,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1F3A5F), // 네이비
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(8),
+                                    bottomRight: Radius.circular(8),
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      isDense: true,
                     ),
-                  ),
-                ),
                 const SizedBox(width: 10),
-
-                // 4. 우측 조회 버튼
-                ElevatedButton(
-                  onPressed: _fetch,
-                  style: ElevatedButton.styleFrom(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                    minimumSize: const Size(70, 36),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.search, size: 20),
-                      SizedBox(width: 1),
-                      Text(
-                        '조회',
-                        style: TextStyle(fontSize: 15),
-                      ),
-                    ],
-                  ),
-                ),
-
                 // 1. 💡 건수와 검색창 사이의 여백을 꽉 채워 검색창을 우측 끝으로 밀어냄
                 const Spacer(),
                 // 2. 💡 우측 끝에 배치될 조회 건수 텍스트 (변수나 list.length를 바인딩하세요)
