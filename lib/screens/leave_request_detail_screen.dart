@@ -4,6 +4,7 @@ import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/leave_status_badge.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; 
 
 class LeaveRequestDetailScreen extends StatefulWidget {
   final int requestId;
@@ -77,7 +78,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
     final hasApprover = d.approverName != null;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 24.h),
       children: [
         // 1. 휴가자
         _sectionTitle('휴가자'),
@@ -86,7 +87,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
           _row('이름', '${d.employeeName} ${d.position}'),
           _row('부서', d.department),
         ]),
-        const SizedBox(height: 20),
+        SizedBox(height: 20.h),
         // 2. 신청 내역
         _sectionTitle('신청 내역'),
         _card([
@@ -96,14 +97,14 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
           _row('사용 연차', '${d.useDays}일'),
           // 상태는 배지로
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: EdgeInsets.symmetric(vertical: 8.h),
             child: Row(
               children: [
-                const SizedBox(
-                    width: 80,
+                SizedBox(
+                    width: 80.w,
                     child: Text('상태',
                         style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 13.sp,
                             color: AppColors.textMuted,
                             fontWeight: FontWeight.w600))),
                 LeaveStatusBadge(status: d.status),
@@ -146,11 +147,11 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                               .format(DateTime.parse(d.managedAt.toString()))),
                 ]
               : [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8.h),
                     child: Text('아직 승인되지 않은 요청입니다.',
                         style: TextStyle(
-                            fontSize: 14, color: AppColors.textMuted)),
+                            fontSize: 14.sp, color: AppColors.textMuted)),
                   ),
                 ],
         ),
@@ -159,16 +160,16 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
   }
 
   Widget _sectionTitle(String text) => Padding(
-        padding: const EdgeInsets.only(bottom: 10),
+        padding: EdgeInsets.only(bottom: 10.h),
         child: Text(text,
-            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14.sp)),
       );
 
   Widget _card(List<Widget> children) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.r),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           border: Border.all(color: AppColors.divider),
         ),
         child: Column(
@@ -176,21 +177,21 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
       );
 
   Widget _row(String label, String value) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: 8.h),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
-                width: 80,
+                width: 80.w,
                 child: Text(label,
-                    style: const TextStyle(
-                        fontSize: 13,
+                    style: TextStyle(
+                        fontSize: 13.sp,
                         color: AppColors.textMuted,
                         fontWeight: FontWeight.w600))),
             Expanded(
                 child: Text(value,
-                    style: const TextStyle(
-                        fontSize: 14,
+                    style: TextStyle(
+                        fontSize: 14.sp,
                         fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary))),
           ],

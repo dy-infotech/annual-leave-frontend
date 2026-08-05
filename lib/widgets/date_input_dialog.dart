@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; 
 
 class DateInputDialog extends StatefulWidget {
   
@@ -109,9 +110,10 @@ class _DateInputDialogState extends State<DateInputDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(widget.title),
+      title: Text(widget.title,
+        style: TextStyle(fontSize: 18.sp),),
       content: SizedBox(
-        width: 320,
+        width: 320.w,
         child: TextField(
           controller: _controller,
           keyboardType: TextInputType.number,
@@ -119,10 +121,16 @@ class _DateInputDialogState extends State<DateInputDialog> {
             FilteringTextInputFormatter.digitsOnly,
             const _DateFormatter(),
           ],
+          style: TextStyle(
+            fontSize: 16.sp,
+          ),
           decoration: InputDecoration(
-            hintText: _formatDate(widget.initialDate),//'yyyy-MM-dd',
+            hintText: _formatDate(widget.initialDate), //'yyyy-MM-dd',
+            hintStyle: TextStyle(fontSize: 16.sp),
             suffixIcon: IconButton(
-              icon: const Icon(Icons.calendar_today),
+              icon: Icon(Icons.calendar_today,
+                size: 25.r,
+              ),
               onPressed: _pickDate,
             ),
           ),
@@ -132,11 +140,20 @@ class _DateInputDialogState extends State<DateInputDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('취소'),
+          style: TextButton.styleFrom(
+            fixedSize: Size(80.w, 40.h),
+          ),
+          child: Text('취소',
+            style: TextStyle(fontSize: 14.sp),
+          )
         ),
         FilledButton(
           onPressed: _confirm,
-          child: const Text('확인'),
+          style: TextButton.styleFrom(
+            fixedSize: Size(80.w, 40.h),
+          ),
+          child: Text('확인',
+            style: TextStyle(fontSize: 14.sp),),
         ),
       ],
     );
