@@ -11,6 +11,7 @@ import 'package:annual_leave_frontend/main.dart';
 import 'package:intl/intl.dart';
 
 import 'leave_request_detail_screen.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart'; 
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;
@@ -140,7 +141,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))} (${item.useDays}일)\n신청을 취소하시겠습니까?',
-          style: const TextStyle(fontSize: 14, height: 1.5),
+          style: TextStyle(fontSize: 14.sp, height: 1.5.h),
         ),
         actions: [
           TextButton(
@@ -321,16 +322,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           );
                         }).toList(),
                       ),
-
                       const SizedBox(width: 10), // 두 버튼 간격
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
                         },
                         icon: const Icon(Icons.calendar_today, size: 20),
-                        label: const Text(
+                        label: Text(
                           '기간',
-                          style: TextStyle(fontSize: 14),
+                          style: TextStyle(fontSize: 14.sp),
                         ),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
