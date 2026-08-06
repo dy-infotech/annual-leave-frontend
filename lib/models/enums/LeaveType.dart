@@ -4,7 +4,7 @@ enum LeaveType {
   pmHalf('PM_HALF', '반차(오후)'),
   alternative('ALTERNATIVE', '대체 휴가'),
   parental('PARENTAL', '출산 휴가'),
-  family('FAMILY', '가족 돌봄 휴가'),
+  family('FAMILY', '가족 돌봄'),
   other('OTHER', '기타');
 
   final String code;
@@ -13,10 +13,10 @@ enum LeaveType {
 
   static String getLabel(String code) {
     return LeaveType.values
-      .firstWhere(
-        (e) => e.code == code,
-        orElse: () => LeaveType.other,
-      )
-      .label;
+        .firstWhere(
+          (e) => e.code == code,
+          orElse: () => LeaveType.other,
+        )
+        .label;
   }
 }
