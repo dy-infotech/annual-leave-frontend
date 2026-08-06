@@ -297,7 +297,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     // ),
 
                     Expanded(
-                      flex: 2, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
+                      flex: 1, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
                       child: SizedBox(
                         height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
                         child: DropdownButtonFormField<String>(
@@ -369,46 +369,53 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
                     // 3️⃣ [우측] 사번/성명 검색 입력창 (가로폭 확보를 위해 비율을 2로 세팅)
                     Expanded(
-                      flex: 2,
-                      child: Container(
+                      flex: 1,
+                      child: SizedBox(
                         height: 35,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchParamController,
-                                textInputAction: TextInputAction.search,
-                                style: const TextStyle(fontSize: 13),
-                                onSubmitted: (_) => _fetch(),
-                                decoration: const InputDecoration(
-                                  hintText: '사번 또는 성명',
-                                  hintStyle: TextStyle(
-                                      fontSize: 13, color: AppColors.textMuted),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
+                        child: TextField(
+                          controller: _searchParamController,
+                          textInputAction: TextInputAction.search,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                          onSubmitted: (_) => _fetch(),
+                          decoration: InputDecoration(
+                            labelText: '사번 or 성명',
+                            labelStyle: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            isDense: true,
 
-                                  // 💡 [핵심 수정] 가로 여백만 주고 세로 대칭 패딩을 0으로 주어 강제로 수직 중앙 정렬합니다.
-                                  contentPadding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 0),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 9.5,
+                            ),
 
-                                  // 💡 테두리가 없는 인풋창에서 수직 중앙 정렬을 강제할 때 두 속성의 조합이 필수적입니다.
-                                  isCollapsed: true,
-                                  isDense: true,
-                                ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
                               ),
                             ),
-                            InkWell(
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+
+                            suffixIcon: InkWell(
                               onTap: _fetch,
                               child: Container(
-                                width: 36,
-                                height: double.infinity,
+                                width: 30,
                                 decoration: const BoxDecoration(
                                   color: Color(0xFF1F3A5F),
                                   borderRadius: BorderRadius.only(
@@ -416,12 +423,18 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                     bottomRight: Radius.circular(8),
                                   ),
                                 ),
-                                alignment: Alignment.center,
-                                child: const Icon(Icons.search,
-                                    color: Colors.white, size: 18),
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.white,
+                                  size: 16,
+                                ),
                               ),
                             ),
-                          ],
+                            suffixIconConstraints: const BoxConstraints(
+                              minWidth: 30,
+                              minHeight: 35,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -436,7 +449,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                       Text(
                         '${_items.length}건', // 💡 필터링된 실시간 개수가 실시간 표기됩니다.
                         style: const TextStyle(
-                          fontSize: 14,
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

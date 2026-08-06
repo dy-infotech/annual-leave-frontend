@@ -1,4 +1,5 @@
 import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
@@ -355,19 +356,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
             }
             final req = _requests[index - 1];
             final bool isSelected = _selectedRequestId == req.requestId;
-
-            final Map<String, String> leaveTypeMap = {
-              'FULL': '연차',
-              'AM_HALF': '반차(오전)',
-              'PM_HALF': '반차(오후)',
-              'ALTERNATIVE': '대체 휴가',
-              'PARENTAL': '출산 휴가',
-              'FAMILY': '가족 돌봄 휴가',
-              'OTHER': '기타',
-            };
-
-            final String rawType = req.leaveType ?? 'FULL';
-            final String leaveTypeNm = leaveTypeMap[rawType] ?? rawType;
+            final leaveTypeNm = LeaveType.getLabel(req.leaveType);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
@@ -387,14 +376,14 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                 child: Padding(
                   // 하단 여백을 살짝 늘림
                   padding: const EdgeInsets.only(
-                      left: 13, right: 15, top: 14, bottom: 16),
+                      left: 13, right: 13, top: 12, bottom: 14),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // ★ 1. 좌측: 불필요한 패딩이 없는 완벽한 커스텀 원형 라디오 버튼
                       Padding(
                         padding: const EdgeInsets.only(
-                            top: 1), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
+                            top: 3), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
                         child: Container(
                           width: 16,
                           height: 16,
@@ -412,49 +401,65 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                         ),
                       ),
                       const SizedBox(width: 10), // 라디오 원과 텍스트 사이 간격 확보
-
-                      // 2. 우측: 텍스트 상세 영역
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // 첫 번째 줄: 이름 및 사번 / 부서명
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  '${req.employeeName} ${req.position} (${req.department})',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 14.5,
-                                    height: 1.0, // 불필요한 위아래 폰트 행간 마진 제거
-                                  ),
-                                ),
-                                Text(
-                                  '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
-                                  style: const TextStyle(
-                                      color: AppColors.textMuted, fontSize: 13),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 7),
-
-                            // 두 번째 줄: 휴가 일자 정보
-                            Row(
-                              children: [
-                                Text(
-                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}',
-                                  style: const TextStyle(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w600),
-                                ),
-                                const SizedBox(width: 4),
-                                Text('(${req.useDays}일) [$leaveTypeNm]',
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // 첫 번째 줄: 이름 및 사번 / 부서명
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                      '${req.employeeName} ${req.position}',
+                                      style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 14.5)),
+                                  // 2. 이름과 부서 사이의 좁은 가로 간격
+                                  const SizedBox(width: 8),
+                                  // 3. 부서명 
+                                  Text(
+                                    req.department,
                                     style: const TextStyle(
-                                        color: AppColors.textMuted, fontSize: 13)),
-                              ],
-                            ),
-                          ],
+                                      color: AppColors.textMuted,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              //const SizedBox(height: 7),
+                              // 두 번째 줄: 휴가 일자 정보
+                              Row(
+                                children: [
+                                  Text(
+                                    '${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}',
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text('(${req.useDays}일) [$leaveTypeNm]',
+                                      style: const TextStyle(
+                                          color: AppColors.textMuted, fontSize: 12)),
+                                ],
+                              ),
+                              Row(
+                                crossAxisAlignment:
+                                    CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  const SizedBox(height: 10),
+                                  Text(
+                                      '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
+                                      style: const TextStyle(
+                                          color: AppColors.textMuted,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600)),
+                                ])
+                            ],
+                          ),
                         ),
                       ),
                     ],

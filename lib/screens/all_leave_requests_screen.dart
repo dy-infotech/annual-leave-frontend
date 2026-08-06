@@ -252,7 +252,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.25,
+                    width: MediaQuery.of(context).size.width * 0.2,
                     height: 40, // 원하는 높이로 조절
                     child: Container(
                       decoration: BoxDecoration(
@@ -262,13 +262,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
                       ),
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
+                          const EdgeInsets.symmetric(horizontal: 6), // 안쪽 여백
                       child: DropdownButton<String?>(
                         value: _statusFilter,
                         items: statusOptions.map((option) {
                           return DropdownMenuItem<String?>(
                             value: option['value'],
-                            child: Text(option['label']!),
+                            child: Text(
+                              option['label']!, 
+                              style: TextStyle(fontSize: 14)),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -280,6 +282,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
                     ),
                   ),
+                  const SizedBox(width: 5),
                   const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
@@ -290,7 +293,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           final label = item['label']!;
                           return Padding(
                             // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백을 줍니다.
-                            padding: const EdgeInsets.only(right: 10.0),
+                            padding: const EdgeInsets.only(right: 8.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -322,20 +325,20 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         }).toList(),
                       ),
 
-                      const SizedBox(width: 10), // 두 버튼 간격
+                      const SizedBox(width: 5), // 두 버튼 간격
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
                         },
-                        icon: const Icon(Icons.calendar_today, size: 20),
+                        icon: const Icon(Icons.calendar_today, size: 16),
                         label: const Text(
                           '기간',
                           style: TextStyle(fontSize: 14),
                         ),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          minimumSize: const Size(80, 36),
+                              horizontal: 10, vertical: 8),
+                          minimumSize: const Size(75, 40),
                         ),
                       ),
                     ],
@@ -461,42 +464,69 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(color: AppColors.divider),
                                       ),
+                                      
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
+                                          //첫번째 줄
                                           Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text('${item.employeeName} ${item.position}',
-                                                  style: const TextStyle(
-                                                      fontWeight: FontWeight.w700, fontSize: 14.5)),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                item.department,
-                                                style: const TextStyle(
-                                                  color: AppColors.textMuted,
-                                                  fontSize: 12,
+                                              Expanded(
+                                                child: SingleChildScrollView(
+                                                  scrollDirection: Axis.horizontal,
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        '${item.employeeName} ${item.position}',
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 14.5,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        item.department,
+                                                        style: const TextStyle(
+                                                          color: AppColors.textMuted,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
                                                 ),
                                               ),
-                                              const Spacer(),
+
+                                              const SizedBox(width: 12),
+
+                                              // 고정
                                               LeaveStatusBadge(status: item.status),
                                             ],
                                           ),
-                                          Row(
-                                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                                              textBaseline: TextBaseline.alphabetic,
+                                          SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Row(
                                               children: [
-                                                const SizedBox(height: 10),
                                                 Text(
-                                                    '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
-                                                    style: const TextStyle(
-                                                        fontSize: 13, fontWeight: FontWeight.w600)),
+                                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))}'
+                                                  ' ~ '
+                                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
                                                 const SizedBox(width: 4),
-                                                Text('(${item.useDays}일) [$leaveTypeNm]',
-                                                    style: const TextStyle(
-                                                        fontSize: 13, color: AppColors.textMuted)),
-                                                const Spacer(),
-                                              ]),
+                                                Text(
+                                                  '(${item.useDays}일) [$leaveTypeNm]',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.textMuted,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
                                           Row(
                                               crossAxisAlignment: CrossAxisAlignment.baseline,
                                               textBaseline: TextBaseline.alphabetic,
@@ -532,7 +562,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                                         : const Text(
                                                       '신청 취소',
                                                       style: TextStyle(
-                                                        fontSize: 12.5,
+                                                        fontSize: 12,
                                                         fontWeight: FontWeight.w600,
                                                         color: AppColors.textMuted,
                                                         decoration: TextDecoration.underline,
