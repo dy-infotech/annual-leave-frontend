@@ -559,82 +559,82 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                     ),
                             ),
 
-                            // 8. 관리자 여부 (항상 수정 불가능)
-                            _buildRow(
-                              '관리자 여부',
-                              // 💡 수정 모드이면서 로그인한 유저의 직급이 '대표' 또는 '사장'일 때만 드롭다운 전환
-                              (_isEditing &&
-                                      (context
-                                                  .read<AuthProvider>()
-                                                  .employeeInfo
-                                                  ?.position ==
-                                              "대표" ||
-                                          context
-                                                  .read<AuthProvider>()
-                                                  .employeeInfo
-                                                  ?.position ==
-                                              "사장"))
-                                  ? DropdownButtonFormField<RoleType>(
-                                      // 🔥 [수정] value에 한글 문자열 대신 이넘 상태 변수인 _selectedManagerYn을 직접 주입합니다.
-                                      value: _selectedManagerYn ??
-                                          (widget.employee.role == 'ADMIN'
-                                              ? RoleType.admin
-                                              : RoleType.employee),
+                            // // 8. 관리자 여부 (항상 수정 불가능)
+                            // _buildRow(
+                            //   '관리자 여부',
+                            //   // 💡 수정 모드이면서 로그인한 유저의 직급이 '대표' 또는 '사장'일 때만 드롭다운 전환
+                            //   (_isEditing &&
+                            //           (context
+                            //                       .read<AuthProvider>()
+                            //                       .employeeInfo
+                            //                       ?.position ==
+                            //                   "대표" ||
+                            //               context
+                            //                       .read<AuthProvider>()
+                            //                       .employeeInfo
+                            //                       ?.position ==
+                            //                   "사장"))
+                            //       ? DropdownButtonFormField<RoleType>(
+                            //           // 🔥 [수정] value에 한글 문자열 대신 이넘 상태 변수인 _selectedManagerYn을 직접 주입합니다.
+                            //           value: _selectedManagerYn ??
+                            //               (widget.employee.role == 'ADMIN'
+                            //                   ? RoleType.admin
+                            //                   : RoleType.employee),
 
-                                      // 🔥 [수정] items 목록도 RoleType 이넘 배열 데이터를 순회하며 정확히 매핑합니다.
-                                      items:
-                                          RoleType.values.map((RoleType role) {
-                                        return DropdownMenuItem<RoleType>(
-                                          value: role,
-                                          child: Text(
-                                            role.label, // 화면에는 '관리자' 또는 '멤버' 한글이 출력됩니다.
-                                            style: const TextStyle(
-                                                color: Colors.black,
-                                                fontSize: 14),
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (RoleType? val) {
-                                        setState(() {
-                                          _selectedManagerYn = val;
-                                          // 한글 문자열 상태 변수도 함께 동기화 처리
-                                          _selectedRole =
-                                              (val == RoleType.admin)
-                                                  ? '관리자'
-                                                  : '멤버';
-                                        });
-                                      },
-                                      decoration: const InputDecoration(
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.symmetric(
-                                            horizontal: 12, vertical: 10),
-                                        border: OutlineInputBorder(),
-                                      ),
-                                    )
-                                  : TextFormField(
-                                      // 일반 관리자 계정이거나 읽기 모드일 때는 안전하게 기존 방식 텍스트필드로 철저히 방어합니다.
-                                      initialValue:
-                                          widget.employee.role == 'ADMIN'
-                                              ? '관리자'
-                                              : '멤버',
-                                      readOnly: true,
-                                      style: const TextStyle(
-                                          fontSize: 14, color: Colors.black),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        filled: true,
-                                        fillColor: _isEditing
-                                            ? Colors.grey.shade100
-                                            : Colors.grey.shade50,
-                                        border: const OutlineInputBorder(
-                                            borderSide: BorderSide(
-                                                color: Colors.transparent)),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 12),
-                                      ),
-                                    ),
-                            ),
+                            //           // 🔥 [수정] items 목록도 RoleType 이넘 배열 데이터를 순회하며 정확히 매핑합니다.
+                            //           items:
+                            //               RoleType.values.map((RoleType role) {
+                            //             return DropdownMenuItem<RoleType>(
+                            //               value: role,
+                            //               child: Text(
+                            //                 role.label, // 화면에는 '관리자' 또는 '멤버' 한글이 출력됩니다.
+                            //                 style: const TextStyle(
+                            //                     color: Colors.black,
+                            //                     fontSize: 14),
+                            //               ),
+                            //             );
+                            //           }).toList(),
+                            //           onChanged: (RoleType? val) {
+                            //             setState(() {
+                            //               _selectedManagerYn = val;
+                            //               // 한글 문자열 상태 변수도 함께 동기화 처리
+                            //               _selectedRole =
+                            //                   (val == RoleType.admin)
+                            //                       ? '관리자'
+                            //                       : '멤버';
+                            //             });
+                            //           },
+                            //           decoration: const InputDecoration(
+                            //             isDense: true,
+                            //             contentPadding: EdgeInsets.symmetric(
+                            //                 horizontal: 12, vertical: 10),
+                            //             border: OutlineInputBorder(),
+                            //           ),
+                            //         )
+                            //       : TextFormField(
+                            //           // 일반 관리자 계정이거나 읽기 모드일 때는 안전하게 기존 방식 텍스트필드로 철저히 방어합니다.
+                            //           initialValue:
+                            //               widget.employee.role == 'ADMIN'
+                            //                   ? '관리자'
+                            //                   : '멤버',
+                            //           readOnly: true,
+                            //           style: const TextStyle(
+                            //               fontSize: 14, color: Colors.black),
+                            //           decoration: InputDecoration(
+                            //             isDense: true,
+                            //             filled: true,
+                            //             fillColor: _isEditing
+                            //                 ? Colors.grey.shade100
+                            //                 : Colors.grey.shade50,
+                            //             border: const OutlineInputBorder(
+                            //                 borderSide: BorderSide(
+                            //                     color: Colors.transparent)),
+                            //             contentPadding:
+                            //                 const EdgeInsets.symmetric(
+                            //                     horizontal: 12, vertical: 12),
+                            //           ),
+                            //         ),
+                            // ),
 
                             // 9. 입사일 (기등록 회원일 경우 수정 불가 제어 및 크기 고정)
                             _buildRow(
