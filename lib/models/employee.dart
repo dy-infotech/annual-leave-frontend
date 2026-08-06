@@ -4,7 +4,9 @@ class Employee {
   final String position;
   final String department;
   final String? team;
+  final List<String>? teamList;
   final String? hireDate;
+  final String? fireDate;
   final String? role;
   final String? email;
   final double currTotalLeaveDays;
@@ -22,7 +24,9 @@ class Employee {
     required this.position,
     required this.department,
     required this.team,
+    required this.teamList,
     this.hireDate,
+    this.fireDate,
     this.role,
     this.email,
     required this.currTotalLeaveDays,
@@ -42,7 +46,11 @@ class Employee {
       position: json['position'] ?? '',
       department: json['department'] ?? '',
       team: json['team'] ?? '',
+      teamList: (json['teamList'] as List<dynamic>?)
+          ?.map((item) => item.toString())
+          .toList(),
       hireDate: json['hireDate'],
+      fireDate: json['fireDate'],
       role: json['role'],
       email: json['email'],
       currTotalLeaveDays:
@@ -65,6 +73,7 @@ class Employee {
       String? position,
       String? department,
       String? hireDate,
+      String? fireDate,
       String? role,
       String? email,
       double? currTotalLeaveDays,
@@ -81,7 +90,9 @@ class Employee {
       position: position ?? this.position,
       department: department ?? this.department,
       team: team ?? this.team,
+      teamList: teamList ?? this.teamList,
       hireDate: hireDate ?? this.hireDate,
+      fireDate: fireDate ?? this.fireDate,
       role: role ?? this.role,
       email: email ?? this.email,
       currTotalLeaveDays: currTotalLeaveDays ?? this.currTotalLeaveDays,

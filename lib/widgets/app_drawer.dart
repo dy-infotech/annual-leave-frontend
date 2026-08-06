@@ -84,15 +84,15 @@ class AppDrawer extends StatelessWidget {
                     // 관리자 섹션
                     if (info != null && info.role == 'ADMIN') ...[
                       const Padding(
-                        padding:
-                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 16.0, vertical: 8.0),
                         child: Divider(
                             color: Color.fromARGB(255, 199, 178, 147),
                             thickness: 0.5),
                       ),
                       const Padding(
                         padding:
-                        EdgeInsets.only(left: 24.0, top: 4.0, bottom: 8.0),
+                            EdgeInsets.only(left: 24.0, top: 4.0, bottom: 8.0),
                         child: Text(
                           '관리자 전용 Menu',
                           style: TextStyle(
@@ -120,6 +120,11 @@ class AppDrawer extends StatelessWidget {
                           adminTextColor: navyPrimary,
                           onTap: () => _navigate(
                               context, '/search_employee_number_screen')),
+                      _NavItem(
+                          label: '관리자 설정',
+                          isAdmin: true,
+                          adminTextColor: navyPrimary,
+                          onTap: () => _navigate(context, '/admin-settings')),
                     ],
                   ],
                 ),
@@ -144,7 +149,7 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
                   '/login',
-                      (_) => false,
+                  (_) => false,
                 );
               },
             ),
