@@ -12,7 +12,6 @@ import 'package:annual_leave_frontend/main.dart';
 import 'package:intl/intl.dart';
 
 import 'leave_request_detail_screen.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;

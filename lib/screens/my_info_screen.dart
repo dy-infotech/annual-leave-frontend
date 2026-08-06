@@ -187,14 +187,15 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                                 )
                                 : Text(
                                     info?.email ?? '-',
-                                    style: const TextStyle(fontSize: 16),
+                                    style: const TextStyle(fontSize: 14),
                                 ),
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           OutlinedButton(
                             style: OutlinedButton.styleFrom(
-                              fixedSize: const Size(50, 50),
+                              minimumSize: const Size(50, 50),
+                              maximumSize: const Size(60, 50),
                               side: const BorderSide(color: Colors.grey, width: 1),
                               padding: EdgeInsets.zero,
                             ),
