@@ -22,7 +22,6 @@ import 'screens/all_leave_requests_screen.dart';
 import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
 import 'screens/signup_manage_screen.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 final RouteObserver<PageRoute<dynamic>> routeObserver =
     RouteObserver<PageRoute<dynamic>>();
@@ -48,58 +47,51 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(360, 800),
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return MultiProvider(
-          providers: [
-            ChangeNotifierProvider(create: (_) => AuthProvider()),
-            ChangeNotifierProvider(create: (_) => DashboardProvider()),
-            ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
-            ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
-          ],
-          child: MaterialApp(
-            title: '연차 관리',
-            theme: AppTheme.theme,
-            locale: const Locale('ko', 'KR'),
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [Locale('ko', 'KR')],
-            home: const SplashScreen(),
-            navigatorObservers: [routeObserver],
-            routes: {
-              // 로그인 화면
-              '/login': (context) => const LoginScreen(),
-              // 사용 등록 화면
-              '/signup': (context) => const SignupScreen(),
-              // 비번찾기 화면
-              '/forgot-password': (context) => const FindAccountScreen(),
-              // 대시보드 화면
-              '/dashboard': (context) => const DashboardScreen(),
-              // 휴가 신청 화면
-              '/leave-request': (context) => const LeaveRequestScreen(),
-              // 내 휴가 신청 목록 화면
-              //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
-              // 전직원 휴가 신청 목록 화면
-              '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
-              // 승인 대기 목록 화면
-              '/pending-approval': (context) => const PendingApprovalScreen(),
-              //사용자 등록 관리 화면
-              '/signup_manage_screen': (context) => const SignupManageScreen(),
-              //사용자 사번 조회 화면
-              '/search_employee_number_screen': (context) =>
-                  const SearchEmployeeNumberScreen(),
-              // 내 정보 화면
-              '/my-info': (context) => const MyInfoScreen(),
-            },
-          ),
-        );
-      }
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
+        ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
+      ],
+      child: MaterialApp(
+        title: '연차 관리',
+        theme: AppTheme.theme,
+        locale: const Locale('ko', 'KR'),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ko', 'KR')],
+        home: const SplashScreen(),
+        navigatorObservers: [routeObserver],
+        routes: {
+          // 로그인 화면
+          '/login': (context) => const LoginScreen(),
+          // 사용 등록 화면
+          '/signup': (context) => const SignupScreen(),
+          // 비번찾기 화면
+          '/forgot-password': (context) => const FindAccountScreen(),
+          // 대시보드 화면
+          '/dashboard': (context) => const DashboardScreen(),
+          // 휴가 신청 화면
+          '/leave-request': (context) => const LeaveRequestScreen(),
+          // 내 휴가 신청 목록 화면
+          //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
+          // 전직원 휴가 신청 목록 화면
+          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
+          // 승인 대기 목록 화면
+          '/pending-approval': (context) => const PendingApprovalScreen(),
+          //사용자 등록 관리 화면
+          '/signup_manage_screen': (context) => const SignupManageScreen(),
+          //사용자 사번 조회 화면
+          '/search_employee_number_screen': (context) =>
+              const SearchEmployeeNumberScreen(),
+          // 내 정보 화면
+          '/my-info': (context) => const MyInfoScreen(),
+        },
+      ),
     );
   }
 }
