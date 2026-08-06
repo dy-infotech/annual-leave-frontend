@@ -107,16 +107,23 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         _useDaysController.text = '0';
       } else {
         _endDate = selectedDay;
-        _useDaysController.text =
-            _calculateUsableDays(holidayProvider).toString();
+        _useDaysController.text = _calculateUsableDays(holidayProvider).toString();
         rangeConfirmed = true;
       }
     });
 
-    // 종료일(또는 반차 단일일) 확정 시 조기 확인 (이미 로드된 목록으로, 재호출 없이)
+    // 종료일(또는 반차 단일일) 확정 시 신청 중복 확인 -> 일수 초과 확인
     if (rangeConfirmed) {
-      _checkOverlapAndWarn();
+      _onRangeConfirmed();
     }
+  }
+
+  // 기간 확정 시 중복 확인 -> 초과 확인 순서로 안내
+  Future<void> _onRangeConfirmed() async {
+    // 중복이 있으면 그 안내만 띄우고 종료 (초과 안내는 생략)
+    if (await _checkOverlapAndWarn()) return;
+    // 중복이 없으면 잔여 연차 초과 여부 확인
+    await _checkRemainingAndWarn();
   }
 
   bool _isInRange(DateTime day) {
@@ -146,6 +153,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     // 기존 대기/승인 신청과 기간이 겹치는지 확인
     if (await _checkOverlapAndWarn(refresh: true)) {
       return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
+    }
+
+    // 잔여 연차 초과 여부 확인
+    if (await _checkRemainingAndWarn()) {
+      return; // 초과 시 제출 중단
     }
 
     // 최종 확인 다이얼로그
@@ -338,6 +350,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     }
 
     if (!mounted) return true;
+
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -346,8 +359,50 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         title: const Text('중복 신청 안내',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: const Text(
-          '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해주세요.',
+          '해당 기간에 이미 대기 중이거나 승인된 휴가 신청이 있습니다.\n기간을 다시 확인해 주세요.',
           style: TextStyle(fontSize: 14, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('확인',
+                style: TextStyle(
+                    color: AppColors.slate, fontWeight: FontWeight.w700)),
+          ),
+        ],
+      ),
+    );
+    return true;
+  }
+
+  // 선택한 기간의 사용 일수가 잔여 연차를 초과하는지 확인하고, 초과 시 안내 다이얼로그 표시
+  // 초과하면 true 반환 (제출 흐름에서 중단용)
+  Future<bool> _checkRemainingAndWarn() async {
+    // 반차/연차 외 휴가는 연차를 차감하지 않으므로 검사 제외
+    // final deductsAnnual = _selectedLeaveType == LeaveType.full ||
+    //     _selectedLeaveType == LeaveType.amHalf ||
+    //     _selectedLeaveType == LeaveType.pmHalf;
+    //
+    // if (!deductsAnnual) return false;
+
+    final remaining = context.read<AuthProvider>().employeeInfo?.remainingLeaveDays ?? 0;
+
+    // 사용 일수가 잔여 연차 이하이면 통과
+    if (_useDays <= remaining) return false;
+
+    if (!mounted) return true;
+
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        title: const Text('잔여 연차 부족 안내',
+            style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
+        content: Text(
+          '선택한 기간의 사용 일수(${_useDays}일)가 '
+              '잔여 연차(${remaining}일)를 초과합니다.\n기간을 다시 확인해 주세요.',
+          style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
           TextButton(
