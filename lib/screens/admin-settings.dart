@@ -265,251 +265,25 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     appBar: AppBar(title: const Text('관리자 설정')),
-  //     drawer: const AppDrawer(),
-  //     body: _isLoading
-  //         ? const Center(
-  //             child: CircularProgressIndicator(color: AppColors.slate))
-  //         : Padding(
-  //             padding: const EdgeInsets.all(24.0),
-  //             child: Column(
-  //               // 💡 Row를 Column으로 감싸서 하단 공간을 확보합니다.
-  //               children: [
-  //                 Expanded(
-  //                   child: Row(
-  //                     children: [
-  //                       // 📄 [왼쪽 컬럼] 사용자 (이름/아이디)
-  //                       Expanded(
-  //                         flex: 3,
-  //                         child: _buildPanel(
-  //                           title: '사용자 목록',
-  //                           child: ListView.builder(
-  //                             itemCount: _employees.length,
-  //                             itemBuilder: (context, index) {
-  //                               final emp = _employees[index];
-  //                               final isSelected =
-  //                                   _selectedEmployee?.employeeNumber ==
-  //                                       emp.employeeNumber;
-
-  //                               return Container(
-  //                                 margin: const EdgeInsets.symmetric(
-  //                                     horizontal: 8, vertical: 4),
-  //                                 decoration: BoxDecoration(
-  //                                   color: Colors.transparent,
-  //                                   borderRadius: BorderRadius.circular(8),
-  //                                   border: isSelected
-  //                                       ? Border.all(
-  //                                           color: const Color(0xFFFFDAB9),
-  //                                           width: 2.0)
-  //                                       : null,
-  //                                 ),
-  //                                 child: ListTile(
-  //                                   selected: isSelected,
-  //                                   selectedTileColor: Colors.transparent,
-  //                                   // 🎯 title 영역 하나에 Column을 넣어 세 줄로 정렬합니다.
-  //                                   title: Column(
-  //                                     crossAxisAlignment:
-  //                                         CrossAxisAlignment.start, // 왼쪽 정렬
-  //                                     children: [
-  //                                       // 1. 이름
-  //                                       Text(
-  //                                         emp.name,
-  //                                         style: TextStyle(
-  //                                           fontWeight: FontWeight.bold,
-  //                                           fontSize: 14,
-  //                                           color: isSelected
-  //                                               ? const Color(0xFFE97451)
-  //                                               : Colors.black87,
-  //                                         ),
-  //                                       ),
-  //                                       const SizedBox(
-  //                                           height: 4), // 텍스트 사이 간격 조정
-
-  //                                       // 2. 직급
-  //                                       Text(
-  //                                         emp.position,
-  //                                         style: TextStyle(
-  //                                           fontSize: 13,
-  //                                           fontWeight: FontWeight.w500,
-  //                                           color: isSelected
-  //                                               ? const Color(0xFFF4A460)
-  //                                               : Colors.black54,
-  //                                         ),
-  //                                       ),
-  //                                       const SizedBox(height: 4),
-
-  //                                       // 3. 사번
-  //                                       Text(
-  //                                         emp.employeeNumber,
-  //                                         style: TextStyle(
-  //                                           fontSize: 12,
-  //                                           color: isSelected
-  //                                               ? const Color(0xFFF4A460)
-  //                                               : Colors.black45,
-  //                                         ),
-  //                                       ),
-  //                                     ],
-  //                                   ),
-
-  //                                   onTap: () {
-  //                                     setState(() {
-  //                                       _selectedEmployee = emp;
-  //                                     });
-  //                                     _fetchEmployeeTeams();
-  //                                   },
-  //                                 ),
-  //                               );
-  //                             },
-  //                           ),
-  //                         ),
-  //                       ),
-  //                       const SizedBox(width: 16),
-
-  //                       // 📄 [중앙 컬럼] 일반 팀 목록
-  //                       Expanded(
-  //                         flex: 3,
-  //                         child: _buildPanel(
-  //                           title: '일반팀 목록',
-  //                           child: ListView.builder(
-  //                             itemCount: _generalTeams.length,
-  //                             itemBuilder: (context, index) {
-  //                               final team = _generalTeams[index];
-  //                               final isSelected = _selectedGeneralTeam == team;
-  //                               return ListTile(
-  //                                 selected: isSelected,
-  //                                 selectedTileColor: Colors.orange.shade50,
-  //                                 title: Text(team,
-  //                                     style: const TextStyle(fontSize: 14)),
-  //                                 onTap: () {
-  //                                   setState(() {
-  //                                     _selectedGeneralTeam = team;
-  //                                     _selectedManagedTeam = null;
-  //                                   });
-  //                                 },
-  //                               );
-  //                             },
-  //                           ),
-  //                         ),
-  //                       ),
-
-  //                       // 📄 [중앙 화살표 제어부] < > 제어 컨트롤러 버튼 영역
-  //                       Padding(
-  //                         padding: const EdgeInsets.symmetric(horizontal: 12),
-  //                         child: Column(
-  //                           mainAxisAlignment: MainAxisAlignment.center,
-  //                           children: [
-  //                             ElevatedButton(
-  //                               onPressed: _selectedGeneralTeam != null
-  //                                   ? _moveToAdmin
-  //                                   : null,
-  //                               style: ElevatedButton.styleFrom(
-  //                                   backgroundColor: const Color(0xFF1F3A5F),
-  //                                   padding: const EdgeInsets.all(12)),
-  //                               child: const Icon(Icons.chevron_right,
-  //                                   color: Colors.white),
-  //                             ),
-  //                             const SizedBox(height: 20),
-  //                             ElevatedButton(
-  //                               onPressed: _selectedManagedTeam != null
-  //                                   ? _moveToGeneral
-  //                                   : null,
-  //                               style: ElevatedButton.styleFrom(
-  //                                   backgroundColor: Colors.grey.shade700,
-  //                                   padding: const EdgeInsets.all(12)),
-  //                               child: const Icon(Icons.chevron_left,
-  //                                   color: Colors.white),
-  //                             ),
-  //                           ],
-  //                         ),
-  //                       ),
-
-  //                       // 📄 [우측 컬럼] 관리자 팀 목록
-  //                       Expanded(
-  //                         flex: 3,
-  //                         child: _buildPanel(
-  //                           title: '관리팀 목록',
-  //                           child: ListView.builder(
-  //                             itemCount: _managedTeams.length,
-  //                             itemBuilder: (context, index) {
-  //                               final team = _managedTeams[index];
-  //                               final isSelected = _selectedManagedTeam == team;
-  //                               return ListTile(
-  //                                 selected: isSelected,
-  //                                 selectedTileColor: Colors.green.shade50,
-  //                                 title: Text(team,
-  //                                     style: const TextStyle(
-  //                                         fontSize: 14,
-  //                                         fontWeight: FontWeight.w600,
-  //                                         color: Colors.green)),
-  //                                 onTap: () {
-  //                                   setState(() {
-  //                                     _selectedManagedTeam = team;
-  //                                     _selectedGeneralTeam = null;
-  //                                   });
-  //                                 },
-  //                               );
-  //                             },
-  //                           ),
-  //                         ),
-  //                       ),
-  //                     ],
-  //                   ),
-  //                 ),
-  //                 const SizedBox(height: 24),
-
-  //                 // 🎯 화면 최하단 우측 정렬 저장 버튼 영역
-  //                 Row(
-  //                   mainAxisAlignment: MainAxisAlignment.end,
-  //                   children: [
-  //                     ElevatedButton.icon(
-  //                       onPressed:
-  //                           _selectedEmployee != null ? _saveChanges : null,
-  //                       style: ElevatedButton.styleFrom(
-  //                         backgroundColor: const Color(0xFF1F3A5F),
-  //                         padding: const EdgeInsets.symmetric(
-  //                             horizontal: 32, vertical: 16),
-  //                         shape: RoundedRectangleBorder(
-  //                           borderRadius: BorderRadius.circular(8),
-  //                         ),
-  //                       ),
-  //                       icon: const Icon(Icons.save, color: Colors.white),
-  //                       label: const Text(
-  //                         '변경 사항 저장하기',
-  //                         style: TextStyle(
-  //                           color: Colors.white,
-  //                           fontSize: 15,
-  //                           fontWeight: FontWeight.bold,
-  //                         ),
-  //                       ),
-  //                     ),
-  //                   ],
-  //                 ),
-  //               ],
-  //             )),
-  //   );
-  // }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('관리자 및 팀 권한 설정')),
+      appBar: AppBar(title: const Text('관리자 설정')),
       drawer: const AppDrawer(),
       body: _isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.slate))
           : Padding(
-              padding: const EdgeInsets.all(12.0), // 양옆 여백을 줄여 가로 공간 확보
+              padding: const EdgeInsets.all(24.0),
               child: Column(
+                // 💡 Row를 Column으로 감싸서 하단 공간을 확보합니다.
                 children: [
                   Expanded(
                     child: Row(
                       children: [
-                        // 📄 [왼쪽 컬럼] 사용자 목록 (비율을 35로 늘려 글자 깨짐 방지)
+                        // 📄 [왼쪽 컬럼] 사용자 (이름/아이디)
                         Expanded(
-                          flex: 35,
+                          flex: 3,
                           child: _buildPanel(
                             title: '사용자 목록',
                             child: ListView.builder(
@@ -522,7 +296,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                                 return Container(
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 4, vertical: 4),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
                                     color: Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
@@ -533,13 +307,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         : null,
                                   ),
                                   child: ListTile(
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 8), // 내부 여백 압축
                                     selected: isSelected,
                                     selectedTileColor: Colors.transparent,
+                                    // 🎯 title 영역 하나에 Column을 넣어 세 줄로 정렬합니다.
                                     title: Column(
                                       crossAxisAlignment:
-                                          CrossAxisAlignment.start,
+                                          CrossAxisAlignment.start, // 왼쪽 정렬
                                       children: [
                                         // 1. 이름
                                         Text(
@@ -552,26 +325,27 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                                 : Colors.black87,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(
+                                            height: 4), // 텍스트 사이 간격 조정
 
-                                        // 2. 직급 (글자 크기 축소)
+                                        // 2. 직급
                                         Text(
                                           emp.position,
                                           style: TextStyle(
-                                            fontSize: 12,
+                                            fontSize: 13,
                                             fontWeight: FontWeight.w500,
                                             color: isSelected
                                                 ? const Color(0xFFF4A460)
                                                 : Colors.black54,
                                           ),
                                         ),
-                                        const SizedBox(height: 2),
+                                        const SizedBox(height: 4),
 
-                                        // 3. 사번 (글자 크기 축소)
+                                        // 3. 사번
                                         Text(
                                           emp.employeeNumber,
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             color: isSelected
                                                 ? const Color(0xFFF4A460)
                                                 : Colors.black45,
@@ -579,6 +353,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         ),
                                       ],
                                     ),
+
                                     onTap: () {
                                       setState(() {
                                         _selectedEmployee = emp;
@@ -591,10 +366,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8), // 컬럼 사이 간격 최적화
+                        const SizedBox(width: 16),
+
                         // 📄 [중앙 컬럼] 일반 팀 목록
                         Expanded(
-                          flex: 27, // 우측 관리팀과 균형을 맞춘 비율 조정
+                          flex: 3,
                           child: _buildPanel(
                             title: '일반팀 목록',
                             child: ListView.builder(
@@ -603,13 +379,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                 final team = _generalTeams[index];
                                 final isSelected = _selectedGeneralTeam == team;
                                 return ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(horizontal: 8),
                                   selected: isSelected,
                                   selectedTileColor: Colors.orange.shade50,
                                   title: Text(team,
-                                      style: const TextStyle(
-                                          fontSize: 13)), // 글자 크기 최적화
+                                      style: const TextStyle(fontSize: 14)),
                                   onTap: () {
                                     setState(() {
                                       _selectedGeneralTeam = team;
@@ -622,9 +395,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           ),
                         ),
 
-                        // 📄 [중앙 화살표 제어부] 버튼 크기 및 여백 슬림화
+                        // 📄 [중앙 화살표 제어부] < > 제어 컨트롤러 버튼 영역
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -634,29 +407,28 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF1F3A5F),
-                                    minimumSize: const Size(40, 40), // 버튼 소형화
-                                    padding: EdgeInsets.zero),
+                                    padding: const EdgeInsets.all(12)),
                                 child: const Icon(Icons.chevron_right,
                                     color: Colors.white),
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 20),
                               ElevatedButton(
                                 onPressed: _selectedManagedTeam != null
                                     ? _moveToGeneral
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.grey.shade700,
-                                    minimumSize: const Size(40, 40), // 버튼 소형화
-                                    padding: EdgeInsets.zero),
+                                    padding: const EdgeInsets.all(12)),
                                 child: const Icon(Icons.chevron_left,
                                     color: Colors.white),
                               ),
                             ],
                           ),
                         ),
+
                         // 📄 [우측 컬럼] 관리자 팀 목록
                         Expanded(
-                          flex: 27, // 중앙 일반팀과 균형을 맞춘 비율 조정
+                          flex: 3,
                           child: _buildPanel(
                             title: '관리팀 목록',
                             child: ListView.builder(
@@ -665,13 +437,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                 final team = _managedTeams[index];
                                 final isSelected = _selectedManagedTeam == team;
                                 return ListTile(
-                                  contentPadding:
-                                      const EdgeInsets.symmetric(horizontal: 8),
                                   selected: isSelected,
                                   selectedTileColor: Colors.green.shade50,
                                   title: Text(team,
                                       style: const TextStyle(
-                                          fontSize: 13, // 글자 크기 최적화
+                                          fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                           color: Colors.green)),
                                   onTap: () {
@@ -688,7 +458,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 16), // 하단 여백 축소
+                  const SizedBox(height: 24),
 
                   // 🎯 화면 최하단 우측 정렬 저장 버튼 영역
                   Row(
@@ -700,18 +470,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F3A5F),
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 24, vertical: 12), // 크기 슬림화
+                              horizontal: 32, vertical: 16),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        icon: const Icon(Icons.save,
-                            color: Colors.white, size: 18),
+                        icon: const Icon(Icons.save, color: Colors.white),
                         label: const Text(
                           '변경 사항 저장하기',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 14,
+                            fontSize: 15,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
