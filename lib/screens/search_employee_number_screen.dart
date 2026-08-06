@@ -148,11 +148,51 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 1️⃣ 왼쪽: 등록/미등록 상태 선택 Dropdown
+                    // Expanded(
+                    //   flex: 1,
+                    //   child: Container(
+                    //     height: 35,
+                    //     padding: const EdgeInsets.symmetric(horizontal: 6),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.white,
+                    //       border: Border.all(color: Colors.grey.shade400),
+                    //       borderRadius: BorderRadius.circular(8),
+                    //     ),
+                    //     child: DropdownButtonHideUnderline(
+                    //       child: DropdownButton<String>(
+                    //         isExpanded: true,
+                    //         value: _selectedStatus,
+                    //         style: const TextStyle(
+                    //             fontSize: 13, color: Colors.black),
+                    //         icon: const Icon(Icons.arrow_drop_down,
+                    //             color: Colors.grey),
+                    //         onChanged: (String? newValue) {
+                    //           if (newValue != null) {
+                    //             setState(() {
+                    //               _selectedStatus = newValue;
+                    //             });
+                    //             _fetch();
+                    //           }
+                    //         },
+                    //         items: const [
+                    //           DropdownMenuItem(
+                    //               value: 'ALL', child: Text('전체상태')),
+                    //           DropdownMenuItem(
+                    //               value: 'REGISTERED', child: Text('등록')),
+                    //           DropdownMenuItem(
+                    //               value: 'UNREGISTERED', child: Text('미등록')),
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
                     Expanded(
-                      flex: 1,
+                      flex:
+                          10, // 💡 앞서 매칭한 가로 분할 비율(10)을 적용하여 전체 팀, 검색창과 균형을 맞춥니다.
                       child: Container(
                         height: 35,
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        // ❌ 기존의 padding: const EdgeInsets.symmetric(horizontal: 6) 속성은
+                        // 내부 정렬을 방해하여 글자를 치우치게 만들었으므로 과감히 삭제합니다.
                         decoration: BoxDecoration(
                           color: Colors.white,
                           border: Border.all(color: Colors.grey.shade400),
@@ -166,6 +206,13 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                 fontSize: 13, color: Colors.black),
                             icon: const Icon(Icons.arrow_drop_down,
                                 color: Colors.grey),
+
+                            // 💡 [핵심 추가] 드롭다운 메뉴 아이템들이 컨테이너 높이(35) 기준으로 수직 정중앙에 위치하도록 배치 정렬을 선언합니다.
+                            alignment: Alignment.centerLeft,
+
+                            // 💡 [핵심 추가] 글자가 박스 왼쪽 테두리에 너무 밀착되지 않도록 드롭다운 자체 내부 여백을 줍니다.
+                            padding: const EdgeInsets.only(left: 8),
+
                             onChanged: (String? newValue) {
                               if (newValue != null) {
                                 setState(() {
@@ -186,6 +233,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 6), // 간격 보정
                     // 2️⃣ 🔥 [중앙 추가] 팀별 소속 선택 Dropdown 위젯 신설
                     Expanded(
