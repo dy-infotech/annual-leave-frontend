@@ -22,7 +22,7 @@ class EmployeeDetailScreen extends StatefulWidget {
 class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   bool _isEditing = false; // 현재 수정 모드 여부
   bool _isSaving = false; // 저장 API 호출 중 로딩 상태
-  bool _isLoadingCommon = false; // 기초 데이터 로딩 상태
+  bool _isLoadingCommon = true; // 기초 데이터 로딩 상태
 
   final _formKey = GlobalKey<FormState>();
 
@@ -96,19 +96,37 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     super.dispose();
   }
 
-  // 사원등록화면(SignupManageScreen)과 동일한 공통 기초데이터 로드 함수
-  // 📄 1페이지 내의 기존 함수를 아래 코드로 대체하세요.
   Future<void> _fetchCommonData() async {
     setState(() => _isLoadingCommon = true);
     try {
       final response = await ApiClient().dio.get('/api/admin/auth/common');
       final data = response.data as Map<String, dynamic>;
 
-      // 1. 기초 리스트 데이터를 먼저 완전히 파싱하여 채워 넣습니다.
+      // 1. 서버 API 응답에서 부서와 직급 데이터 추출
       final List<String> fetchedDepartments =
-          List<String>.from(data['department']);
-      final List<String> fetchedTeams = List<String>.from(data['team']);
-      final List<String> fetchedPositions = List<String>.from(data['position']);
+          List<String>.from(data['department'] ?? []);
+      final List<String> fetchedPositions =
+          List<String>.from(data['position'] ?? []);
+
+      // 2. 💡 [하드코딩 제거] DB 테이블의 원본 데이터가 담긴 정확한 Key를 찾아 매핑합니다.
+      // 서버 응답 로그를 확인하여 'accessibleTeam' 또는 'team' 중 테이블 데이터가 들어오는 키를 지정하세요.
+      final dynamic rawTeamData = data['accessibleTeam'] ?? data['team'] ?? [];
+      final List<String> fetchedTeams = [];
+
+      if (rawTeamData is List) {
+        for (var item in rawTeamData) {
+          if (item is String) {
+            // A. 서버가 단순 문자열 리스트로 줄 때 (["스마트팩토리구축사업 팀", "개발팀"])
+            fetchedTeams.add(item);
+          } else if (item is Map) {
+            // B. 서버가 DB 테이블 레코드 객체로 줄 때 ([{"id": 1, "teamName": "스마트팩토리구축사업 팀"}])
+            // 백엔드 엔티티/테이블의 실제 컬럼명(예: 'teamName' 또는 'name')에 맞게 수정하세요.
+            final String? nameFromTable =
+                item['teamName']?.toString() ?? item['name']?.toString();
+            if (nameFromTable != null) fetchedTeams.add(nameFromTable);
+          }
+        }
+      }
 
       setState(() {
         _departmentList.clear();
@@ -116,30 +134,23 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         _positionList.clear();
 
         _departmentList.addAll(fetchedDepartments);
-        _teamList.addAll(fetchedTeams);
+        _teamList.addAll(fetchedTeams); // 🔥 DB 테이블에서 가져온 순수 데이터만 주입
         _positionList.addAll(fetchedPositions);
 
-        if (!_teamList.contains('기타')) {
-          _teamList.add('기타');
-        }
-
-        // 2. 💡 원본 데이터 보존을 위해 가져온 리스트에 실제 존재하는지 "먼저" 완벽히 대조합니다.
-        // widget.employee.team의 원래 값을 백업하여 검증합니다.
+        // 3. 현재 사원이 속한 팀 정보가 DB에서 가져온 리스트에 존재하는지 대조 및 선택
         String? originalTeam = widget.employee.team;
-
         if (originalTeam != null && originalTeam.isNotEmpty) {
           if (_teamList.contains(originalTeam)) {
-            // 가져온 서버 리스트에 팀명이 존재하면 그 값을 그대로 바인딩합니다.
             _selectedTeam = originalTeam;
           } else {
-            // 진짜로 리스트에 없는 커스텀 팀명일 때만 '기타' 인풋을 활성화합니다.
-            _otherTeamController.text = originalTeam;
-            _selectedTeam = '기타';
+            // DB 테이블 리스트에 없는 임의의 값인 경우에만 예외적으로 리스트에 추가하여 에러를 방지합니다.
+            _teamList.add(originalTeam);
+            _selectedTeam = originalTeam;
           }
         }
       });
-    } catch (_) {
-      // 로딩 오류 예외 처리
+    } catch (e) {
+      debugPrint('🚨 DB 공통 코드 로딩 중 에러 발생: $e');
     } finally {
       setState(() => _isLoadingCommon = false);
     }
@@ -186,21 +197,17 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           'team': finalTeam, // 👈 'team' 키값에 finalTeam 변수가 잘 들어가 있는지 꼭 확인하세요!
           'position': _selectedPosition,
           'role': roleCode,
-          'hireDate': _hireDateController.text.trim(),
+          'hireDate': _hireDateController.text.trim().replaceAll('.', '-'),
+
           'currTotalLeaveDays': widget.employee.currTotalLeaveDays,
+          // 2. 🔥 [핵심 수정] 백엔드 DTO 스펙인 'targetTeamForRoleSwap' 키를 매핑합니다!
+          // 사용자가 드롭다운에서 '관리자'를 선택했다면 현재 선택된 팀 이름을 실어 보내고, '멤버'를 선택했다면 빈 값을 보냅니다.
+          'targetTeamForRoleSwap':
+              (_selectedRole == '관리자' || _selectedManagerYn == RoleType.admin)
+                  ? (_selectedTeam ?? '')
+                  : '',
         },
       );
-
-      // // 2. 💡 역할 정보 변경 시 Team 테이블 반영을 위한 별도 API 호출 분기
-      // // 예시: 관리자/멤버 역할에 따라 팀 테이블에 매핑 데이터를 삽입/수정하는 API
-      // await ApiClient().dio.post(
-      //   '/api/admin/teams/assign-role',
-      //   data: {
-      //     'employeeNumber': widget.employee.employeeNumber,
-      //     'teamName': finalTeam,
-      //     'role': roleCode, // 이 값에 의해 백엔드에서 team 테이블 insert/update 수행
-      //   },
-      // );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -531,7 +538,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                               horizontal: 12, vertical: 10),
                                           border: OutlineInputBorder()),
                                       validator: (val) =>
-                                          val == null ? '부서를 선택해 주세요.' : null,
+                                          val == null ? '직급을 선택해 주세요.' : null,
                                     )
                                   : TextFormField(
                                       initialValue: _selectedPosition ?? '-',
@@ -552,28 +559,82 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                     ),
                             ),
 
-                            // 8. 관리자 여부 (항상 수정 불가능)
-                            _buildRow(
-                              '관리자 여부',
-                              TextFormField(
-                                initialValue: RoleType.employee.label,
-                                readOnly: true,
-                                style: const TextStyle(
-                                    fontSize: 14, color: Colors.black),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  filled: true,
-                                  fillColor: _isEditing
-                                      ? Colors.grey.shade100
-                                      : Colors.grey.shade50,
-                                  border: const OutlineInputBorder(
-                                      borderSide: BorderSide(
-                                          color: Colors.transparent)),
-                                  contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 12),
-                                ),
-                              ),
-                            ),
+                            // // 8. 관리자 여부 (항상 수정 불가능)
+                            // _buildRow(
+                            //   '관리자 여부',
+                            //   // 💡 수정 모드이면서 로그인한 유저의 직급이 '대표' 또는 '사장'일 때만 드롭다운 전환
+                            //   (_isEditing &&
+                            //           (context
+                            //                       .read<AuthProvider>()
+                            //                       .employeeInfo
+                            //                       ?.position ==
+                            //                   "대표" ||
+                            //               context
+                            //                       .read<AuthProvider>()
+                            //                       .employeeInfo
+                            //                       ?.position ==
+                            //                   "사장"))
+                            //       ? DropdownButtonFormField<RoleType>(
+                            //           // 🔥 [수정] value에 한글 문자열 대신 이넘 상태 변수인 _selectedManagerYn을 직접 주입합니다.
+                            //           value: _selectedManagerYn ??
+                            //               (widget.employee.role == 'ADMIN'
+                            //                   ? RoleType.admin
+                            //                   : RoleType.employee),
+
+                            //           // 🔥 [수정] items 목록도 RoleType 이넘 배열 데이터를 순회하며 정확히 매핑합니다.
+                            //           items:
+                            //               RoleType.values.map((RoleType role) {
+                            //             return DropdownMenuItem<RoleType>(
+                            //               value: role,
+                            //               child: Text(
+                            //                 role.label, // 화면에는 '관리자' 또는 '멤버' 한글이 출력됩니다.
+                            //                 style: const TextStyle(
+                            //                     color: Colors.black,
+                            //                     fontSize: 14),
+                            //               ),
+                            //             );
+                            //           }).toList(),
+                            //           onChanged: (RoleType? val) {
+                            //             setState(() {
+                            //               _selectedManagerYn = val;
+                            //               // 한글 문자열 상태 변수도 함께 동기화 처리
+                            //               _selectedRole =
+                            //                   (val == RoleType.admin)
+                            //                       ? '관리자'
+                            //                       : '멤버';
+                            //             });
+                            //           },
+                            //           decoration: const InputDecoration(
+                            //             isDense: true,
+                            //             contentPadding: EdgeInsets.symmetric(
+                            //                 horizontal: 12, vertical: 10),
+                            //             border: OutlineInputBorder(),
+                            //           ),
+                            //         )
+                            //       : TextFormField(
+                            //           // 일반 관리자 계정이거나 읽기 모드일 때는 안전하게 기존 방식 텍스트필드로 철저히 방어합니다.
+                            //           initialValue:
+                            //               widget.employee.role == 'ADMIN'
+                            //                   ? '관리자'
+                            //                   : '멤버',
+                            //           readOnly: true,
+                            //           style: const TextStyle(
+                            //               fontSize: 14, color: Colors.black),
+                            //           decoration: InputDecoration(
+                            //             isDense: true,
+                            //             filled: true,
+                            //             fillColor: _isEditing
+                            //                 ? Colors.grey.shade100
+                            //                 : Colors.grey.shade50,
+                            //             border: const OutlineInputBorder(
+                            //                 borderSide: BorderSide(
+                            //                     color: Colors.transparent)),
+                            //             contentPadding:
+                            //                 const EdgeInsets.symmetric(
+                            //                     horizontal: 12, vertical: 12),
+                            //           ),
+                            //         ),
+                            // ),
 
                             // 9. 입사일 (기등록 회원일 경우 수정 불가 제어 및 크기 고정)
                             _buildRow(
@@ -687,11 +748,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     if (picked != null) {
       setState(() {
-        // yyyy.MM.dd 형식으로 텍스트창에 주입
-        _hireDateController.text =
-            widget.employee.hireDate?.replaceAll('-', '.') ?? '';
-
-//        _hireDateController.text = DateFormat('yyyy.MM.dd').format(picked);
+        _hireDateController.text = DateFormat('yyyy.MM.dd').format(picked);
       });
     }
   }

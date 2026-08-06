@@ -519,7 +519,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           child: Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 12),
+                                horizontal: 12, vertical: 12),
                             decoration: BoxDecoration(
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
@@ -565,7 +565,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     ),
                   ),
 
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
 
                   // 결재자
                   Expanded(
@@ -582,7 +582,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             children: [
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(16),

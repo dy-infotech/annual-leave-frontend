@@ -1,10 +1,12 @@
 import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
+
 import 'leave_request_detail_screen.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
@@ -40,7 +42,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
 
     try {
       final response =
-      await ApiClient().dio.get('/api/admin/leave-requests/pending');
+          await ApiClient().dio.get('/api/admin/leave-requests/pending');
       final list = (response.data as List)
           .map((json) => PendingLeaveRequest.fromJson(json))
           .toList();
@@ -90,7 +92,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
-        const Text('승인 확인', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text('승인 확인', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           '${req.employeeName}님의 휴가 신청\n(${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}, ${req.useDays}일)을\n승인하시겠습니까?',
           style: const TextStyle(fontSize: 14, height: 1.5),
@@ -99,7 +101,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child:
-            const Text('취소', style: TextStyle(color: AppColors.textMuted)),
+                const Text('취소', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -143,7 +145,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
-        const Text('반려 확인', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text('반려 확인', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -164,7 +166,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child:
-            const Text('취소', style: TextStyle(color: AppColors.textMuted)),
+                const Text('취소', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -229,7 +231,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         color: Colors.transparent,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             spreadRadius: 1,
             blurRadius: 10,
             offset: const Offset(0, -2),
@@ -256,14 +258,14 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                 ),
                 child: isProcessing
                     ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
                     : const Text('반려',
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
             const SizedBox(width: 12),
@@ -276,20 +278,20 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                       ? const Color(0xFF2C3E50)
                       : Colors.grey.shade300, // 스크롤 속 짙은 네이비 색상
                   foregroundColor:
-                  canPress ? Colors.white : Colors.grey.shade500,
+                      canPress ? Colors.white : Colors.grey.shade500,
                   elevation: 0,
                   shape: const StadiumBorder(), // 양 끝이 완전히 둥근 스타디움 모양 버튼
                 ),
                 child: isProcessing
                     ? const SizedBox(
-                  width: 18,
-                  height: 18,
-                  child: CircularProgressIndicator(
-                      strokeWidth: 2, color: Colors.white),
-                )
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white),
+                      )
                     : const Text('승인',
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600)),
+                        style: TextStyle(
+                            fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -323,7 +325,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
       data: Theme.of(context).copyWith(
         scrollbarTheme: ScrollbarThemeData(
           thumbColor:
-          WidgetStatePropertyAll(Colors.black.withOpacity(0.3)),
+              WidgetStatePropertyAll(Colors.black.withValues(alpha: 0.3)),
           thickness: const WidgetStatePropertyAll(5),
           radius: const Radius.circular(8),
         ),
@@ -334,7 +336,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         child: ListView.builder(
           controller: _scrollController,
           padding:
-          const EdgeInsets.only(left: 20, right: 20, top: 5, bottom: 100),
+              const EdgeInsets.only(left: 20, right: 20, top: 5, bottom: 100),
           itemCount: _requests.length + 1,
           itemBuilder: (context, index) {
             // 첫 번째 아이템 자리에 상단 우측 끝 "조회건수" 라벨 배치
@@ -356,19 +358,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
             }
             final req = _requests[index - 1];
             final bool isSelected = _selectedRequestId == req.requestId;
-
-            final Map<String, String> leaveTypeMap = {
-              'FULL': '연차',
-              'AM_HALF': '반차(오전)',
-              'PM_HALF': '반차(오후)',
-              'ALTERNATIVE': '대체 휴가',
-              'PARENTAL': '출산 휴가',
-              'FAMILY': '가족 돌봄 휴가',
-              'OTHER': '기타',
-            };
-
-            final String rawType = req.leaveType ?? 'FULL';
-            final String leaveTypeNm = leaveTypeMap[rawType] ?? rawType;
+            final leaveTypeNm = LeaveType.getLabel(req.leaveType);
 
             return Container(
               margin: const EdgeInsets.only(bottom: 6),
@@ -413,7 +403,6 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
 
                       const SizedBox(width: 10), // 라디오 원과 텍스트 사이 간격 확보
 
-                      // 2. 우측: 텍스트 상세 영역
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

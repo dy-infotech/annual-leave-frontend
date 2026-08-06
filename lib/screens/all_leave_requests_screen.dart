@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -76,11 +77,11 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       }
 
       final response = await ApiClient().dio.get(
-        _buttonLabel == "내 신청"
-            ? '/api/leave-requests/my'
-            : '/api/leave-requests/all',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
-      );
+            _buttonLabel == "내 신청"
+                ? '/api/leave-requests/my'
+                : '/api/leave-requests/all',
+            queryParameters: queryParams.isEmpty ? null : queryParams,
+          );
       setState(() {
         _items = (response.data as List)
             .map((json) => LeaveRequestListItem.fromJson(json))
@@ -139,16 +140,16 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
         backgroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
-        const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text('신청 취소', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))} (${item.useDays}일)\n신청을 취소하시겠습니까?',
-          style: TextStyle(fontSize: 14.sp, height: 1.5.h),
+          style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child:
-            const Text('아니오', style: TextStyle(color: AppColors.textMuted)),
+                const Text('아니오', style: TextStyle(color: AppColors.textMuted)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
@@ -200,8 +201,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       builder: (context) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(
-            primary: AppColors.slate,
-          ),
+                primary: AppColors.slate,
+              ),
         ),
         child: DateRangeDialog(
           initialRange: initial,
@@ -254,7 +255,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.25,
+                    width: MediaQuery.of(context).size.width * 0.2,
                     height: 40, // 원하는 높이로 조절
                     child: Container(
                       decoration: BoxDecoration(
@@ -264,13 +265,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
                       ),
                       padding:
-                      const EdgeInsets.symmetric(horizontal: 8), // 안쪽 여백
+                          const EdgeInsets.symmetric(horizontal: 4), // 안쪽 여백
                       child: DropdownButton<String?>(
                         value: _statusFilter,
                         items: statusOptions.map((option) {
                           return DropdownMenuItem<String?>(
                             value: option['value'],
-                            child: Text(option['label']!),
+                            child: Text(
+                              option['label']!,
+                              style: TextStyle(fontSize: 14)),
                           );
                         }).toList(),
                         onChanged: (value) {
@@ -282,6 +285,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
                     ),
                   ),
+                  const SizedBox(width: 5),
                   const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
@@ -291,50 +295,57 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         children: searchFilterList.map((item) {
                           final label = item['label']!;
                           return Padding(
-                            // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백
-                            padding: const EdgeInsets.only(right: 10.0),
+                            // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백을 줍니다.
+                            padding: const EdgeInsets.only(right: 8.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Radio<String>(
-                                  value: label,
-                                  groupValue: _buttonLabel,
-                                  // 아이콘 주변의 불필요한 기본 시각적 여백 제거
-                                  visualDensity: const VisualDensity(
-                                    horizontal: VisualDensity.minimumDensity,
-                                    vertical: VisualDensity.minimumDensity,
+                                Transform.scale(
+                                  scale: 0.8, // 라디오 원 크기 축소
+                                  child: Radio<String>(
+                                    value: label,
+                                    groupValue: _buttonLabel,
+                                    // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
+
+                                    visualDensity: const VisualDensity(
+                                      horizontal: VisualDensity.minimumDensity,
+                                      vertical: VisualDensity.minimumDensity,
+                                    ),
+                                    // 2. 터치 영역 제한(48x48)을 풀어 글자와 완전히 밀착시킵니다.
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _buttonLabel = value!;
+                                        _setFilter(_statusFilter);
+                                      });
+                                    },
                                   ),
-                                  // 터치 영역 제한(48x48)을 풀어 글자와 밀착
-                                  materialTapTargetSize:
-                                  MaterialTapTargetSize.shrinkWrap,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _buttonLabel = value!;
-                                      _setFilter(_statusFilter);
-                                    });
-                                  },
                                 ),
-                                const SizedBox(width: 2),
+                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격을 지정합니다.
+                                const SizedBox(width: 1),
                                 Text(label),
                               ],
                             ),
                           );
                         }).toList(),
                       ),
-                      const SizedBox(width: 10), // 두 버튼 간격
+
+                      const SizedBox(width: 5), // 두 버튼 간격
+
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
                         },
-                        icon: const Icon(Icons.calendar_today, size: 20),
-                        label: Text(
+                        icon: const Icon(Icons.calendar_today, size: 16),
+                        label: const Text(
                           '기간',
-                          style: TextStyle(fontSize: 14.sp),
+                          style: TextStyle(fontSize: 14),
                         ),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 8),
-                          minimumSize: const Size(80, 36),
+                              horizontal: 10, vertical: 8),
+                          minimumSize: const Size(75, 40),
                         ),
                       ),
                     ],
@@ -369,7 +380,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             ),
           Padding(
             padding:
-            const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Row(
               //mainAxisAlignment: MainAxisAlignment.start,
               // 메인 축 정렬을 우측 정렬 설정
@@ -391,166 +402,194 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
           Expanded(
             child: _isLoading
                 ? const Center(
-                child: CircularProgressIndicator(color: AppColors.slate))
+                    child: CircularProgressIndicator(color: AppColors.slate))
                 : _items.isEmpty
-                ? const Center(
-                child: Text('조회된 내역이 없습니다.',
-                    style: TextStyle(color: AppColors.textMuted)))
-                : Theme(
-              data: Theme.of(context).copyWith(
-                scrollbarTheme: ScrollbarThemeData(
-                  thumbColor: WidgetStatePropertyAll(
-                    Colors.black.withOpacity(0.3),
-                  ),
-                  thickness: WidgetStatePropertyAll(5),
-                  radius: const Radius.circular(8),
-                ),
-              ),
-              child: Scrollbar(
-                controller: _scrollController,
-                interactive: true,
-                child: ListView.builder(
-                  controller: _scrollController, // 추가
-                  //padding: const EdgeInsets.all(20),
-                  padding: const EdgeInsets.only(
-                      top: 4.0,
-                      left: 20.0,
-                      right: 20.0,
-                      bottom: 20.0),
-                  itemCount: _items.length,
-                  itemBuilder: (context, index) {
-                    final item = _items[index];
-                    final isProcessing =
-                    _processingIds.contains(item.requestId);
-                    // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
-                    final Map<String, String> leaveTypeMap = {
-                      'FULL': '연차',
-                      'AM_HALF': '반차(오전)',
-                      'PM_HALF': '반차(오후)',
-                      'ALTERNATIVE': '대체 휴가',
-                      'PARENTAL': '출산 휴가',
-                      'FAMILY': '가족 돌봄 휴가',
-                      'OTHER': '기타',
-                    };
-
-                    // 2. 현재 아이템의 휴가 종류 값을 가져와 매핑 (데이터 필드명에 맞게 item.leaveType 등으로 수정 가능)
-                    final String rawType = item.leaveType ?? 'FULL';
-                    final String leaveTypeNm =
-                        leaveTypeMap[rawType] ?? rawType;
-
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: Material(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    LeaveRequestDetailScreen(requestId: item.requestId),
-                              ),
-                            );
-                          },
-                          borderRadius: BorderRadius.circular(16),
-                          child: Container(
-                            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: AppColors.divider),
+                    ? const Center(
+                        child: Text('조회된 내역이 없습니다.',
+                            style: TextStyle(color: AppColors.textMuted)))
+                    : Theme(
+                        data: Theme.of(context).copyWith(
+                          scrollbarTheme: ScrollbarThemeData(
+                            thumbColor: WidgetStatePropertyAll(
+                              Colors.black.withOpacity(0.3),
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Text('${item.employeeName} ${item.position}',
-                                        style: const TextStyle(
-                                            fontWeight: FontWeight.w700, fontSize: 14.5)),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      item.department,
-                                      style: const TextStyle(
-                                        color: AppColors.textMuted,
-                                        fontSize: 12,
+                            thickness: WidgetStatePropertyAll(5),
+                            radius: const Radius.circular(8),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          interactive: true,
+                          child: ListView.builder(
+                            controller: _scrollController, // 추가
+                            //padding: const EdgeInsets.all(20),
+                            padding: const EdgeInsets.only(
+                                top: 4.0,
+                                left: 20.0,
+                                right: 20.0,
+                                bottom: 20.0),
+                            itemCount: _items.length,
+                            itemBuilder: (context, index) {
+                              final item = _items[index];
+                              final isProcessing =
+                                  _processingIds.contains(item.requestId);
+                              final leaveTypeNm = LeaveType.getLabel(item.leaveType);
+                              // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
+                              /* final Map<String, String> leaveTypeMap = {
+                                'FULL': '연차',
+                                'AM_HALF': '반차(오전)',
+                                'PM_HALF': '반차(오후)',
+                                'ALTERNATIVE': '대체 휴가',
+                                'PARENTAL': '출산 휴가',
+                                'FAMILY': '가족 돌봄 휴가',
+                                'OTHER': '기타',
+                              };
+
+                              // 2. 현재 아이템의 휴가 종류 값을 가져와 매핑 (데이터 필드명에 맞게 item.leaveType 등으로 수정 가능)
+                              final String rawType = item.leaveType ?? 'FULL';
+                              final String leaveTypeNm =
+                                  leaveTypeMap[rawType] ?? rawType; */
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: Material(
+                                  color: AppColors.surface,
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: InkWell(
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              LeaveRequestDetailScreen(requestId: item.requestId),
+                                        ),
+                                      );
+                                    },
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: Container(
+                                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: AppColors.divider),
+                                      ),
+
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          //첫번째 줄
+                                          Row(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Expanded(
+                                                child: SingleChildScrollView(
+                                                  scrollDirection: Axis.horizontal,
+                                                  child: Row(
+                                                    children: [
+                                                      Text(
+                                                        '${item.employeeName} ${item.position}',
+                                                        style: const TextStyle(
+                                                          fontWeight: FontWeight.w700,
+                                                          fontSize: 14.5,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 8),
+                                                      Text(
+                                                        item.department,
+                                                        style: const TextStyle(
+                                                          color: AppColors.textMuted,
+                                                          fontSize: 12,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+
+                                              const SizedBox(width: 12),
+
+                                              // 고정
+                                              LeaveStatusBadge(status: item.status),
+                                            ],
+                                          ),
+                                          SingleChildScrollView(
+                                            scrollDirection: Axis.horizontal,
+                                            child: Row(
+                                              children: [
+                                                Text(
+                                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))}'
+                                                  ' ~ '
+                                                  '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  '(${item.useDays}일) [$leaveTypeNm]',
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                    color: AppColors.textMuted,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Row(
+                                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                                              textBaseline: TextBaseline.alphabetic,
+                                              children: [
+                                                const SizedBox(height: 10),
+                                                Text(
+                                                    '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
+                                                    style: const TextStyle(
+                                                        color: AppColors.textMuted,
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w600)),
+                                                const SizedBox(width: 12),
+                                                const Spacer(),
+                                                if (_isCancelable(item, userEmployeeNumber)) ...[
+                                                  TextButton(
+                                                    onPressed:
+                                                    isProcessing ? null : () => _confirmCancel(item),
+                                                    style: TextButton.styleFrom(
+                                                      padding: const EdgeInsets.symmetric(
+                                                          horizontal: 4, vertical: 6),
+                                                      minimumSize: Size.zero,
+                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                    ),
+                                                    child: isProcessing
+                                                        ? const SizedBox(
+                                                      width: 14,
+                                                      height: 14,
+                                                      child: CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: AppColors.textMuted,
+                                                      ),
+                                                    )
+                                                        : const Text(
+                                                      '신청 취소',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        fontWeight: FontWeight.w600,
+                                                        color: AppColors.textMuted,
+                                                        decoration: TextDecoration.underline,
+                                                        decorationColor: AppColors.textMuted,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ])
+                                        ],
                                       ),
                                     ),
-                                    const Spacer(),
-                                    LeaveStatusBadge(status: item.status),
-                                  ],
+                                  ),
                                 ),
-                                Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      Text(
-                                          '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
-                                          style: const TextStyle(
-                                              fontSize: 13, fontWeight: FontWeight.w600)),
-                                      const SizedBox(width: 4),
-                                      Text('(${item.useDays}일) [$leaveTypeNm]',
-                                          style: const TextStyle(
-                                              fontSize: 13, color: AppColors.textMuted)),
-                                      const Spacer(),
-                                    ]),
-                                Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                                    textBaseline: TextBaseline.alphabetic,
-                                    children: [
-                                      const SizedBox(height: 4),
-                                      Text(
-                                          '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
-                                          style: const TextStyle(
-                                              color: AppColors.textMuted,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600)),
-                                      const SizedBox(width: 12),
-                                      const Spacer(),
-                                      if (_isCancelable(item, userEmployeeNumber)) ...[
-                                        TextButton(
-                                          onPressed:
-                                          isProcessing ? null : () => _confirmCancel(item),
-                                          style: TextButton.styleFrom(
-                                            padding: const EdgeInsets.symmetric(
-                                                horizontal: 4, vertical: 6),
-                                            minimumSize: Size.zero,
-                                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                                          ),
-                                          child: isProcessing
-                                              ? const SizedBox(
-                                            width: 14,
-                                            height: 14,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: AppColors.textMuted,
-                                            ),
-                                          )
-                                              : const Text(
-                                            '신청 취소',
-                                            style: TextStyle(
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColors.textMuted,
-                                              decoration: TextDecoration.underline,
-                                              decorationColor: AppColors.textMuted,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ])
-                              ],
-                            ),
+                              );
+                            },
                           ),
                         ),
                       ),
-                    );
-                  },
-                ),
-              ),
-            ),
           ),
         ],
       ),
