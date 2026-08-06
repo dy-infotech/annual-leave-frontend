@@ -18,28 +18,27 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   final _employeeNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _hireDateController = TextEditingController();
-  DateTime? _selectedDate;  // 선택된 날짜 상태 변수
+  DateTime? _selectedDate; // 선택된 날짜 상태 변수
   bool _isLoading = false;
-  String? _errorMessage;       //공통에러
-  String? _employeeNameError;  //사용자명에러
-  String? _departmentError;    //부서에러
-  String? _teamError;          //팀에러
-  String? _positionError;      //직급에러
-  String? _emailError;         //이메일에러
-  String? _hireDateError;      //입사일에러
-  
-  final List<String> _teamList = [];       //팀 
+  String? _errorMessage; //공통에러
+  String? _employeeNameError; //사용자명에러
+  String? _departmentError; //부서에러
+  String? _teamError; //팀에러
+  String? _positionError; //직급에러
+  String? _emailError; //이메일에러
+  String? _hireDateError; //입사일에러
+
+  final List<String> _teamList = []; //팀
   final List<String> _departmentList = []; //부서
-  final List<String> _positionList = [];   //직급
-  String? _selectedTeam;        //선택된 팀
-  String? _otherTeamName;       //기타선택시 입력된 팀명
-  String? _selectedDepartment;  //선택된 부서
-  String? _selectedPosition;    //선택된 직급
-  RoleType? _selectedManagerYn = RoleType.employee;   //선택된 관리자여부
+  final List<String> _positionList = []; //직급
+  String? _selectedTeam; //선택된 팀
+  String? _otherTeamName; //기타선택시 입력된 팀명
+  String? _selectedDepartment; //선택된 부서
+  String? _selectedPosition; //선택된 직급
+  RoleType? _selectedManagerYn = RoleType.employee; //선택된 관리자여부
   String? formatDate;
 
-  
-   @override
+  @override
   void initState() {
     super.initState();
 
@@ -49,13 +48,12 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-
       final response = await ApiClient().dio.get(
-        '/api/admin/auth/common',
-      );
+            '/api/admin/auth/common',
+          );
       setState(() {
         final data = response.data as Map<String, dynamic>;
-  
+
         if (data.length >= 3) {
           _departmentList.clear();
           _teamList.clear();
@@ -64,16 +62,12 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
           _departmentList.addAll(List<String>.from(data['department']));
           _teamList.addAll(List<String>.from(data['team']));
           _positionList.addAll(List<String>.from(data['position']));
-
-          
-          
         } else {
           // 데이터가 이상할 때 대비한 예외처리
           setState(() => _errorMessage = '기초데이터 조회에 실패했습니다.');
           return;
         }
       });
-
     } finally {
       setState(() => _isLoading = false);
     }
@@ -112,27 +106,29 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
 
     try {
       await context.read<AuthProvider>().adminAuthRegister(
-        _employeeNameController.text.trim(),
-        _selectedDepartment ?? '',
-        (_selectedTeam == '기타' ? (_otherTeamName ?? '') : (_selectedTeam ?? '')),
-        _selectedPosition ?? '',
-        _selectedManagerYn?.code ?? '',
-        _emailController.text.trim(),
-        formatDate.toString()
-      );
+          _employeeNameController.text.trim(),
+          _selectedDepartment ?? '',
+          (_selectedTeam == '기타'
+              ? (_otherTeamName ?? '')
+              : (_selectedTeam ?? '')),
+          _selectedPosition ?? '',
+          _selectedManagerYn?.code ?? '',
+          _emailController.text.trim(),
+          formatDate.toString());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('사용자 등록이 완료되었습니다. 사용 등록 후 로그인 가능합니다.')),
         );
         //Navigator.pop(context);
         Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => DashboardScreen()),
-            );
+          context,
+          MaterialPageRoute(builder: (context) => DashboardScreen()),
+        );
       }
     } catch (e) {
       setState(() => _errorMessage = e.toString().contains('Exception')
-          ? '사용자 등록에 실패했습니다.' + e.toString() : '');
+          ? '사용자 등록에 실패했습니다.' + e.toString()
+          : '');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -148,17 +144,18 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
     );*/
 
     final DateTime? picked = await showDialog<DateTime>(
-    context: context,
+      context: context,
       builder: (_) => DateInputDialog(
         initialDate: _selectedDate,
       ),
     );
-    
+
     if (picked != null) {
       setState(() {
         _selectedDate = picked;
         formatDate = DateFormat('yyyy-MM-dd').format(picked);
-        _hireDateController.text = '${picked.year}년 ${picked.month}월 ${picked.day}일';
+        _hireDateController.text =
+            '${picked.year}년 ${picked.month}월 ${picked.day}일';
         _errorMessage = null; // 예: 날짜 선택 시 오류 초기화
       });
     }
@@ -168,10 +165,10 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
-    String userPosition = info != null ? info.position: '';
-    if(auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')){
-      //신규 팀 정보 생성 시 필요 
-      // 관리자이고 대표이사일 때만 "기타" 추가    
+    String userPosition = info != null ? info.position : '';
+    if (auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')) {
+      //신규 팀 정보 생성 시 필요
+      // 관리자이고 대표이사일 때만 "기타" 추가
       _teamList.add('기타');
     }
 
@@ -288,35 +285,33 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedPosition = value;
                   },
                 ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<RoleType>(
-                  decoration: const InputDecoration(
-                    labelText: '역할 선택',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: _selectedManagerYn,  
-                  items: RoleType.values.map((role) {
-                    return DropdownMenuItem<RoleType>(
-                      value: role,
-                      child: Text(role.label),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedManagerYn = value;
-                    });
-                  },
-                  onSaved: (value) {
-                    _selectedManagerYn = value;
-                  },
-                ),
+                // const SizedBox(height: 12),
+                // DropdownButtonFormField<RoleType>(
+                //   decoration: const InputDecoration(
+                //     labelText: '역할 선택',
+                //     border: OutlineInputBorder(),
+                //   ),
+                //   value: _selectedManagerYn,
+                //   items: RoleType.values.map((role) {
+                //     return DropdownMenuItem<RoleType>(
+                //       value: role,
+                //       child: Text(role.label),
+                //     );
+                //   }).toList(),
+                //   onChanged: (value) {
+                //     setState(() {
+                //       _selectedManagerYn = value;
+                //     });
+                //   },
+                //   onSaved: (value) {
+                //     _selectedManagerYn = value;
+                //   },
+                // ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _emailController,
-                  decoration: InputDecoration(
-                    labelText: '이메일',
-                    errorText: _emailError
-                    ),
+                  decoration:
+                      InputDecoration(labelText: '이메일', errorText: _emailError),
                   obscureText: false,
                   onChanged: (value) {
                     setState(() {
@@ -328,7 +323,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                 const SizedBox(height: 12),
                 TextField(
                   controller: _hireDateController,
-                  readOnly: true,  // 직접 입력 막기 (선택만 가능)
+                  readOnly: true, // 직접 입력 막기 (선택만 가능)
                   decoration: InputDecoration(
                     labelText: '입사일',
                     suffixIcon: IconButton(
@@ -337,7 +332,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     ),
                     errorText: _hireDateError,
                   ),
-                  onTap: _selectDate,  // 텍스트 필드 눌러도 날짜 선택 가능하도록
+                  onTap: _selectDate, // 텍스트 필드 눌러도 날짜 선택 가능하도록
                   onChanged: (value) {
                     setState(() {
                       _hireDateError = null;
@@ -346,7 +341,8 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                 ),
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 12),
-                  Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+                  Text(_errorMessage!,
+                      style: const TextStyle(color: Colors.red)),
                 ],
                 const SizedBox(height: 24),
                 SizedBox(
@@ -355,10 +351,12 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     onPressed: _isLoading ? null : _handleSignup,
                     child: _isLoading
                         ? const SizedBox(
-                      width: 20, height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                        : const Text('등록하기'),    
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Text('등록하기'),
                   ),
                 ),
               ],

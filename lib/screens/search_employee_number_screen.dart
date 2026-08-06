@@ -25,8 +25,8 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   String _selectedStatus = 'ALL';
 
   // 팀 검색조건
-  final List<String> _filterTeamList = ['전체 팀']; // 💡 '전체' -> '전체 팀'으로 변경
-  String _selectedTeamFilter = '전체 팀'; // 💡 '전체' -> '전체 팀'으로 변경
+  final List<String> _filterTeamList = ['전체']; // 💡 '전체' -> '전체'으로 변경
+  String _selectedTeamFilter = '전체'; // 💡 '전체' -> '전체'으로 변경
 
   Future<void> _fetchCommonTeams() async {
     try {
@@ -37,7 +37,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
       setState(() {
         _filterTeamList.clear();
-        _filterTeamList.add('전체 팀'); // 💡 콤보박스 첫 칸 명칭을 '전체 팀'으로 고정
+        _filterTeamList.add('전체'); // 💡 콤보박스 첫 칸 명칭을 '전체'으로 고정
         _filterTeamList.addAll(fetchedTeams);
       });
     } catch (e) {
@@ -78,8 +78,8 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
       setState(() {
         List<Employee> processedItems = allFetchedItems;
 
-        // 💡 기준 문자열을 '전체'에서 '전체 팀'으로 일치시킵니다.
-        if (_selectedTeamFilter != '전체 팀') {
+        // 💡 기준 문자열을 '전체'에서 '전체'으로 일치시킵니다.
+        if (_selectedTeamFilter != '전체') {
           processedItems = processedItems
               .where((emp) =>
                   emp.team != null &&
@@ -147,7 +147,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 1️⃣ 왼쪽: 등록/미등록 상태 선택 Dropdown
+                    //  1️⃣ 왼쪽: 등록/미등록 상태 선택 Dropdown
                     // Expanded(
                     //   flex: 1,
                     //   child: Container(
@@ -187,101 +187,184 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     //   ),
                     // ),
                     Expanded(
-                      flex:
-                          10, // 💡 앞서 매칭한 가로 분할 비율(10)을 적용하여 전체 팀, 검색창과 균형을 맞춥니다.
-                      child: Container(
-                        height: 35,
-                        // ❌ 기존의 padding: const EdgeInsets.symmetric(horizontal: 6) 속성은
-                        // 내부 정렬을 방해하여 글자를 치우치게 만들었으므로 과감히 삭제합니다.
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: _selectedStatus,
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.black),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Colors.grey),
+                      flex: 1, // 💡 앞서 매칭해 둔 가로 분할 비율(10) 유지
+                      child: SizedBox(
+                        height: 35, // 💡 기존과 완전히 동일한 높이 규격 유지
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedStatus,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.grey),
 
-                            // 💡 [핵심 추가] 드롭다운 메뉴 아이템들이 컨테이너 높이(35) 기준으로 수직 정중앙에 위치하도록 배치 정렬을 선언합니다.
-                            alignment: Alignment.centerLeft,
+                          // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '등록 상태' 라벨 텍스트를 강제 배치합니다.
+                          decoration: InputDecoration(
+                            labelText: '등록 상태',
+                            labelStyle: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            isDense: true,
 
-                            // 💡 [핵심 추가] 글자가 박스 왼쪽 테두리에 너무 밀착되지 않도록 드롭다운 자체 내부 여백을 줍니다.
-                            padding: const EdgeInsets.only(left: 8),
+                            // 🔥 [핵심 수정] 상하(vertical) 패딩을 9.5로 세밀하게 조율하여
+                            // 옆의 '전체' 기본 아웃라인 콤보박스 테두리 높이와 완벽하게 수평 정렬을 맞춥니다.
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 9.5),
 
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _selectedStatus = newValue;
-                                });
-                                _fetch();
-                              }
-                            },
-                            items: const [
-                              DropdownMenuItem(
-                                  value: 'ALL', child: Text('전체상태')),
-                              DropdownMenuItem(
-                                  value: 'REGISTERED', child: Text('등록')),
-                              DropdownMenuItem(
-                                  value: 'UNREGISTERED', child: Text('미등록')),
-                            ],
+                            // 💡 인풋 박스 테두리를 둥글게(Radius: 8) 마킹하여 기존 디자인 테두리와 일치시킵니다.
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
                           ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedStatus = newValue;
+                              });
+                              _fetch();
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(value: 'ALL', child: Text('전체')),
+                            DropdownMenuItem(
+                                value: 'REGISTERED', child: Text('등록')),
+                            DropdownMenuItem(
+                                value: 'UNREGISTERED', child: Text('미등록')),
+                          ],
                         ),
                       ),
                     ),
 
                     const SizedBox(width: 6), // 간격 보정
+
                     // 2️⃣ 🔥 [중앙 추가] 팀별 소속 선택 Dropdown 위젯 신설
+                    // Expanded(
+                    //   flex: 2,
+                    //   child: Container(
+                    //     height: 35,
+                    //     padding: const EdgeInsets.symmetric(horizontal: 6),
+                    //     decoration: BoxDecoration(
+                    //       color: Colors.white,
+                    //       border: Border.all(color: Colors.grey.shade400),
+                    //       borderRadius: BorderRadius.circular(8),
+                    //     ),
+                    //     child: DropdownButtonHideUnderline(
+                    //       child: DropdownButton<String>(
+                    //         isExpanded: true,
+                    //         value: _selectedTeamFilter,
+                    //         style: const TextStyle(
+                    //             fontSize: 13, color: Colors.black),
+                    //         icon: const Icon(Icons.arrow_drop_down,
+                    //             color: Colors.grey),
+                    //         // 📄 4페이지 DropdownButtonFormField 내부 items 매핑 영역 수정
+                    //         onChanged: (String? newValue) {
+                    //           if (newValue != null) {
+                    //             setState(() {
+                    //               _selectedTeamFilter = newValue;
+                    //             });
+                    //             _fetch();
+                    //           }
+                    //         },
+                    //         items: (_filterTeamList == null ||
+                    //                 _filterTeamList.isEmpty)
+                    //             ? [
+                    //                 const DropdownMenuItem<String>(
+                    //                   value: '전체', // 💡 '전체' -> '전체'
+                    //                   child: Text('전체'),
+                    //                 )
+                    //               ]
+                    //             : _filterTeamList.map((String team) {
+                    //                 return DropdownMenuItem<String>(
+                    //                   value: team,
+                    //                   child: Text(team,
+                    //                       overflow: TextOverflow.ellipsis),
+                    //                 );
+                    //               }).toList(),
+                    //       ),
+                    //     ),
+                    //   ),
+                    // ),
+
                     Expanded(
-                      flex: 2,
-                      child: Container(
-                        height: 35,
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            isExpanded: true,
-                            value: _selectedTeamFilter,
-                            style: const TextStyle(
-                                fontSize: 13, color: Colors.black),
-                            icon: const Icon(Icons.arrow_drop_down,
-                                color: Colors.grey),
-                            // 📄 4페이지 DropdownButtonFormField 내부 items 매핑 영역 수정
-                            onChanged: (String? newValue) {
-                              if (newValue != null) {
-                                setState(() {
-                                  _selectedTeamFilter = newValue;
-                                });
-                                _fetch();
-                              }
-                            },
-                            items: (_filterTeamList == null ||
-                                    _filterTeamList.isEmpty)
-                                ? [
-                                    const DropdownMenuItem<String>(
-                                      value: '전체 팀', // 💡 '전체' -> '전체 팀'
-                                      child: Text('전체 팀'),
-                                    )
-                                  ]
-                                : _filterTeamList.map((String team) {
-                                    return DropdownMenuItem<String>(
-                                      value: team,
-                                      child: Text(team,
-                                          overflow: TextOverflow.ellipsis),
-                                    );
-                                  }).toList(),
+                      flex: 2, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
+                      child: SizedBox(
+                        height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _selectedTeamFilter,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.grey),
+                          alignment: Alignment.centerLeft,
+
+                          // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
+                          decoration: InputDecoration(
+                            labelText: '팀',
+                            labelStyle: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            isDense: true,
+
+                            // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
+                            // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 9.5),
+
+                            // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
                           ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedTeamFilter = newValue;
+                              });
+                              _fetch();
+                            }
+                          },
+                          items: (_filterTeamList == null ||
+                                  _filterTeamList.isEmpty)
+                              ? [
+                                  const DropdownMenuItem<String>(
+                                    value: '전체',
+                                    child: Text('전체'),
+                                  )
+                                ]
+                              : _filterTeamList.map((String team) {
+                                  return DropdownMenuItem<String>(
+                                    value: team,
+                                    child: Text(team,
+                                        overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 6),
 
                     // 3️⃣ [우측] 사번/성명 검색 입력창 (가로폭 확보를 위해 비율을 2로 세팅)
