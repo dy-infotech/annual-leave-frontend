@@ -5,7 +5,6 @@ import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; 
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});
@@ -88,12 +87,12 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
             const Text('승인 확인', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Text(
           '${req.employeeName}님의 휴가 신청\n(${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}, ${req.useDays}일)을\n승인하시겠습니까?',
-          style: TextStyle(fontSize: 14.sp, height: 1.5.h),
+          style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
           TextButton(
@@ -141,7 +140,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18.r)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
         title:
             const Text('반려 확인', style: TextStyle(fontWeight: FontWeight.w800)),
         content: Column(
@@ -150,9 +149,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
           children: [
             Text(
               '${req.employeeName}님의 휴가 신청\n(${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}, ${req.useDays}일)을\n반려하시겠습니까?',
-              style: TextStyle(fontSize: 14.sp, height: 1.5.h),
+              style: const TextStyle(fontSize: 14, height: 1.5),
             ),
-            SizedBox(height: 16.h),
+            const SizedBox(height: 16),
             TextField(
               controller: controller,
               decoration: const InputDecoration(hintText: '반려 사유 (선택 입력)'),
@@ -250,23 +249,23 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                     color: canPress
                         ? const Color(0xFFD67361)
                         : Colors.grey.shade300,
-                    width: 1.2.w,
+                    width: 1.2,
                   ),
                   shape: const StadiumBorder(),
                 ),
                 child: isProcessing
-                    ? SizedBox(
-                        width: 18.w,
-                        height: 18.h,
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: Colors.white),
                       )
-                    : Text('반려',
+                    : const Text('반려',
                         style: TextStyle(
-                            fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                            fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
-            SizedBox(width: 12.w),
+            const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
                 onPressed: canPress ? _confirmApproveSingle : null,
@@ -281,15 +280,15 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                   shape: const StadiumBorder(), // 양 끝이 완전히 둥근 스타디움 모양 버튼
                 ),
                 child: isProcessing
-                    ? SizedBox(
-                        width: 18.w,
-                        height: 18.h,
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
                         child: CircularProgressIndicator(
-                            strokeWidth: 2.w, color: Colors.white),
+                            strokeWidth: 2, color: Colors.white),
                       )
-                    : Text('승인',
+                    : const Text('승인',
                         style: TextStyle(
-                            fontSize: 14.sp, fontWeight: FontWeight.w600)),
+                            fontSize: 14, fontWeight: FontWeight.w600)),
               ),
             ),
           ],
@@ -310,8 +309,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     }
     if (_requests.isEmpty) {
       return ListView(
-        children: [
-          SizedBox(height: 100.h),
+        children: const [
+          SizedBox(height: 100),
           Center(
               child: Text('대기 중인 휴가 신청이 없습니다.',
                   style: TextStyle(color: AppColors.textMuted))),
@@ -345,9 +344,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                   alignment: Alignment.centerRight,
                   child: Text(
                     '${_requests.length}건',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: Color(0xFF555555),
-                      fontSize: 13.sp,
+                      fontSize: 13,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -374,14 +373,14 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
               margin: const EdgeInsets.only(bottom: 6),
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(18.r),
+                borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected ? AppColors.slate : AppColors.divider,
-                  width: isSelected ? 1.8.w : 1.0.w,
+                  width: isSelected ? 1.8 : 1.0,
                 ),
               ),
               child: InkWell(
-                borderRadius: BorderRadius.circular(18.r),
+                borderRadius: BorderRadius.circular(18),
                 onTap: () {
                   setState(() => _selectedRequestId = req.requestId);
                 },
@@ -397,8 +396,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                         padding: const EdgeInsets.only(
                             top: 1), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
                         child: Container(
-                          width: 16.w,
-                          height: 16.h,
+                          width: 16,
+                          height: 16,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
@@ -406,13 +405,13 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                   ? const Color(0xFF2C3E50)
                                   : Colors.grey.shade400,
                               width: isSelected
-                                  ? 5.5.w
-                                  : 1.5.w, // 선택되면 두꺼워지면서 안쪽이 채워지는 효과
+                                  ? 5.5
+                                  : 1.5, // 선택되면 두꺼워지면서 안쪽이 채워지는 효과
                             ),
                           ),
                         ),
                       ),
-                      SizedBox(width: 10.w), // 라디오 원과 텍스트 사이 간격 확보
+                      const SizedBox(width: 10), // 라디오 원과 텍스트 사이 간격 확보
 
                       // 2. 우측: 텍스트 상세 영역
                       Expanded(
@@ -425,34 +424,34 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                               children: [
                                 Text(
                                   '${req.employeeName} ${req.position} (${req.department})',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     fontWeight: FontWeight.w800,
-                                    fontSize: 14.5.sp,
-                                    height: 1.0.h, // 불필요한 위아래 폰트 행간 마진 제거
+                                    fontSize: 14.5,
+                                    height: 1.0, // 불필요한 위아래 폰트 행간 마진 제거
                                   ),
                                 ),
                                 Text(
                                   '신청일: ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.createdAt))}',
-                                  style: TextStyle(
-                                      color: AppColors.textMuted, fontSize: 13.sp),
+                                  style: const TextStyle(
+                                      color: AppColors.textMuted, fontSize: 13),
                                 ),
                               ],
                             ),
-                            SizedBox(height: 7.h),
+                            const SizedBox(height: 7),
 
                             // 두 번째 줄: 휴가 일자 정보
                             Row(
                               children: [
                                 Text(
                                   '${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(req.endDate))}',
-                                  style: TextStyle(
-                                      fontSize: 13.sp,
+                                  style: const TextStyle(
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w600),
                                 ),
-                                SizedBox(width: 4.w),
+                                const SizedBox(width: 4),
                                 Text('(${req.useDays}일) [$leaveTypeNm]',
-                                    style: TextStyle(
-                                        color: AppColors.textMuted, fontSize: 13.sp)),
+                                    style: const TextStyle(
+                                        color: AppColors.textMuted, fontSize: 13)),
                               ],
                             ),
                           ],

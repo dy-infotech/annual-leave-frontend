@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart'; 
 
 class DateRangeDialog extends StatefulWidget {
   const DateRangeDialog({
@@ -130,9 +129,9 @@ class _DateRangeDialogState extends State<DateRangeDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text("기간 선택", style: TextStyle(fontSize: 18.sp),),
+      title: const Text("기간 선택"),
       content: SizedBox(
-        width: 320.w,
+        width: 320,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -140,7 +139,7 @@ class _DateRangeDialogState extends State<DateRangeDialog> {
               label: "시작일",
               controller: _startController,
             ),
-            SizedBox(height: 16.h),
+            const SizedBox(height: 16),
             _buildDateField(
               label: "종료일",
               controller: _endController,
@@ -151,21 +150,11 @@ class _DateRangeDialogState extends State<DateRangeDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          style: TextButton.styleFrom(
-            fixedSize: Size(80.w, 40.h),
-          ),
-          child: Text("취소",
-            style: TextStyle(fontSize: 14.sp),
-            ),
+          child: const Text("취소"),
         ),
         FilledButton(
           onPressed: _confirm,
-          style: TextButton.styleFrom(
-            fixedSize: Size(80.w, 40.h),
-          ),
-          child: Text("확인",
-            style: TextStyle(fontSize: 14.sp),
-          ),
+          child: const Text("확인"),
         ),
       ],
     );
@@ -182,15 +171,11 @@ class _DateRangeDialogState extends State<DateRangeDialog> {
         FilteringTextInputFormatter.digitsOnly,
         _DateFormatter(),
       ],
-      style: TextStyle(
-            fontSize: 16.sp,
-          ),
       decoration: InputDecoration(
         labelText: label,
         hintText: "yyyy-MM-dd",
-        hintStyle: TextStyle(fontSize: 16.sp),
         suffixIcon: IconButton(
-          icon: Icon(Icons.calendar_today,size: 25.r),
+          icon: const Icon(Icons.calendar_today),
           onPressed: () => _pickDate(controller),
         ),
       ),
