@@ -397,7 +397,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                                 ' ~ '
                                                 '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
                                                 style: const TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 12,
                                                   fontWeight: FontWeight.w600,
                                                 ),
                                               ),
@@ -405,7 +405,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                               Text(
                                                 '(${item.useDays}일) [$leaveTypeNm]',
                                                 style: const TextStyle(
-                                                  fontSize: 13,
+                                                  fontSize: 12,
                                                   color: AppColors.textMuted,
                                                 ),
                                               ),

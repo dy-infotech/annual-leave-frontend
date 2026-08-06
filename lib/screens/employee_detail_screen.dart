@@ -377,7 +377,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               '연차 정보',
                               TextFormField(
                                 initialValue:
-                                    '잔여 연차 : ${widget.employee.remainingLeaveDays}일 / 총 연차 : ${widget.employee.currTotalLeaveDays}일',
+                                    '연차 : ${widget.employee.remainingLeaveDays}일 / 연차 : ${widget.employee.currTotalLeaveDays}일',
                                 readOnly: true,
                                 style: const TextStyle(
                                     fontSize: 14, color: Colors.black),
@@ -751,7 +751,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           SizedBox(
-              width: 100,
+              width: 90,
               child: Text(label,
                   style: const TextStyle(
                       color: AppColors.textMuted, fontSize: 14))),
