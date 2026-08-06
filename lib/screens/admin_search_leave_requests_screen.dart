@@ -149,113 +149,139 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     // 팀 선택 콤보박스
-                    Flexible(
-                      flex: 1,
-                      child: Container(
-                        height: 37,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: DropdownButton<String>(
-                          value: _selectedTeam,
-                          items: _teamList
-                              .map(
-                                (team) => DropdownMenuItem<String>(
-                                  value: team,
-                                  child: Text(team),
-                                ),
-                              )
-                              .toList(),
-                          // 선택 표시 영역
-                          selectedItemBuilder: (context) {
-                            return _teamList.map(
-                              (team) => Container(
-                                alignment: Alignment.centerLeft,
-                                height: 35,
-                                child: Text(
-                                  team,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ).toList();
-                          },
-                          onChanged: _setTeamFilter,
-                          underline: const SizedBox(),
+                    Expanded(
+                      flex: 1, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
+                      child: SizedBox(
+                        height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
+                        child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          dropdownColor: Colors.white,
+                          value: _selectedTeam,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.grey),
+                          alignment: Alignment.centerLeft,
+
+                          // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
+                          decoration: InputDecoration(
+                            labelText: '팀',
+                            labelStyle: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            isDense: true,
+
+                            // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
+                            // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 9.5),
+
+                            // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              setState(() {
+                                _selectedTeam = newValue;
+                              });
+                              _fetch();
+                            }
+                          },
+                          items: (_teamList == null ||
+                                  _teamList.isEmpty)
+                              ? [
+                                  const DropdownMenuItem<String>(
+                                    value: '전체',
+                                    child: Text('전체'),
+                                  )
+                                ]
+                              : _teamList.map((String team) {
+                                  return DropdownMenuItem<String>(
+                                    value: team,
+                                    child: Text(team,
+                                        overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
                         ),
                       ),
                     ),
+
                     const SizedBox(width: 10),
                     // 검색 조건
                     Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.only(left: 4),
+                      child: SizedBox(
                         height: 35,
-                        clipBehavior: Clip.antiAlias,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          border: Border.all(color: Colors.grey.shade400),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: TextField(
-                                controller: _searchEmployeeController,
-                                textInputAction: TextInputAction.search,
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                ),
-                                onSubmitted: (_) => _fetch(),
-                                decoration: const InputDecoration(
-                                  hintText: '사번 또는 성명',
-                                  hintStyle: TextStyle(
-                                    fontSize: 14, // placeholder 크기 조정
-                                    color: AppColors.textMuted,
-                                  ),
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  disabledBorder: InputBorder.none,
-                                  contentPadding: EdgeInsets.only(
-                                    left: 6,
-                                    right: 10,
-                                    top: 10,
-                                    bottom: 10,
-                                  ),
-                                  isDense: true,
-                                ),
+                        child: TextField(
+                          controller: _searchEmployeeController,
+                          textInputAction: TextInputAction.search,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                          onSubmitted: (_) => _fetch(),
+                          decoration: InputDecoration(
+                            labelText: '사번 or 성명',
+                            labelStyle: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            isDense: true,
+
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 9.5,
+                            ),
+
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
                               ),
                             ),
-                            Container(
-                              width: 1,
-                              color: Colors.grey.shade300,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
                             ),
-                            InkWell(
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+
+                            suffixIcon: InkWell(
                               onTap: _fetch,
                               child: Container(
-                                width: 42,
-                                height: double.infinity,
+                                width: 36,
                                 decoration: const BoxDecoration(
-                                  color: Color(0xFF1F3A5F), // 네이비
+                                  color: Color(0xFF1F3A5F),
                                   borderRadius: BorderRadius.only(
                                     topRight: Radius.circular(8),
                                     bottomRight: Radius.circular(8),
                                   ),
                                 ),
-                                alignment: Alignment.center,
                                 child: const Icon(
                                   Icons.search,
                                   color: Colors.white,
-                                  size: 20,
+                                  size: 18,
                                 ),
                               ),
                             ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
@@ -357,25 +383,36 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                           ),
                                         ],
                                       ),
-                                      Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.baseline,
-                                          textBaseline: TextBaseline.alphabetic,
-                                          children: [
-                                            const SizedBox(height: 10),
-                                            Text(
-                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))} ~ ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                      //두번째 Row (가로스크롤 적용)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                                            textBaseline: TextBaseline.alphabetic,
+                                            children: [
+                                              Text(
+                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))}'
+                                                ' ~ '
+                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
                                                 style: const TextStyle(
-                                                    fontSize: 13,
-                                                    fontWeight: FontWeight.w600)),
-                                            const SizedBox(width: 4),
-                                            Text('(${item.useDays}일) [$leaveTypeNm]',
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '(${item.useDays}일) [$leaveTypeNm]',
                                                 style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: AppColors.textMuted)),
-                                            // 1. 중간 빈 공간을 자동으로 가득 채워 우측 버튼을 끝으로 밀어냅니다.
-                                            const Spacer(),
-                                          ]),
+                                                  fontSize: 13,
+                                                  color: AppColors.textMuted,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                       Row(
                                           crossAxisAlignment:
                                               CrossAxisAlignment.baseline,
