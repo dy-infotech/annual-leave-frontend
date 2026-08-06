@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -262,7 +263,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
                       ),
                       padding:
-                          const EdgeInsets.symmetric(horizontal: 6), // 안쪽 여백
+                          const EdgeInsets.symmetric(horizontal: 4), // 안쪽 여백
                       child: DropdownButton<String?>(
                         value: _statusFilter,
                         items: statusOptions.map((option) {
@@ -297,27 +298,30 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Radio<String>(
-                                  value: label,
-                                  groupValue: _buttonLabel,
-                                  // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
+                                Transform.scale(
+                                  scale: 0.8, // 라디오 원 크기 축소
+                                  child: Radio<String>(
+                                    value: label,
+                                    groupValue: _buttonLabel,
+                                    // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
 
-                                  visualDensity: const VisualDensity(
-                                    horizontal: VisualDensity.minimumDensity,
-                                    vertical: VisualDensity.minimumDensity,
+                                    visualDensity: const VisualDensity(
+                                      horizontal: VisualDensity.minimumDensity,
+                                      vertical: VisualDensity.minimumDensity,
+                                    ),
+                                    // 2. 터치 영역 제한(48x48)을 풀어 글자와 완전히 밀착시킵니다.
+                                    materialTapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _buttonLabel = value!;
+                                        _setFilter(_statusFilter);
+                                      });
+                                    },
                                   ),
-                                  // 2. 터치 영역 제한(48x48)을 풀어 글자와 완전히 밀착시킵니다.
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _buttonLabel = value!;
-                                      _setFilter(_statusFilter);
-                                    });
-                                  },
                                 ),
-                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격(4px)을 지정합니다.
-                                const SizedBox(width: 2),
+                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격을 지정합니다.
+                                const SizedBox(width: 1),
                                 Text(label),
                               ],
                             ),
@@ -426,8 +430,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                               final item = _items[index];
                               final isProcessing =
                                   _processingIds.contains(item.requestId);
+                              final leaveTypeNm = LeaveType.getLabel(item.leaveType);
                               // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
-                              final Map<String, String> leaveTypeMap = {
+                              /* final Map<String, String> leaveTypeMap = {
                                 'FULL': '연차',
                                 'AM_HALF': '반차(오전)',
                                 'PM_HALF': '반차(오후)',
@@ -440,7 +445,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                               // 2. 현재 아이템의 휴가 종류 값을 가져와 매핑 (데이터 필드명에 맞게 item.leaveType 등으로 수정 가능)
                               final String rawType = item.leaveType ?? 'FULL';
                               final String leaveTypeNm =
-                                  leaveTypeMap[rawType] ?? rawType;
+                                  leaveTypeMap[rawType] ?? rawType; */
 
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
