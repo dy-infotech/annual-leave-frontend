@@ -12,6 +12,7 @@ import 'package:annual_leave_frontend/main.dart';
 import 'package:intl/intl.dart';
 
 import 'leave_request_detail_screen.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;
@@ -29,7 +30,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
   DateTimeRange? _dateRange;
-  String _buttonLabel = '전체'; //로드시 기본 버튼 라벨
+  String _buttonLabel = '전체'; //로드 시 기본 버튼 라벨
   final Set<int> _processingIds = {};
   // 오늘 날짜 구하기
   final DateTime _today = DateTime.now();
@@ -59,7 +60,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
         queryParams['status'] = _statusFilter;
       }
 
-      //기본 당해년도 조회 날짜 세팅
+      // 기본 당해년도 조회 날짜 세팅
       // 오늘 날짜가 속한 연도 구하기
       int year = _today.year;
 
@@ -116,8 +117,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   }
 
   bool _isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
-    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber)
+    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber) {
       return true;
+    }
 
     return false;
 
@@ -270,7 +272,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           return DropdownMenuItem<String?>(
                             value: option['value'],
                             child: Text(
-                              option['label']!, 
+                              option['label']!,
                               style: TextStyle(fontSize: 14)),
                           );
                         }).toList(),
@@ -287,7 +289,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                   const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
-                      // UI 코드 예시: 라디오 버튼 목록 만들기
+                      // 라디오 버튼 목록
                       Row(
                         mainAxisAlignment: MainAxisAlignment.start,
                         children: searchFilterList.map((item) {
@@ -330,6 +332,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
 
                       const SizedBox(width: 5), // 두 버튼 간격
+
                       ElevatedButton.icon(
                         onPressed: () {
                           _pickDateRange();
@@ -380,17 +383,17 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
             child: Row(
               //mainAxisAlignment: MainAxisAlignment.start,
-              // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
+              // 메인 축 정렬을 우측 정렬 설정
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
+                // 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시 (조회건수)
 
                 Text(
                   '${_items.length}건',
                   style: const TextStyle(
                     fontSize: 13,
-                    color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
-                    fontWeight: FontWeight.w700, // 숫자를 두껍게 처리하여 가독성을 높입니다.
+                    color: AppColors.slate,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -469,7 +472,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(color: AppColors.divider),
                                       ),
-                                      
+
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
