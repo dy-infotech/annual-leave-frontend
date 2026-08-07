@@ -120,11 +120,13 @@ class AppDrawer extends StatelessWidget {
                           adminTextColor: navyPrimary,
                           onTap: () => _navigate(
                               context, '/search_employee_number_screen')),
-                      _NavItem(
-                          label: '관리자 설정',
-                          isAdmin: true,
-                          adminTextColor: navyPrimary,
-                          onTap: () => _navigate(context, '/admin-settings')),
+                      // 조건 추가: 역할이 ADMIN이면서 동시에 포지션이 '사장'일 때만 노출
+                      if (info.position == '사장')
+                        _NavItem(
+                            label: '관리자 설정',
+                            isAdmin: true,
+                            adminTextColor: navyPrimary,
+                            onTap: () => _navigate(context, '/admin-settings')),
                     ],
                   ],
                 ),
