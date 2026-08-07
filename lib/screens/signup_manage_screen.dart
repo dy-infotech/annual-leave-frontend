@@ -1,6 +1,8 @@
 import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/screens/dashboard_screen.dart';
 import 'package:annual_leave_frontend/services/api_client.dart';
+import 'package:annual_leave_frontend/theme/app_theme.dart';
+import 'package:annual_leave_frontend/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -175,7 +177,8 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('신규 사원 등록')),
+      appBar: AppBar(title: const Text('사용자 등록 관리')),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -183,6 +186,11 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Text(
+                  '신규 사용자 정보를 등록합니다. \n 등록된 사용자는 사용 등록 후 로그인 가능합니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _employeeNameController,
@@ -287,28 +295,28 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedPosition = value;
                   },
                 ),
-                // const SizedBox(height: 12),
-                // DropdownButtonFormField<RoleType>(
-                //   decoration: const InputDecoration(
-                //     labelText: '역할 선택',
-                //     border: OutlineInputBorder(),
-                //   ),
-                //   value: _selectedManagerYn,
-                //   items: RoleType.values.map((role) {
-                //     return DropdownMenuItem<RoleType>(
-                //       value: role,
-                //       child: Text(role.label),
-                //     );
-                //   }).toList(),
-                //   onChanged: (value) {
-                //     setState(() {
-                //       _selectedManagerYn = value;
-                //     });
-                //   },
-                //   onSaved: (value) {
-                //     _selectedManagerYn = value;
-                //   },
-                // ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<RoleType>(
+                  decoration: const InputDecoration(
+                    labelText: '역할 선택',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedManagerYn,
+                  items: RoleType.values.map((role) {
+                    return DropdownMenuItem<RoleType>(
+                      value: role,
+                      child: Text(role.label),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedManagerYn = value;
+                    });
+                  },
+                  onSaved: (value) {
+                    _selectedManagerYn = value;
+                  },
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _emailController,
