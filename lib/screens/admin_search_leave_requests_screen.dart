@@ -1,9 +1,6 @@
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/screens/leave_request_detail_screen.dart';
-import 'package:dio/src/response.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../services/api_client.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
@@ -55,7 +52,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
       if (data.length >= 3) {
         _teamList.clear();
         _teamList.add('전체');  //전체 item 추가
-        _teamList.addAll(List<String>.from(data['team']));
+        _teamList.addAll(List<String>.from(data['accessibleTeam']));
         
       } else {
         // 데이터가 이상할 때 대비한 예외처리
@@ -101,12 +98,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
 
   void _setFilter(String? status) {
     _status = widget.filter! == 'admin_approved' ? "approved" : "rejected";
-
-    _fetch();
-  }
-
-  void _setTeamFilter(String? value) {
-    _selectedTeam = value;
 
     _fetch();
   }
@@ -199,8 +190,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                               _fetch();
                             }
                           },
-                          items: (_teamList == null ||
-                                  _teamList.isEmpty)
+                          items: (_teamList.isEmpty)
                               ? [
                                   const DropdownMenuItem<String>(
                                     value: '전체',
