@@ -299,9 +299,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                             ),
                           ),
                           onChanged: (String? newValue) {
-                            if (newValue != null) {
                               _setFilter(newValue);
-                            }
                           },
                           items: statusOptions.map((option) {
                             return DropdownMenuItem<String>(
