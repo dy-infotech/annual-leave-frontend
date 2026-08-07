@@ -254,37 +254,68 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    height: 40, // 원하는 높이로 조절
+                    width: MediaQuery.of(context).size.width * 0.23,
+                    //height: 40, // 원하는 높이로 조절
                     child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white, // 흰 바탕
-                        border: Border.all(
-                            color: Colors.grey.shade300), // 옅은 회색 테두리
-                        borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                       ),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4), // 안쪽 여백
-                      child: DropdownButton<String?>(
-                        value: _statusFilter,
-                        items: statusOptions.map((option) {
-                          return DropdownMenuItem<String?>(
-                            value: option['value'],
-                            child: Text(
-                              option['label']!,
-                              style: TextStyle(fontSize: 14)),
-                          );
-                        }).toList(),
-                        onChanged: (value) {
-                          _setFilter(value);
-                        },
-                        underline: SizedBox(), // 기본 밑줄 제거
-                        isExpanded: true,
-                        dropdownColor: Colors.white, // 드롭다운 목록도 흰색으로 맞춤
-                      ),
+                      child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _statusFilter,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.grey),
+                          alignment: Alignment.centerLeft,
+
+                          // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
+                          decoration: InputDecoration(
+                            labelText: '상태',
+                            labelStyle: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            isDense: true,
+
+                            // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
+                            // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 9.5),
+
+                            // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              _setFilter(newValue);
+                            }
+                          },
+                          items: statusOptions.map((option) {
+                            return DropdownMenuItem<String>(
+                              value: option['value'],
+                              child: Text(
+                                option['label']!,
+                                style: const TextStyle(fontSize: 14),
+                              ),
+                            );
+                          }).toList(),
+                        ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  //const SizedBox(width: 5),
                   const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
