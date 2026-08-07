@@ -455,9 +455,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
                           _buildRow(
                               '부서',
-                              (_isEditing &&
+                              _isEditing &&
                                       authProvider.employeeInfo?.position ==
-                                          '사장')
+                                          '사장' &&
+                                      widget.employee.position != '사장'
                                   ? DropdownButtonFormField<String>(
                                       value: _departmentList
                                               .contains(_selectedDepartment)
@@ -502,7 +503,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               '팀',
                               (_isEditing &&
                                       authProvider.employeeInfo?.position ==
-                                          '사장')
+                                          '사장' &&
+                                      widget.employee.position != '사장')
                                   ? DropdownButtonFormField<String>(
                                       value: (_selectedTeam != '기타' &&
                                               _teamList.contains(_selectedTeam))
@@ -544,54 +546,13 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                                   vertical: 12)),
                                     )),
 
-                          // _buildRow(
-                          //     '직급',
-                          //     _isEditing
-                          //         ? DropdownButtonFormField<String>(
-                          //             value: _positionList
-                          //                     .contains(_selectedPosition)
-                          //                 ? _selectedPosition
-                          //                 : null,
-                          //             items: _positionList
-                          //                 .map((d) => DropdownMenuItem(
-                          //                     value: d,
-                          //                     child: Text(d,
-                          //                         style: const TextStyle(
-                          //                             color: Colors.black))))
-                          //                 .toList(),
-                          //             onChanged: (val) => setState(
-                          //                 () => _selectedPosition = val),
-                          //             decoration: const InputDecoration(
-                          //                 isDense: true,
-                          //                 contentPadding: EdgeInsets.symmetric(
-                          //                     horizontal: 12, vertical: 10),
-                          //                 border: OutlineInputBorder()),
-                          //             validator: (val) =>
-                          //                 val == null ? '직급을 선택해 주세요.' : null,
-                          //           )
-                          //         : TextFormField(
-                          //             initialValue: _selectedPosition ?? '-',
-                          //             readOnly: true,
-                          //             style: const TextStyle(
-                          //                 fontSize: 14, color: Colors.black),
-                          //             decoration: InputDecoration(
-                          //                 isDense: true,
-                          //                 filled: true,
-                          //                 fillColor: Colors.grey.shade50,
-                          //                 border: const OutlineInputBorder(
-                          //                     borderSide: BorderSide(
-                          //                         color: Colors.transparent)),
-                          //                 contentPadding:
-                          //                     const EdgeInsets.symmetric(
-                          //                         horizontal: 12,
-                          //                         vertical: 12)),
-                          //           )),
-
                           _buildRow(
                             '직급',
                             // 편집 모드이고, 현재 선택된 직급이 '사장'일 때만 Dropdown 표시
                             (_isEditing &&
-                                    authProvider.employeeInfo?.position == '사장')
+                                    authProvider.employeeInfo?.position ==
+                                        '사장' &&
+                                    widget.employee.position != '사장')
                                 ? DropdownButtonFormField<String>(
                                     value: _positionList
                                             .contains(_selectedPosition)
@@ -733,7 +694,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               '퇴사일',
                               (_isEditing &&
                                       authProvider.employeeInfo?.position ==
-                                          '사장')
+                                          '사장' &&
+                                      widget.employee.position != '사장')
                                   ? TextFormField(
                                       controller:
                                           _fireDateController, // ⭕ 수정 모드 매핑
