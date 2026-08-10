@@ -23,10 +23,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   String? _selectedManagedTeam; // 선택된 관리자 팀
   bool _isLoading = false;
 
+  final TextEditingController _employeeInfoController = TextEditingController();  //사용자 이름
+  final ScrollController _employeeScrollController = ScrollController();          //스크롤 컨트롤러
+
   @override
   void initState() {
     super.initState();
     _fetchEmployees();
+  }
+
+  @override
+  void dispose() {
+    //스크롤 해제
+    _employeeScrollController.dispose();
+    super.dispose();
   }
 
   // 1️⃣ 사원 전체 목록 로드 (왼쪽 컬럼용)
@@ -51,7 +61,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드 (중앙/우측 컬럼용)
+  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드 
   Future<void> _fetchEmployeeTeams() async {
     if (_selectedEmployee == null) return;
     try {
@@ -140,8 +150,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송 ( > 버튼 )
-  Future<void> _promoteToAdmin() async {
+  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송 
+  /* Future<void> _promoteToAdmin() async {
     if (_selectedEmployee == null || _selectedGeneralTeam == null) return;
     try {
       await ApiClient().dio.put(
@@ -165,7 +175,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-// 4️⃣ [스위칭 API 연동] 관리자 -> 일반으로 강등 전송 ( < 버튼 )
+// 4️⃣ [스위칭 API 연동] 관리자 -> 일반으로 강등 전송 
   Future<void> _demoteToGeneral() async {
     if (_selectedEmployee == null || _selectedManagedTeam == null) return;
     try {
@@ -189,9 +199,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       print('강등 에러: $e');
     }
-  }
+  } */
 
   void toggleChangedTeam(String team) {
+    
     setState(() {
       if (!_changedTeams.remove(team)) {
         _changedTeams.add(team);
@@ -237,7 +248,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await ApiClient().dio.put(
+      final saveResponse = await ApiClient().dio.put(
         '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
         data: {
           'name': _selectedEmployee!.name,
@@ -250,17 +261,21 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         },
       );
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
-      );
+      if (saveResponse.statusCode == 200 || saveResponse.statusCode == 204) {
+        /* ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
+        ); */
 
-      _fetchEmployees(); // 완료 후 리스트 리프레시
+        _fetchEmployees(); // 완료 후 리스트 리프레시
+      }
+      
     } catch (e) {
       print('권한 설정 저장 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('저장 중 오류가 발생했습니다.')),
       );
     } finally {
+      _changedTeams = {};
       setState(() => _isLoading = false);
     }
   }
@@ -274,19 +289,20 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.slate))
           : Padding(
-              padding: const EdgeInsets.all(24.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 // 💡 Row를 Column으로 감싸서 하단 공간을 확보합니다.
                 children: [
                   Expanded(
-                    child: Row(
+                    child: Column(
                       children: [
                         // 📄 [왼쪽 컬럼] 사용자 (이름/아이디)
                         Expanded(
                           flex: 3,
                           child: _buildPanel(
-                            title: '사용자 목록',
+                            title: '사용자 선택',
                             child: ListView.builder(
+                              controller: _employeeScrollController,
                               itemCount: _employees.length,
                               itemBuilder: (context, index) {
                                 final emp = _employees[index];
@@ -296,7 +312,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                                 return Container(
                                   margin: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                    horizontal: 6,
+                                    vertical: 0, // 🔽 리스트 간 간격 제거
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.transparent,
                                     borderRadius: BorderRadius.circular(8),
@@ -309,12 +327,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                   child: ListTile(
                                     selected: isSelected,
                                     selectedTileColor: Colors.transparent,
-                                    // 🎯 title 영역 하나에 Column을 넣어 세 줄로 정렬합니다.
-                                    title: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start, // 왼쪽 정렬
+                                    dense: true, // 🔥 높이 축소
+                                    visualDensity: const VisualDensity(
+                                      vertical: -4, // 🔥 세로 간격 축소
+                                    ),
+                                    title: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      textBaseline: TextBaseline.alphabetic,
                                       children: [
-                                        // 1. 이름
                                         Text(
                                           emp.name,
                                           style: TextStyle(
@@ -325,10 +345,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                                 : Colors.black87,
                                           ),
                                         ),
-                                        const SizedBox(
-                                            height: 4), // 텍스트 사이 간격 조정
-
-                                        // 2. 직급
+                                        const SizedBox(width: 6),
                                         Text(
                                           emp.position,
                                           style: TextStyle(
@@ -339,9 +356,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                                 : Colors.black54,
                                           ),
                                         ),
-                                        const SizedBox(height: 4),
-
-                                        // 3. 사번
+                                        const SizedBox(width: 6),
                                         Text(
                                           emp.employeeNumber,
                                           style: TextStyle(
@@ -353,10 +368,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         ),
                                       ],
                                     ),
-
                                     onTap: () {
                                       setState(() {
                                         _selectedEmployee = emp;
+                                        _employeeInfoController.text = '${emp.name} ${emp.position} ${emp.employeeNumber}';
                                       });
                                       _fetchEmployeeTeams();
                                     },
@@ -366,39 +381,81 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 16),
+                        const SizedBox(height: 8),
 
                         // 📄 [중앙 컬럼] 일반 팀 목록
                         Expanded(
-                          flex: 3,
+                          flex: 4,
                           child: _buildPanel(
-                            title: '일반팀 목록',
+                            title: '팀 목록',
                             child: ListView.builder(
                               itemCount: _generalTeams.length,
                               itemBuilder: (context, index) {
                                 final team = _generalTeams[index];
                                 final isSelected = _selectedGeneralTeam == team;
-                                return ListTile(
-                                  selected: isSelected,
-                                  selectedTileColor: Colors.orange.shade50,
-                                  title: Text(team,
-                                      style: const TextStyle(fontSize: 14)),
-                                  onTap: () {
+                                
+                                return GestureDetector(
+                                  onDoubleTap: () {
                                     setState(() {
                                       _selectedGeneralTeam = team;
                                       _selectedManagedTeam = null;
                                     });
+                                    if(_selectedGeneralTeam != null) {
+                                      _moveToAdmin();
+                                    }
                                   },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isSelected
+                                          ? Border.all(
+                                              color: const Color(0xFFFFDAB9),
+                                              width: 2.0,
+                                            )
+                                          : null,
+                                    ),
+                                    child: ListTile(
+                                      dense: true,
+                                      visualDensity: const VisualDensity(
+                                        vertical: -4,
+                                      ),
+                                      selected: isSelected,
+                                      selectedTileColor: Colors.orange.shade50,
+                                      title: Text(
+                                        team,
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                          color: isSelected
+                                              ? const Color(0xFFE97451)
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedGeneralTeam = team;
+                                          _selectedManagedTeam = null;
+                                        });
+                                      },
+                                    ),
+                                  ),
                                 );
                               },
                             ),
                           ),
                         ),
+                        const SizedBox(height: 8),
 
-                        // 📄 [중앙 화살표 제어부] < > 제어 컨트롤러 버튼 영역
+                        // 📄 [중앙 화살표 제어부] 컨트롤러 버튼 영역
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Column(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
@@ -406,50 +463,84 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                     ? _moveToAdmin
                                     : null,
                                 style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(36, 36), // 버튼 크기
                                     backgroundColor: const Color(0xFF1F3A5F),
-                                    padding: const EdgeInsets.all(12)),
-                                child: const Icon(Icons.chevron_right,
+                                    padding: const EdgeInsets.all(8)),
+                                child: const Icon(Icons.keyboard_double_arrow_down_sharp,
                                     color: Colors.white),
                               ),
-                              const SizedBox(height: 20),
+                              const SizedBox(width: 8),
                               ElevatedButton(
                                 onPressed: _selectedManagedTeam != null
                                     ? _moveToGeneral
                                     : null,
                                 style: ElevatedButton.styleFrom(
+                                    minimumSize: const Size(36, 36), // 버튼 크
                                     backgroundColor: Colors.grey.shade700,
-                                    padding: const EdgeInsets.all(12)),
-                                child: const Icon(Icons.chevron_left,
+                                    padding: const EdgeInsets.all(8)),
+                                child: const Icon(Icons.keyboard_double_arrow_up_sharp,
                                     color: Colors.white),
                               ),
                             ],
                           ),
                         ),
+                        const SizedBox(height: 8),
 
                         // 📄 [우측 컬럼] 관리자 팀 목록
                         Expanded(
-                          flex: 3,
+                          flex: 4,
                           child: _buildPanel(
-                            title: '관리팀 목록',
+                            title: '관리팀',
                             child: ListView.builder(
                               itemCount: _managedTeams.length,
                               itemBuilder: (context, index) {
                                 final team = _managedTeams[index];
                                 final isSelected = _selectedManagedTeam == team;
-                                return ListTile(
-                                  selected: isSelected,
-                                  selectedTileColor: Colors.green.shade50,
-                                  title: Text(team,
-                                      style: const TextStyle(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.green)),
-                                  onTap: () {
+                                return GestureDetector(
+                                  onDoubleTap: () {
                                     setState(() {
                                       _selectedManagedTeam = team;
                                       _selectedGeneralTeam = null;
                                     });
+                                    // 두 번 탭 이벤트 처리
+                                    if(_selectedManagedTeam != null){
+                                      _moveToGeneral();
+                                    }
                                   },
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 0, // 🔽 리스트 간 간격 제거
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.transparent,
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: isSelected
+                                          ? Border.all(
+                                              color: const Color(0xFFFFDAB9),
+                                              width: 2.0)
+                                          : null,
+                                    ),
+                                    child: ListTile(
+                                      dense: true, // 🔥 높이 축소
+                                      visualDensity: const VisualDensity(
+                                        vertical: -4, // 🔥 세로 간격 축소
+                                      ),
+                                      selected: isSelected,
+                                      selectedTileColor: Colors.green.shade50,
+                                      title: Text(team,
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: Colors.green)),
+                                      onTap: () {
+                                        setState(() {
+                                          _selectedManagedTeam = team;
+                                          _selectedGeneralTeam = null;
+                                        });
+                                      },
+                                    ),
+                                  ),
                                 );
                               },
                             ),
@@ -458,7 +549,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 16),
 
                   // 🎯 화면 최하단 우측 정렬 저장 버튼 영역
                   Row(
@@ -506,7 +597,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.grey.shade100,
               borderRadius: const BorderRadius.only(
@@ -515,18 +606,80 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
               ),
               border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
             ),
-            child: Text(
-              title,
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-                fontSize: 14,
-              ),
-            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                    fontSize: 14,
+                  ),
+                ),
+                if (title == "사용자 선택") ...[
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: SizedBox(
+                      height: 28,
+                      child: TextField(
+                        controller: _employeeInfoController,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(fontSize: 12),
+                        decoration: InputDecoration(
+                          hintText: '사용자 이름 입력 또는 선택',
+                          hintStyle: const TextStyle(
+                            fontSize: 12,
+                          ),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 10,
+                          ),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                        ),
+                        onChanged: _selectEmployeeByName,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            )
           ),
           Expanded(child: child),
         ],
       ),
+    );
+  }
+
+  void _selectEmployeeByName(String value) {
+    final keyword = value.trim();
+
+    final index = _employees.indexWhere(
+      (e) => e.name == keyword,
+    );
+
+    if (index == -1) return;
+
+    setState(() {
+      _selectedEmployee = _employees[index];
+    });
+
+    _fetchEmployeeTeams();
+
+    _scrollToEmployee(index);
+  }
+
+  void _scrollToEmployee(int index) {
+    const double itemHeight = 35.0; // 한 행의 실제 높이에 맞게 조정
+
+    _employeeScrollController.animateTo(
+      index * itemHeight,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
     );
   }
 } // 💡 State 클래스를 완전히 종료하는 마지막 중괄호입니다.
