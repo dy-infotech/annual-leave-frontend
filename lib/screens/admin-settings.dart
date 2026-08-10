@@ -61,7 +61,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드 (중앙/우측 컬럼용)
+  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드 
   Future<void> _fetchEmployeeTeams() async {
     if (_selectedEmployee == null) return;
     try {
@@ -150,8 +150,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송 ( > 버튼 )
-  Future<void> _promoteToAdmin() async {
+  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송 
+  /* Future<void> _promoteToAdmin() async {
     if (_selectedEmployee == null || _selectedGeneralTeam == null) return;
     try {
       await ApiClient().dio.put(
@@ -175,7 +175,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-// 4️⃣ [스위칭 API 연동] 관리자 -> 일반으로 강등 전송 ( < 버튼 )
+// 4️⃣ [스위칭 API 연동] 관리자 -> 일반으로 강등 전송 
   Future<void> _demoteToGeneral() async {
     if (_selectedEmployee == null || _selectedManagedTeam == null) return;
     try {
@@ -199,7 +199,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } catch (e) {
       print('강등 에러: $e');
     }
-  }
+  } */
 
   void toggleChangedTeam(String team) {
     
@@ -248,7 +248,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final response = await ApiClient().dio.put(
+      final saveResponse = await ApiClient().dio.put(
         '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
         data: {
           'name': _selectedEmployee!.name,
@@ -261,10 +261,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         },
       );
 
-      if (response.statusCode == 200 || response.statusCode == 204) {
-        ScaffoldMessenger.of(context).showSnackBar(
+      if (saveResponse.statusCode == 200 || saveResponse.statusCode == 204) {
+        /* ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
-        );
+        ); */
 
         _fetchEmployees(); // 완료 후 리스트 리프레시
       }
@@ -275,6 +275,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         const SnackBar(content: Text('저장 중 오류가 발생했습니다.')),
       );
     } finally {
+      _changedTeams = {};
       setState(() => _isLoading = false);
     }
   }
@@ -297,7 +298,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       children: [
                         // 📄 [왼쪽 컬럼] 사용자 (이름/아이디)
                         Expanded(
-                          flex: 4,
+                          flex: 3,
                           child: _buildPanel(
                             title: '사용자 선택',
                             child: ListView.builder(
@@ -384,7 +385,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                         // 📄 [중앙 컬럼] 일반 팀 목록
                         Expanded(
-                          flex: 3,
+                          flex: 4,
                           child: _buildPanel(
                             title: '팀 목록',
                             child: ListView.builder(
@@ -487,7 +488,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
                         // 📄 [우측 컬럼] 관리자 팀 목록
                         Expanded(
-                          flex: 2,
+                          flex: 4,
                           child: _buildPanel(
                             title: '관리팀',
                             child: ListView.builder(
