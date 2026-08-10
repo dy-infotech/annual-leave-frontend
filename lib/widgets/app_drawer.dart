@@ -57,7 +57,7 @@ class AppDrawer extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${info?.department ?? ''} · ${info?.employeeNumber ?? ''}',
+                            '${info?.team ?? ''} · ${info?.employeeNumber ?? ''}',
                             style: const TextStyle(
                                 fontSize: 12.5, color: AppColors.textMuted),
                           ),
