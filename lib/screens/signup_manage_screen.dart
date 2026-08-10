@@ -317,6 +317,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedPosition = value;
                   },
                 ),
+
                 const SizedBox(height: 12),
                 DropdownButtonFormField<RoleType>(
                   decoration: const InputDecoration(
@@ -324,7 +325,17 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     border: OutlineInputBorder(),
                   ),
                   value: _selectedManagerYn,
-                  items: RoleType.values.map((role) {
+                  // where 필터를 적용하여 '사장'이 아닐 때는 리스트에서 '관리자(admin)'를 숨깁니다.
+                  items: RoleType.values.where((role) {
+                    // ⚠️ 프로젝트의 RoleType 정의에 맞게 변경하세요 (예: admin 대신 manager 등)
+                    final bool isManagerRole = role == RoleType.admin;
+                    final bool isNotCeo = _selectedPosition != "사장";
+
+                    if (isManagerRole && isNotCeo) {
+                      return false; // 사장이 아니라면 관리자 아이템은 콤보 리스트에서 제외
+                    }
+                    return true;
+                  }).map((role) {
                     return DropdownMenuItem<RoleType>(
                       value: role,
                       child: Text(role.label),
@@ -339,6 +350,29 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedManagerYn = value;
                   },
                 ),
+
+                // DropdownButtonFormField<RoleType>(
+                //   decoration: const InputDecoration(
+                //     labelText: '역할 선택',
+                //     border: OutlineInputBorder(),
+                //   ),
+                //   value: _selectedManagerYn,
+                //   items: RoleType.values.map((role) {
+                //     return DropdownMenuItem<RoleType>(
+                //       value: role,
+                //       child: Text(role.label),
+                //     );
+                //   }).toList(),
+                //   onChanged: (value) {
+                //     setState(() {
+                //       _selectedManagerYn = value;
+                //     });
+                //   },
+                //   onSaved: (value) {
+                //     _selectedManagerYn = value;
+                //   },
+                // ),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: _emailController,
