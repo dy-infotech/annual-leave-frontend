@@ -3,7 +3,7 @@ class Employee {
   final String name;
   final String position;
   final String department;
-  final String? team;
+  final String team;
   final List<String>? teamList;
   final String? hireDate;
   final String? fireDate;
@@ -72,6 +72,7 @@ class Employee {
       String? name,
       String? position,
       String? department,
+      String? team,
       String? hireDate,
       String? fireDate,
       String? role,

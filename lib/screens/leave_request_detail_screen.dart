@@ -85,6 +85,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
           _row('사번', d.employeeNumber),
           _row('이름', '${d.employeeName} ${d.position}'),
           _row('부서', d.department),
+          _row('소속팀', d.team),
         ]),
         const SizedBox(height: 20),
         // 2. 신청 내역
@@ -94,22 +95,6 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
           _row('휴가 기간',
               '${_formatDate(d.startDate)} ~ ${_formatDate(d.endDate)}'),
           _row('사용 연차', '${d.useDays}일'),
-          // 상태는 배지로
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Row(
-              children: [
-                const SizedBox(
-                    width: 80,
-                    child: Text('상태',
-                        style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.textMuted,
-                            fontWeight: FontWeight.w600))),
-                LeaveStatusBadge(status: d.status),
-              ],
-            ),
-          ),
           // 사유는 권한 있을 때(null 아님)만 표시
           // if (d.leaveReason != null) _row('사유', d.leaveReason!),
           // 사유 표시 (권한 있을때만 내용 표시)
@@ -126,6 +111,22 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   ? DateFormat('yyyy.MM.dd')
                       .format(DateTime.parse(d.createdAt.toString()))
                   : '-'),
+          // 상태는 배지로
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                const SizedBox(
+                    width: 80,
+                    child: Text('상태',
+                        style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                            fontWeight: FontWeight.w600))),
+                LeaveStatusBadge(status: d.status),
+              ],
+            ),
+          ),
         ]),
 
         const SizedBox(height: 20),
@@ -138,6 +139,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   _row('사번', d.approverNumber ?? '-'),
                   _row('이름', '${d.approverName} ${d.approverPosition ?? ''}'),
                   _row('부서', d.approverDepartment ?? '-'),
+                  _row('소속팀', d.team ?? '-'),
                   _row(
                       '결재일',
                       (d.managedAt == null || d.managedAt.toString() == 'null')
