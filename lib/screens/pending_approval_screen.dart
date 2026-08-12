@@ -212,7 +212,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         !_isLoading && _errorMessage == null && _requests.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('승인 대기 목록')),
+      appBar: AppBar(title: const Text('결재 대기 목록')),
       drawer: const AppDrawer(),
       body: RefreshIndicator(onRefresh: _fetchPendingList, child: _buildBody()),
       bottomNavigationBar: showBottomBar ? _buildBottomAppBar() : null,

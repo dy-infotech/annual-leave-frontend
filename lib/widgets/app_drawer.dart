@@ -104,7 +104,7 @@ class AppDrawer extends StatelessWidget {
                         ),
                       ),
                       _NavItem(
-                          label: '승인 대기 목록',
+                          label: '결재 대기 목록',
                           isAdmin: true,
                           adminTextColor: navyPrimary,
                           onTap: () => _navigate(context, '/pending-approval')),
