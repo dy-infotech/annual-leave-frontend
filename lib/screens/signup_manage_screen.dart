@@ -175,6 +175,13 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
+    // 1. [상태 변수 선언부] 현재 로그인한 사용자의 실제 데이터 정보가 담겨있다고 가정합니다.
+    final String currentUserPosition =
+        info != null ? info.position.toString() : ''; //"사장"; // 현재 접속자의 직급
+    final String currentUserRole = info != null ? info.role.toString() : '';
+
+    //final RoleType currentUserRole = RoleType.admin; // 현재 접속자의 역할 (관리자)
+
     String userPosition = info != null ? info.position : '';
     if (auth.isAdmin && userPosition == "사장" && !_teamList.contains('기타')) {
       //신규 팀 정보 생성 시 필요
@@ -318,6 +325,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                   },
                 ),
 
+                // 역할 선택
                 const SizedBox(height: 12),
                 DropdownButtonFormField<RoleType>(
                   decoration: const InputDecoration(
@@ -325,14 +333,20 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     border: OutlineInputBorder(),
                   ),
                   value: _selectedManagerYn,
-                  // where 필터를 적용하여 '사장'이 아닐 때는 리스트에서 '관리자(admin)'를 숨깁니다.
-                  items: RoleType.values.where((role) {
-                    // ⚠️ 프로젝트의 RoleType 정의에 맞게 변경하세요 (예: admin 대신 manager 등)
-                    final bool isManagerRole = role == RoleType.admin;
-                    final bool isNotCeo = _selectedPosition != "사장";
 
-                    if (isManagerRole && isNotCeo) {
-                      return false; // 사장이 아니라면 관리자 아이템은 콤보 리스트에서 제외
+                  // 변경 포인트: 화면 선택 값이 아닌 '현재 접속자 정보'를 기준으로 필터링합니다.
+                  items: RoleType.values.where((role) {
+                    // 1. 리스트 아이템 중 검사 중인 항목이 관리자(admin)인지 확인
+                    final bool isManagerItem = role == RoleType.admin;
+
+                    // 2. 현재 접속자가 사장이면서 동시에 관리자인지 권한 확인
+                    final bool isCurrentUserCeoAndAdmin =
+                        (currentUserPosition == "사장" &&
+                            currentUserRole == "ADMIN");
+
+                    // 3. 만약 관리자 아이템인데, 현재 접속자가 [사장 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
+                    if (isManagerItem && !isCurrentUserCeoAndAdmin) {
+                      return false;
                     }
                     return true;
                   }).map((role) {
@@ -350,28 +364,6 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedManagerYn = value;
                   },
                 ),
-
-                // DropdownButtonFormField<RoleType>(
-                //   decoration: const InputDecoration(
-                //     labelText: '역할 선택',
-                //     border: OutlineInputBorder(),
-                //   ),
-                //   value: _selectedManagerYn,
-                //   items: RoleType.values.map((role) {
-                //     return DropdownMenuItem<RoleType>(
-                //       value: role,
-                //       child: Text(role.label),
-                //     );
-                //   }).toList(),
-                //   onChanged: (value) {
-                //     setState(() {
-                //       _selectedManagerYn = value;
-                //     });
-                //   },
-                //   onSaved: (value) {
-                //     _selectedManagerYn = value;
-                //   },
-                // ),
 
                 const SizedBox(height: 12),
                 TextField(
