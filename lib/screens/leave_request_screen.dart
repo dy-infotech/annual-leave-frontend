@@ -522,7 +522,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         const Text('신청자',
                             style: TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 14)),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Expanded(
                           child: Container(
                             width: double.infinity,
@@ -533,39 +533,35 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: AppColors.slate),
                             ),
+                            // 결재자 Container 내부 child 구역 (기존 authProvider 변수명 그대로 유지)
+// 결재자 Container 내부 child 구역 (기존 변수명 100% 동일하게 유지)
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                if (authProvider != null)
-                                  Row(
-                                    children: [
-                                      // 이름과 직급 (좌측 고정, 크고 진하게)
-                                      Text(
-                                        '${authProvider.name} ${authProvider.position}',
-                                        style: const TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppColors.textPrimary),
-                                      ),
-
-                                      // 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냄
-                                      const Expanded(child: SizedBox()),
-
-                                      // 팀 정보 (우측 끝 고정, 작고 연하게)
-                                      Text(
-                                        authProvider.team,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppColors.textMuted,
-                                            fontWeight: FontWeight.w400),
-                                      ),
-                                      const SizedBox(
-                                          width: 4), // 우측 테두리와의 최소 여백
-                                    ],
+                                if (authProvider != null) ...[
+                                  // 1번째 행: 이름과 직급 (기존 변수 그대로)
+                                  Text(
+                                    '${authProvider.name} ${authProvider.position}',
+                                    style: const TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        color: AppColors.textPrimary),
                                   ),
-                                const SizedBox(height: 3),
+
+                                  const SizedBox(height: 4), // 위아래 간격
+
+                                  // 2번째 행: 부서 정보 (기존 변수 그대로, 아랫줄로 이동)
+                                  Text(
+                                    authProvider.team,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                    style: const TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textMuted,
+                                        fontWeight: FontWeight.w400),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -584,7 +580,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         const Text('결재자',
                             style: TextStyle(
                                 fontWeight: FontWeight.w700, fontSize: 14)),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
                         Expanded(
                           child: Stack(
                             fit: StackFit.passthrough,
@@ -602,40 +598,35 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    if (authProvider != null)
-                                      Row(
-                                        children: [
-                                          // 이름과 직급 (좌측 고정, 크고 진하게)
-                                          Text(
-                                            '${authProvider.approverName} ${authProvider.approverPosition}',
-                                            style: const TextStyle(
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.w800,
-                                                color: AppColors.textPrimary),
-                                          ),
-
-                                          // 중간 빈 공간을 다 차지하여 부서 정보를 우측 끝으로 밀어냄
-                                          const Expanded(child: SizedBox()),
-
-                                          // 부서 정보 (우측 끝 고정, 작고 연하게)
-                                          Text(
-                                            authProvider.team,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                                fontSize: 12,
-                                                color: AppColors.textMuted,
-                                                fontWeight: FontWeight.w400),
-                                          ),
-                                          const SizedBox(
-                                              width: 4), // 우측 테두리와의 최소 여백
-                                        ],
+                                    if (authProvider != null) ...[
+                                      // 1번째 행: 이름과 직급 (기존 변수명 100% 유지, 크고 진하게)
+                                      Text(
+                                        '${authProvider.approverName} ${authProvider.approverPosition}',
+                                        style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
+                                            color: AppColors.textPrimary),
                                       ),
-                                    const SizedBox(height: 3),
+
+                                      // 행 사이의 깔끔한 세로 간격 확보
+                                      const SizedBox(height: 4),
+
+                                      // 2번째 행: 부서 정보 (아랫줄로 안전하게 이동, 작고 연하게)
+                                      Text(
+                                        authProvider.team,
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1, // 긴 부서 이름 깨짐 방지 안전장치
+                                        style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppColors.textMuted,
+                                            fontWeight: FontWeight.w400),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
 
-                              // 우측 상단 호버 툴팁
+                              // 우측 상단 호버 툴팁 (기존 코드 그대로 유지)
                               Positioned(
                                 top: 0,
                                 right: 0,
@@ -654,7 +645,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                                   ),
                                 ),
                               ),
-                            ],
+                            ], // 대괄호 마무리 구역
                           ),
                         ),
                       ],
@@ -664,7 +655,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
 
             // 인라인 캘린더
             Row(

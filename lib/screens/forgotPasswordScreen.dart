@@ -157,7 +157,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '등록된 가입 정보(성함, 이메일)를 입력하시면\n아이디를 확인할 수 있습니다.',
+              '등록된 가입 정보(성함, 이메일)를 입력하시면 \n 아이디를 빌송해 드립니다.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textPrimary),
             ),
@@ -236,7 +236,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '등록된 사번과 이메일을 입력하시면\n임시 비밀번호(또는 링크)를 발송해 드립니다.',
+              '등록된 사번과 이메일을 입력하시면\n임시 비밀번호를 발송해 드립니다.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textPrimary),
             ),
