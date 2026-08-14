@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         title: '연차 관리',
+        debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,
         locale: const Locale('ko', 'KR'),
         localizationsDelegates: const [
@@ -89,7 +90,7 @@ class MyApp extends StatelessWidget {
           //사용자 사번 조회 화면
           '/search_employee_number_screen': (context) =>
               const SearchEmployeeNumberScreen(),
-          //관리자 설정 화면
+          //관리자별 관리팀 설정 화면
           '/admin-settings': (context) => const AdminSettingsScreen(),
 
           // 내 정보 화면

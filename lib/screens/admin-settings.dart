@@ -23,8 +23,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   String? _selectedManagedTeam; // 선택된 관리자 팀
   bool _isLoading = false;
 
-  final TextEditingController _employeeInfoController = TextEditingController();  //사용자 이름
-  final ScrollController _employeeScrollController = ScrollController();          //스크롤 컨트롤러
+  final TextEditingController _employeeInfoController =
+      TextEditingController(); //사용자 이름
+  final ScrollController _employeeScrollController =
+      ScrollController(); //스크롤 컨트롤러
 
   @override
   void initState() {
@@ -61,7 +63,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드 
+  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드
   Future<void> _fetchEmployeeTeams() async {
     if (_selectedEmployee == null) return;
     try {
@@ -150,7 +152,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     }
   }
 
-  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송 
+  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송
   /* Future<void> _promoteToAdmin() async {
     if (_selectedEmployee == null || _selectedGeneralTeam == null) return;
     try {
@@ -202,7 +204,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   } */
 
   void toggleChangedTeam(String team) {
-    
     setState(() {
       if (!_changedTeams.remove(team)) {
         _changedTeams.add(team);
@@ -268,7 +269,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
         _fetchEmployees(); // 완료 후 리스트 리프레시
       }
-      
     } catch (e) {
       print('권한 설정 저장 실패: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -283,7 +283,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('관리자 설정')),
+      appBar: AppBar(title: const Text('관리자별 관리팀 설정')),
       drawer: const AppDrawer(),
       body: _isLoading
           ? const Center(
@@ -332,7 +332,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                       vertical: -4, // 🔥 세로 간격 축소
                                     ),
                                     title: Row(
-                                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.baseline,
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
@@ -371,7 +372,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                     onTap: () {
                                       setState(() {
                                         _selectedEmployee = emp;
-                                        _employeeInfoController.text = '${emp.name} ${emp.position} ${emp.employeeNumber}';
+                                        _employeeInfoController.text =
+                                            '${emp.name} ${emp.position} ${emp.employeeNumber}';
                                       });
                                       _fetchEmployeeTeams();
                                     },
@@ -393,14 +395,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                               itemBuilder: (context, index) {
                                 final team = _generalTeams[index];
                                 final isSelected = _selectedGeneralTeam == team;
-                                
+
                                 return GestureDetector(
                                   onDoubleTap: () {
                                     setState(() {
                                       _selectedGeneralTeam = team;
                                       _selectedManagedTeam = null;
                                     });
-                                    if(_selectedGeneralTeam != null) {
+                                    if (_selectedGeneralTeam != null) {
                                       _moveToAdmin();
                                     }
                                   },
@@ -410,7 +412,6 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                       vertical: 0,
                                     ),
                                     decoration: BoxDecoration(
-                                      
                                       color: Colors.transparent,
                                       borderRadius: BorderRadius.circular(8),
                                       border: isSelected
@@ -466,7 +467,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                     minimumSize: const Size(36, 36), // 버튼 크기
                                     backgroundColor: const Color(0xFF1F3A5F),
                                     padding: const EdgeInsets.all(8)),
-                                child: const Icon(Icons.keyboard_double_arrow_down_sharp,
+                                child: const Icon(
+                                    Icons.keyboard_double_arrow_down_sharp,
                                     color: Colors.white),
                               ),
                               const SizedBox(width: 8),
@@ -478,7 +480,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                     minimumSize: const Size(36, 36), // 버튼 크
                                     backgroundColor: Colors.grey.shade700,
                                     padding: const EdgeInsets.all(8)),
-                                child: const Icon(Icons.keyboard_double_arrow_up_sharp,
+                                child: const Icon(
+                                    Icons.keyboard_double_arrow_up_sharp,
                                     color: Colors.white),
                               ),
                             ],
@@ -503,7 +506,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                       _selectedGeneralTeam = null;
                                     });
                                     // 두 번 탭 이벤트 처리
-                                    if(_selectedManagedTeam != null){
+                                    if (_selectedManagedTeam != null) {
                                       _moveToGeneral();
                                     }
                                   },
@@ -596,59 +599,58 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade100,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(10),
-                topRight: Radius.circular(10),
-              ),
-              border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                    fontSize: 14,
-                  ),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
                 ),
-                if (title == "사용자 선택") ...[
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: SizedBox(
-                      height: 28,
-                      child: TextField(
-                        controller: _employeeInfoController,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(fontSize: 12),
-                        decoration: InputDecoration(
-                          hintText: '사용자 이름 입력 또는 선택',
-                          hintStyle: const TextStyle(
-                            fontSize: 12,
-                          ),
-                          isDense: true,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 10,
-                          ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                        ),
-                        onChanged: _selectEmployeeByName,
-                      ),
+                border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                      fontSize: 14,
                     ),
                   ),
+                  if (title == "사용자 선택") ...[
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: SizedBox(
+                        height: 28,
+                        child: TextField(
+                          controller: _employeeInfoController,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(fontSize: 12),
+                          decoration: InputDecoration(
+                            hintText: '사용자 이름 입력 또는 선택',
+                            hintStyle: const TextStyle(
+                              fontSize: 12,
+                            ),
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 10,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                          ),
+                          onChanged: _selectEmployeeByName,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
-              ],
-            )
-          ),
+              )),
           Expanded(child: child),
         ],
       ),
