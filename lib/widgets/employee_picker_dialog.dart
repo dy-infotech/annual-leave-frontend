@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import '../models/employee.dart';
@@ -41,6 +42,9 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  /// 요청 순번. 늦게 도착한 이전 응답이 최신 결과를 덮어쓰지 못하게 한다.
+  int _requestSeq = 0;
+
   @override
   void initState() {
     super.initState();
@@ -56,6 +60,8 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
 
   // 1. 사원 조회 (검색어가 없으면 전체)
   Future<void> _fetch() async {
+    if (!mounted) return;
+    final seq = ++_requestSeq;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -78,18 +84,30 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
               !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
           .toList();
 
-      if (!mounted) return;
+      // 더 최신 요청이 이미 나갔다면 이 응답은 버린다.
+      if (!mounted || seq != _requestSeq) return;
       setState(() => _items = fetched);
     } catch (e) {
       debugPrint('사원 목록 조회 실패: $e');
-      if (!mounted) return;
+      if (!mounted || seq != _requestSeq) return;
       setState(() {
         _items = [];
-        _errorMessage = '사원 목록 조회에 실패했습니다.';
+        _errorMessage = _messageOf(e, '사원 목록 조회에 실패했습니다.');
       });
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted && seq == _requestSeq) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  /// ApiClient 인터셉터가 서버의 message 를 DioException.message 로 옮겨 둔다.
+  String _messageOf(Object error, String fallback) {
+    if (error is DioException) {
+      final message = error.message;
+      if (message != null && message.trim().isNotEmpty) return message;
+    }
+    return fallback;
   }
 
   @override
