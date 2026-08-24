@@ -34,6 +34,7 @@ class LeaveRequestListItem {
   final String employeeNumber;
   final String position;
   final String department;
+  final String team;
   final String leaveType;
   final String requestedAt;
   final String startDate;
@@ -48,6 +49,7 @@ class LeaveRequestListItem {
     required this.employeeNumber,
     required this.position,
     required this.department,
+    required this.team,
     required this.leaveType,
     required this.requestedAt,
     required this.startDate,
@@ -64,6 +66,7 @@ class LeaveRequestListItem {
       employeeNumber: json['employeeNumber'],
       position: json['position'] ?? '',
       department: json['department'] ?? '',
+      team: json['team'] ?? '',
       leaveType: json['leaveType'],
       requestedAt: json['requestedAt'],
       startDate: json['startDate'],
@@ -82,6 +85,7 @@ class LeaveRequestDetail {
   final String employeeName;
   final String position;
   final String department;
+  final String team;
 
   // 휴가 정보
   final String leaveType;
@@ -104,6 +108,7 @@ class LeaveRequestDetail {
     required this.employeeName,
     required this.position,
     required this.department,
+    required this.team,
     required this.leaveType,
     required this.startDate,
     required this.endDate,
@@ -124,6 +129,7 @@ class LeaveRequestDetail {
       employeeName: json['employeeName'] ?? '',
       position: json['position'] ?? '',
       department: json['department'] ?? '',
+      team: json['team'] ?? '',
       leaveType: json['leaveType'] ?? 'FULL',
       startDate: json['startDate'] ?? '',
       endDate: json['endDate'] ?? '',
@@ -146,6 +152,7 @@ class PendingLeaveRequest {
   final String employeeNumber;
   final String employeeName;
   final String department;
+  final String team;
   final String position;
   final String startDate;
   final String endDate;
@@ -158,6 +165,7 @@ class PendingLeaveRequest {
     required this.employeeNumber,
     required this.employeeName,
     required this.department,
+    required this.team,
     required this.position,
     required this.startDate,
     required this.endDate,
@@ -172,6 +180,7 @@ class PendingLeaveRequest {
       employeeNumber: json['employeeNumber'],
       employeeName: json['employeeName'],
       department: json['department'] ?? '',
+      team: json['team'] ?? '',
       position: json['position'] ?? '',
       startDate: json['startDate'],
       endDate: json['endDate'],

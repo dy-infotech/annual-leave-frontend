@@ -48,37 +48,110 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   @override
   void initState() {
     super.initState();
-    _fetchCommonTeams(); // 💡 DB 팀 관리 테이블 데이터 먼저 조회
+    //_fetchCommonTeams(); // 💡 DB 팀 관리 테이블 데이터 먼저 조회
     _fetch();
   }
 
   // 📄 2페이지 전체를 이 정제된 다중 필터 구조 코드로 대체하세요.
   // 📄 2페이지의 _fetch() 함수 전체를 이 최종 버전으로 완전히 교체하세요.
+//   Future<void> _fetch() async {
+//     setState(() => _isLoading = true);
+//     try {
+//       final Map<String, dynamic> queryParams = {};
+
+//       // 1️⃣ [수정] 텍스트 검색창(사번/이름 입력)에 글자가 있을 때만 백엔드로 파라미터를 보냅니다.
+//       // 팀 필터 드롭다운 값은 절대로 백엔드로 보내지 않고 공백으로 날려, 백엔드가 전체 사원 데이터(11건)를 안전하게 리턴하도록 유도합니다.
+//       if (_searchParamController.text.trim().isNotEmpty) {
+//         queryParams['searchParam'] = _searchParamController.text.trim();
+//       }
+
+//       // 서버로 GET 요청 발송 (팀 필터링 조건은 서버로 절대 보내지 않음)
+//       final response = await ApiClient().dio.get(
+//             '/api/admin/employees/all',
+//             queryParameters: queryParams.isEmpty ? null : queryParams,
+//           );
+
+//       // 백엔드가 온전하게 내려준 전체 사원 리스트 수집
+//       final List<Employee> allFetchedItems = (response.data as List)
+//           .map((json) => Employee.fromJson(json))
+//           .toList();
+
+// // 💡 [핵심 추가] 전체 사원 데이터에서 실제 등록된 팀 이름들을 중복 없이 추출합니다.
+//       final List<String> extractedTeams = allFetchedItems
+//           .map((emp) => emp.team?.trim() ?? '') // 공백 제거 및 null 방지
+//           .where((team) => team.isNotEmpty) // 빈 값 제외
+//           .toSet() // Set 변환으로 중복 제거
+//           .toList();
+
+// // 알파벳, 가나다 순으로 깔끔하게 정렬 원할 경우 추가 (선택사항)
+//       extractedTeams.sort();
+
+//       setState(() {
+//         // 💡 [핵심 추가] 추출한 전사 팀 리스트로 드롭다운 콤보박스 목록을 실시간 강제 갱신합니다.
+//         _filterTeamList.clear();
+//         _filterTeamList.add('전체');
+//         _filterTeamList.addAll(extractedTeams);
+
+//         List<Employee> processedItems = allFetchedItems;
+
+//         // 💡 기준 문자열을 일치시켜 클라이언트 사이드 필터링 진행
+//         if (_selectedTeamFilter != '전체') {
+//           processedItems = processedItems
+//               .where((emp) =>
+//                   emp.team != null &&
+//                   emp.team!.replaceAll(' ', '').contains(_selectedTeamFilter
+//                       .replaceAll(' 팀', '')
+//                       .replaceAll(' ', '')))
+//               .toList();
+//         }
+//       });
+//     } catch (e) {
+//       print('사원 리스트 조회 실패: $e');
+//     } finally {
+//       setState(() => _isLoading = false);
+//     }
+//   }
+
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> queryParams = {};
 
-      // 1️⃣ [수정] 텍스트 검색창(사번/이름 입력)에 글자가 있을 때만 백엔드로 파라미터를 보냅니다.
-      // 팀 필터 드롭다운 값은 절대로 백엔드로 보내지 않고 공백으로 날려, 백엔드가 전체 사원 데이터(11건)를 안전하게 리턴하도록 유도합니다.
+      // 1️⃣ 텍스트 검색창에 글자가 있을 때만 백엔드로 파라미터를 보냅니다.
       if (_searchParamController.text.trim().isNotEmpty) {
         queryParams['searchParam'] = _searchParamController.text.trim();
       }
 
-      // 서버로 GET 요청 발송 (팀 필터링 조건은 서버로 절대 보내지 않음)
+      // 서버로 사원 정보 요청 발송
       final response = await ApiClient().dio.get(
             '/api/admin/employees/all',
             queryParameters: queryParams.isEmpty ? null : queryParams,
           );
 
-      // 백엔드가 온전하게 내려준 전체 사원 리스트 수집
+      // 백엔드가 내려준 사원 리스트 수집
       final List<Employee> allFetchedItems = (response.data as List)
           .map((json) => Employee.fromJson(json))
           .toList();
+
       setState(() {
+        // 검색 조건이 없을 때(최초 로드 시), 전체 사원 데이터에서 전사 팀 리스트를 동적으로 추출하여 드롭다운을 채웁니다.
+        if (_searchParamController.text.trim().isEmpty) {
+          final List<String> extractedTeams = allFetchedItems
+              .map((emp) => emp.team?.trim() ?? '')
+              .where((team) => team.isNotEmpty)
+              .toSet() // 중복 제거
+              .toList();
+
+          extractedTeams.sort(); // 가나다 순 정렬
+
+          _filterTeamList.clear();
+          _filterTeamList.add('전체');
+          _filterTeamList.addAll(extractedTeams);
+        }
+
         List<Employee> processedItems = allFetchedItems;
 
-        // 💡 기준 문자열을 '전체'에서 '전체'으로 일치시킵니다.
+        // 팀 필터링 적용 (기준 문자열 공백 제거 비교)
         if (_selectedTeamFilter != '전체') {
           processedItems = processedItems
               .where((emp) =>
@@ -89,11 +162,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
               .toList();
         }
 
-        // 이하 등록/미등록 상태 필터 조건문 동일 유지...
-
-        // 이하 등록/미등록 상태 필터 조건문 동일 유지...
-
-        // 3️⃣ 기존 등록 / 미등록 조건 상태 필터링 연동 마감
+        // 등록 / 미등록 조건 상태 필터링 연동
         if (_selectedStatus == 'ALL') {
           _items = processedItems;
         } else if (_selectedStatus == 'REGISTERED') {
@@ -107,6 +176,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
     } catch (e) {
       print('사원 리스트 조회 실패: $e');
     } finally {
+      // 💡 스펠링 교정 완료: 에러 상황이나 정상 상황 모두 로딩을 확실히 종료합니다.
       setState(() => _isLoading = false);
     }
   }
@@ -387,12 +457,10 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                               color: Colors.grey,
                             ),
                             isDense: true,
-
                             contentPadding: const EdgeInsets.symmetric(
                               horizontal: 6,
                               vertical: 9.5,
                             ),
-
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
                               borderSide: BorderSide(
@@ -411,7 +479,6 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                 color: Colors.grey.shade400,
                               ),
                             ),
-
                             suffixIcon: InkWell(
                               onTap: _fetch,
                               child: Container(

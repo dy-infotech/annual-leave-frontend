@@ -212,7 +212,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
         !_isLoading && _errorMessage == null && _requests.isNotEmpty;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('승인 대기 목록')),
+      appBar: AppBar(title: const Text('결재 대기 목록')),
       drawer: const AppDrawer(),
       body: RefreshIndicator(onRefresh: _fetchPendingList, child: _buildBody()),
       bottomNavigationBar: showBottomBar ? _buildBottomAppBar() : null,
@@ -383,7 +383,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                     children: [
                       // 1. 좌측: 불필요한 패딩이 없는 완벽한 커스텀 원형 라디오 버튼
                       Padding(
-                        padding: const EdgeInsets.only(top: 1), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
+                        padding: const EdgeInsets.only(
+                            top: 1), // 첫 줄 글자 높이와 눈높이를 맞추기 위한 마진
                         child: Container(
                           width: 16,
                           height: 16,
@@ -414,7 +415,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                               children: [
                                 Expanded(
                                   child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.baseline,
                                     textBaseline: TextBaseline.alphabetic,
                                     children: [
                                       Text(
@@ -427,7 +429,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        req.department,
+                                        req.team,
                                         style: const TextStyle(
                                           color: AppColors.textMuted,
                                           fontSize: 12,
@@ -444,8 +446,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (_) => LeaveRequestDetailScreen(
-                                            requestId: req.requestId),
+                                        builder: (_) =>
+                                            LeaveRequestDetailScreen(
+                                                requestId: req.requestId),
                                       ),
                                     );
                                   },
@@ -485,7 +488,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                                 const SizedBox(width: 4),
                                 Text('(${req.useDays}일) [$leaveTypeNm]',
                                     style: const TextStyle(
-                                        color: AppColors.textMuted, fontSize: 13)),
+                                        color: AppColors.textMuted,
+                                        fontSize: 13)),
                               ],
                             ),
                             const SizedBox(height: 2),

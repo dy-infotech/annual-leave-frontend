@@ -1,6 +1,8 @@
 import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/screens/dashboard_screen.dart';
 import 'package:annual_leave_frontend/services/api_client.dart';
+import 'package:annual_leave_frontend/theme/app_theme.dart';
+import 'package:annual_leave_frontend/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -15,12 +17,14 @@ class SignupManageScreen extends StatefulWidget {
 }
 
 class _SignupManageScreenState extends State<SignupManageScreen> {
+  final _employeeNumberController = TextEditingController();
   final _employeeNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _hireDateController = TextEditingController();
   DateTime? _selectedDate; // 선택된 날짜 상태 변수
   bool _isLoading = false;
   String? _errorMessage; //공통에러
+  String? _employeeNumberError; //사번에러
   String? _employeeNameError; //사용자명에러
   String? _departmentError; //부서에러
   String? _teamError; //팀에러
@@ -55,12 +59,18 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
         final data = response.data as Map<String, dynamic>;
 
         if (data.length >= 3) {
+          DateTime today = DateTime.now();
+          _selectedDate = _selectedDate ?? today;
+          _hireDateController.text = DateFormat(
+                  '${_selectedDate?.year}년 ${_selectedDate?.month}월 ${_selectedDate?.day}일')
+              .format(_selectedDate!);
+
           _departmentList.clear();
           _teamList.clear();
           _positionList.clear();
 
           _departmentList.addAll(List<String>.from(data['department']));
-          _teamList.addAll(List<String>.from(data['team']));
+          _teamList.addAll(List<String>.from(data['accessibleTeam']));
           _positionList.addAll(List<String>.from(data['position']));
         } else {
           // 데이터가 이상할 때 대비한 예외처리
@@ -74,6 +84,10 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   }
 
   Future<void> _handleSignup() async {
+    if (_employeeNumberController.text.isEmpty) {
+      setState(() => _employeeNumberError = '사번을 입력해 주세요.');
+      return;
+    }
     if (_employeeNameController.text.isEmpty) {
       setState(() => _employeeNameError = '사용자명을 입력해 주세요.');
       return;
@@ -106,6 +120,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
 
     try {
       await context.read<AuthProvider>().adminAuthRegister(
+          _employeeNumberController.text.trim(),
           _employeeNameController.text.trim(),
           _selectedDepartment ?? '',
           (_selectedTeam == '기타'
@@ -135,13 +150,8 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   }
 
   Future<void> _selectDate() async {
-    /*final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
-      locale: const Locale('ko'),
-    );*/
+    //DateTime today = DateTime.now();
+    //_selectedDate = _selectedDate ?? today;
 
     final DateTime? picked = await showDialog<DateTime>(
       context: context,
@@ -165,15 +175,23 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final info = auth.employeeInfo;
+    // 1. [상태 변수 선언부] 현재 로그인한 사용자의 실제 데이터 정보가 담겨있다고 가정합니다.
+    final String currentUserPosition =
+        info != null ? info.position.toString() : ''; //"사장"; // 현재 접속자의 직급
+    final String currentUserRole = info != null ? info.role.toString() : '';
+
+    //final RoleType currentUserRole = RoleType.admin; // 현재 접속자의 역할 (관리자)
+
     String userPosition = info != null ? info.position : '';
-    if (auth.isAdmin && userPosition == "대표이사" && !_teamList.contains('기타')) {
+    if (auth.isAdmin && userPosition == "사장" && !_teamList.contains('기타')) {
       //신규 팀 정보 생성 시 필요
-      // 관리자이고 대표이사일 때만 "기타" 추가
+      // 관리자이고 사장일 때만 "기타" 추가
       _teamList.add('기타');
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('신규 사원 등록')),
+      appBar: AppBar(title: const Text('사용자 등록 관리')),
+      drawer: const AppDrawer(),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -181,7 +199,28 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
+                const Text(
+                  '신규 사용자 정보를 등록합니다. \n 등록된 사용자는 사용 등록 후 로그인 가능합니다.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: AppColors.textPrimary),
+                ),
+                // 사번 채번에서 수기 입력으로 변경
                 const SizedBox(height: 32),
+                TextField(
+                  controller: _employeeNumberController,
+                  decoration: InputDecoration(
+                    labelText: '사번',
+                    errorText: _employeeNumberError,
+                  ),
+                  keyboardType: TextInputType.text,
+                  obscureText: false,
+                  onChanged: (value) {
+                    setState(() {
+                      _employeeNumberError = null;
+                    });
+                  },
+                ),
+                const SizedBox(height: 12),
                 TextField(
                   controller: _employeeNameController,
                   decoration: InputDecoration(
@@ -285,28 +324,47 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     _selectedPosition = value;
                   },
                 ),
-                // const SizedBox(height: 12),
-                // DropdownButtonFormField<RoleType>(
-                //   decoration: const InputDecoration(
-                //     labelText: '역할 선택',
-                //     border: OutlineInputBorder(),
-                //   ),
-                //   value: _selectedManagerYn,
-                //   items: RoleType.values.map((role) {
-                //     return DropdownMenuItem<RoleType>(
-                //       value: role,
-                //       child: Text(role.label),
-                //     );
-                //   }).toList(),
-                //   onChanged: (value) {
-                //     setState(() {
-                //       _selectedManagerYn = value;
-                //     });
-                //   },
-                //   onSaved: (value) {
-                //     _selectedManagerYn = value;
-                //   },
-                // ),
+
+                // 역할 선택
+                const SizedBox(height: 12),
+                DropdownButtonFormField<RoleType>(
+                  decoration: const InputDecoration(
+                    labelText: '역할 선택',
+                    border: OutlineInputBorder(),
+                  ),
+                  value: _selectedManagerYn,
+
+                  // 변경 포인트: 화면 선택 값이 아닌 '현재 접속자 정보'를 기준으로 필터링합니다.
+                  items: RoleType.values.where((role) {
+                    // 1. 리스트 아이템 중 검사 중인 항목이 관리자(admin)인지 확인
+                    final bool isManagerItem = role == RoleType.admin;
+
+                    // 2. 현재 접속자가 사장이면서 동시에 관리자인지 권한 확인
+                    final bool isCurrentUserCeoAndAdmin =
+                        (currentUserPosition == "사장" &&
+                            currentUserRole == "ADMIN");
+
+                    // 3. 만약 관리자 아이템인데, 현재 접속자가 [사장 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
+                    if (isManagerItem && !isCurrentUserCeoAndAdmin) {
+                      return false;
+                    }
+                    return true;
+                  }).map((role) {
+                    return DropdownMenuItem<RoleType>(
+                      value: role,
+                      child: Text(role.label),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedManagerYn = value;
+                    });
+                  },
+                  onSaved: (value) {
+                    _selectedManagerYn = value;
+                  },
+                ),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: _emailController,

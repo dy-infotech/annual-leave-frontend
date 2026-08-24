@@ -189,10 +189,11 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
 
   Future<void> _pickDateRange() async {
     final year = _today.year;
-    final initial = _dateRange ?? DateTimeRange(
-      start: DateTime(year, 1, 1),
-      end: DateTime(year, 12, 31),
-    );
+    final initial = _dateRange ??
+        DateTimeRange(
+          start: DateTime(year, 1, 1),
+          end: DateTime(year, 12, 31),
+        );
 
     final picked = await showDialog<DateTimeRange>(
       context: context,
@@ -254,37 +255,63 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.2,
-                    height: 40, // 원하는 높이로 조절
+                    width: MediaQuery.of(context).size.width * 0.23,
+                    //height: 40, // 원하는 높이로 조절
                     child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white, // 흰 바탕
-                        border: Border.all(
-                            color: Colors.grey.shade300), // 옅은 회색 테두리
-                        borderRadius: BorderRadius.circular(8), // 모서리 약간 둥글게
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
                       ),
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: 4), // 안쪽 여백
-                      child: DropdownButton<String?>(
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         value: _statusFilter,
+                        style:
+                            const TextStyle(fontSize: 13, color: Colors.black),
+                        icon: const Icon(Icons.arrow_drop_down,
+                            color: Colors.grey),
+                        alignment: Alignment.centerLeft,
+
+                        // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
+                        decoration: InputDecoration(
+                          labelText: '상태',
+                          labelStyle:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                          isDense: true,
+
+                          // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
+                          // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 9.5),
+
+                          // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                        ),
+                        onChanged: (String? newValue) {
+                          _setFilter(newValue);
+                        },
                         items: statusOptions.map((option) {
-                          return DropdownMenuItem<String?>(
+                          return DropdownMenuItem<String>(
                             value: option['value'],
                             child: Text(
                               option['label']!,
-                              style: TextStyle(fontSize: 14)),
+                              style: const TextStyle(fontSize: 14),
+                            ),
                           );
                         }).toList(),
-                        onChanged: (value) {
-                          _setFilter(value);
-                        },
-                        underline: SizedBox(), // 기본 밑줄 제거
-                        isExpanded: true,
-                        dropdownColor: Colors.white, // 드롭다운 목록도 흰색으로 맞춤
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  //const SizedBox(width: 5),
                   const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
                   Row(
                     children: [
@@ -432,7 +459,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                               final item = _items[index];
                               final isProcessing =
                                   _processingIds.contains(item.requestId);
-                              final leaveTypeNm = LeaveType.getLabel(item.leaveType);
+                              final leaveTypeNm =
+                                  LeaveType.getLabel(item.leaveType);
                               // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
                               /* final Map<String, String> leaveTypeMap = {
                                 'FULL': '연차',
@@ -460,42 +488,49 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) =>
-                                              LeaveRequestDetailScreen(requestId: item.requestId),
+                                              LeaveRequestDetailScreen(
+                                                  requestId: item.requestId),
                                         ),
                                       );
                                     },
                                     borderRadius: BorderRadius.circular(16),
                                     child: Container(
-                                      padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                      padding: const EdgeInsets.fromLTRB(
+                                          16, 10, 16, 10),
                                       decoration: BoxDecoration(
                                         borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: AppColors.divider),
+                                        border: Border.all(
+                                            color: AppColors.divider),
                                       ),
-
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           //첫번째 줄
                                           Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Expanded(
                                                 child: SingleChildScrollView(
-                                                  scrollDirection: Axis.horizontal,
+                                                  scrollDirection:
+                                                      Axis.horizontal,
                                                   child: Row(
                                                     children: [
                                                       Text(
                                                         '${item.employeeName} ${item.position}',
                                                         style: const TextStyle(
-                                                          fontWeight: FontWeight.w700,
+                                                          fontWeight:
+                                                              FontWeight.w700,
                                                           fontSize: 14.5,
                                                         ),
                                                       ),
                                                       const SizedBox(width: 8),
                                                       Text(
-                                                        item.department,
+                                                        item.team,
                                                         style: const TextStyle(
-                                                          color: AppColors.textMuted,
+                                                          color: AppColors
+                                                              .textMuted,
                                                           fontSize: 12,
                                                         ),
                                                       ),
@@ -507,7 +542,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                               const SizedBox(width: 12),
 
                                               // 고정
-                                              LeaveStatusBadge(status: item.status),
+                                              LeaveStatusBadge(
+                                                  status: item.status),
                                             ],
                                           ),
                                           SingleChildScrollView(
@@ -535,47 +571,67 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                             ),
                                           ),
                                           Row(
-                                              crossAxisAlignment: CrossAxisAlignment.baseline,
-                                              textBaseline: TextBaseline.alphabetic,
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.baseline,
+                                              textBaseline:
+                                                  TextBaseline.alphabetic,
                                               children: [
                                                 const SizedBox(height: 10),
                                                 Text(
                                                     '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
                                                     style: const TextStyle(
-                                                        color: AppColors.textMuted,
+                                                        color:
+                                                            AppColors.textMuted,
                                                         fontSize: 12,
-                                                        fontWeight: FontWeight.w600)),
+                                                        fontWeight:
+                                                            FontWeight.w600)),
                                                 const SizedBox(width: 12),
                                                 const Spacer(),
-                                                if (_isCancelable(item, userEmployeeNumber)) ...[
+                                                if (_isCancelable(item,
+                                                    userEmployeeNumber)) ...[
                                                   TextButton(
-                                                    onPressed:
-                                                    isProcessing ? null : () => _confirmCancel(item),
+                                                    onPressed: isProcessing
+                                                        ? null
+                                                        : () => _confirmCancel(
+                                                            item),
                                                     style: TextButton.styleFrom(
-                                                      padding: const EdgeInsets.symmetric(
-                                                          horizontal: 4, vertical: 6),
+                                                      padding: const EdgeInsets
+                                                          .symmetric(
+                                                          horizontal: 4,
+                                                          vertical: 6),
                                                       minimumSize: Size.zero,
-                                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                                      tapTargetSize:
+                                                          MaterialTapTargetSize
+                                                              .shrinkWrap,
                                                     ),
                                                     child: isProcessing
                                                         ? const SizedBox(
-                                                      width: 14,
-                                                      height: 14,
-                                                      child: CircularProgressIndicator(
-                                                        strokeWidth: 2,
-                                                        color: AppColors.textMuted,
-                                                      ),
-                                                    )
+                                                            width: 14,
+                                                            height: 14,
+                                                            child:
+                                                                CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                              color: AppColors
+                                                                  .textMuted,
+                                                            ),
+                                                          )
                                                         : const Text(
-                                                      '신청 취소',
-                                                      style: TextStyle(
-                                                        fontSize: 12,
-                                                        fontWeight: FontWeight.w600,
-                                                        color: AppColors.textMuted,
-                                                        decoration: TextDecoration.underline,
-                                                        decorationColor: AppColors.textMuted,
-                                                      ),
-                                                    ),
+                                                            '신청 취소',
+                                                            style: TextStyle(
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w600,
+                                                              color: AppColors
+                                                                  .textMuted,
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
+                                                              decorationColor:
+                                                                  AppColors
+                                                                      .textMuted,
+                                                            ),
+                                                          ),
                                                   ),
                                                 ],
                                               ])

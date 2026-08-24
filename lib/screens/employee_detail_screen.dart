@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
+import 'package:annual_leave_frontend/models/auth_models.dart';
 import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:intl/intl.dart';
 import '../services/api_client.dart';
@@ -12,7 +13,10 @@ import '../providers/auth_provider.dart';
 class EmployeeDetailScreen extends StatefulWidget {
   final Employee employee;
 
-  const EmployeeDetailScreen({super.key, required this.employee});
+  const EmployeeDetailScreen({
+    super.key,
+    required this.employee,
+  });
 
   @override
   State<EmployeeDetailScreen> createState() => _EmployeeDetailScreenState();
@@ -111,6 +115,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       } catch (_) {}
     }
 
+    //context.read<AuthProvider>().fetchMyInfo();
     _fetchCommonData();
   }
 
@@ -292,6 +297,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('사용자 정보 상세'),
@@ -404,10 +411,14 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                 decoration: InputDecoration(
                                   isDense: true,
                                   filled: true,
-                                  fillColor: _isEditing
+                                  fillColor: (_isEditing &&
+                                          authProvider.employeeInfo?.position ==
+                                              '사장')
                                       ? Colors.white
                                       : Colors.grey.shade50,
-                                  border: _isEditing
+                                  border: (_isEditing &&
+                                          authProvider.employeeInfo?.position ==
+                                              '사장')
                                       ? const OutlineInputBorder()
                                       : const OutlineInputBorder(
                                           borderSide: BorderSide.none),
@@ -444,7 +455,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
                           _buildRow(
                               '부서',
-                              _isEditing
+                              _isEditing &&
+                                      authProvider.employeeInfo?.position ==
+                                          '사장' &&
+                                      widget.employee.position != '사장'
                                   ? DropdownButtonFormField<String>(
                                       value: _departmentList
                                               .contains(_selectedDepartment)
@@ -487,7 +501,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                           // 6. 팀 선택 드롭다운 영역 교체
                           _buildRow(
                               '팀',
-                              _isEditing
+                              (_isEditing &&
+                                      authProvider.employeeInfo?.position ==
+                                          '사장' &&
+                                      widget.employee.position != '사장')
                                   ? DropdownButtonFormField<String>(
                                       value: (_selectedTeam != '기타' &&
                                               _teamList.contains(_selectedTeam))
@@ -530,52 +547,58 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                                     )),
 
                           _buildRow(
-                              '직급',
-                              _isEditing
-                                  ? DropdownButtonFormField<String>(
-                                      value: _positionList
-                                              .contains(_selectedPosition)
-                                          ? _selectedPosition
-                                          : null,
-                                      items: _positionList
-                                          .map((d) => DropdownMenuItem(
-                                              value: d,
-                                              child: Text(d,
-                                                  style: const TextStyle(
-                                                      color: Colors.black))))
-                                          .toList(),
-                                      onChanged: (val) => setState(
-                                          () => _selectedPosition = val),
-                                      decoration: const InputDecoration(
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 10),
-                                          border: OutlineInputBorder()),
-                                      validator: (val) =>
-                                          val == null ? '직급을 선택해 주세요.' : null,
-                                    )
-                                  : TextFormField(
-                                      initialValue: _selectedPosition ?? '-',
-                                      readOnly: true,
-                                      style: const TextStyle(
-                                          fontSize: 14, color: Colors.black),
-                                      decoration: InputDecoration(
-                                          isDense: true,
-                                          filled: true,
-                                          fillColor: Colors.grey.shade50,
-                                          border: const OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Colors.transparent)),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 12)),
-                                    )),
+                            '직급',
+                            // 편집 모드이고, 현재 선택된 직급이 '사장'일 때만 Dropdown 표시
+                            (_isEditing &&
+                                    authProvider.employeeInfo?.position ==
+                                        '사장' &&
+                                    widget.employee.position != '사장')
+                                ? DropdownButtonFormField<String>(
+                                    value: _positionList
+                                            .contains(_selectedPosition)
+                                        ? _selectedPosition
+                                        : null,
+                                    items: _positionList
+                                        .map((d) => DropdownMenuItem(
+                                            value: d,
+                                            child: Text(d,
+                                                style: const TextStyle(
+                                                    color: Colors.black))))
+                                        .toList(),
+                                    onChanged: (val) =>
+                                        setState(() => _selectedPosition = val),
+                                    decoration: const InputDecoration(
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 10),
+                                        border: OutlineInputBorder()),
+                                    validator: (val) =>
+                                        val == null ? '직급을 선택해 주세요.' : null,
+                                  )
+                                : TextFormField(
+                                    initialValue: _selectedPosition ?? '-',
+                                    readOnly: true,
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black),
+                                    decoration: InputDecoration(
+                                        isDense: true,
+                                        filled: true,
+                                        fillColor: Colors.grey.shade50,
+                                        border: const OutlineInputBorder(
+                                            borderSide: BorderSide(
+                                                color: Colors.transparent)),
+                                        contentPadding:
+                                            const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 12)),
+                                  ),
+                          ),
 
                           // 9. 입사일 영역 (수정 모드 잠금 완전 결함 해결판)
                           _buildRow(
                               '입사일',
-                              _isEditing
+                              (_isEditing &&
+                                      authProvider.employeeInfo?.position ==
+                                          '사장')
                                   ? TextFormField(
                                       controller: _hireDateController,
                                       readOnly: true,
@@ -669,7 +692,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                           // 12. 퇴사일 영역 (컨트롤러 매핑 완료 및 조회 공백 버그 원천 해결)
                           _buildRow(
                               '퇴사일',
-                              _isEditing
+                              (_isEditing &&
+                                      authProvider.employeeInfo?.position ==
+                                          '사장' &&
+                                      widget.employee.position != '사장')
                                   ? TextFormField(
                                       controller:
                                           _fireDateController, // ⭕ 수정 모드 매핑
