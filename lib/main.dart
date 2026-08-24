@@ -23,6 +23,7 @@ import 'screens/pending_approval_screen.dart';
 import 'screens/my_info_screen.dart';
 import 'screens/signup_manage_screen.dart';
 import 'screens/admin-settings.dart';
+import 'screens/department_team_manage_screen.dart';
 
 final RouteObserver<PageRoute<dynamic>> routeObserver =
     RouteObserver<PageRoute<dynamic>>();
@@ -92,6 +93,9 @@ class MyApp extends StatelessWidget {
               const SearchEmployeeNumberScreen(),
           //관리자별 관리팀 설정 화면
           '/admin-settings': (context) => const AdminSettingsScreen(),
+          //부서 및 팀 관리 화면
+          '/department-team-manage': (context) =>
+              const DepartmentTeamManageScreen(),
 
           // 내 정보 화면
           '/my-info': (context) => const MyInfoScreen(),
