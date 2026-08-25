@@ -8,6 +8,18 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../widgets/date_input_dialog.dart';
+import 'package:flutter/services.dart';
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(), // 입력된 텍스트를 대문자로 변환
+      selection: newValue.selection, // 커서 위치 유지
+    );
+  }
+}
 
 class SignupManageScreen extends StatefulWidget {
   const SignupManageScreen({super.key});
@@ -205,6 +217,21 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                   style: TextStyle(color: AppColors.textPrimary),
                 ),
                 // 사번 채번에서 수기 입력으로 변경
+                // const SizedBox(height: 32),
+                // TextField(
+                //   controller: _employeeNumberController,
+                //   decoration: InputDecoration(
+                //     labelText: '사번',
+                //     errorText: _employeeNumberError,
+                //   ),
+                //   keyboardType: TextInputType.text,
+                //   obscureText: false,
+                //   onChanged: (value) {
+                //     setState(() {
+                //       _employeeNumberError = null;
+                //     });
+                //   },
+                // ),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _employeeNumberController,
@@ -214,12 +241,19 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                   ),
                   keyboardType: TextInputType.text,
                   obscureText: false,
+                  // 영문/숫자 제한 및 실시간 대문자 변환 속성 추가
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9]')), // 영문 및 숫자만 허용
+                    UpperCaseTextFormatter(), // 소문자 입력 시 실시간 대문자 변환
+                  ],
                   onChanged: (value) {
                     setState(() {
                       _employeeNumberError = null;
                     });
                   },
                 ),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: _employeeNameController,
