@@ -6,6 +6,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // 👈 암호화 저장소 임포트
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'package:flutter/services.dart';
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(), // 입력된 텍스트를 대문자로 변환
+      selection: newValue.selection, // 커서 위치 유지
+    );
+  }
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -169,6 +181,19 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // const SizedBox(height: 12),
+                      // TextField(
+                      //   controller: _employeeNumberController,
+                      //   decoration: const InputDecoration(
+                      //     labelText: '사번',
+                      //     border: OutlineInputBorder(),
+                      //     contentPadding: EdgeInsets.symmetric(
+                      //         vertical: 18, horizontal: 16),
+                      //   ),
+                      //   keyboardType: TextInputType.text,
+                      //   textCapitalization: TextCapitalization.characters,
+                      // ),
+
                       const SizedBox(height: 12),
                       TextField(
                         controller: _employeeNumberController,
@@ -180,7 +205,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         keyboardType: TextInputType.text,
                         textCapitalization: TextCapitalization.characters,
+                        // 아래 속성을 추가하면 입력되는 모든 영문자가 대문자로 강제 변환됩니다.
+                        inputFormatters: [
+                          FilteringTextInputFormatter.allow(
+                              RegExp(r'[a-zA-Z0-9]')), // 필요한 경우 영문/숫자만 허용
+                          UpperCaseTextFormatter(), // 대문자 변환 포매터 적용
+                        ],
                       ),
+
                       const SizedBox(height: 12),
                       TextField(
                         controller: _passwordController,

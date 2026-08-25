@@ -2,6 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_theme.dart';
+import 'package:flutter/services.dart';
+
+class UpperCaseTextFormatter extends TextInputFormatter {
+  @override
+  TextEditingValue formatEditUpdate(
+      TextEditingValue oldValue, TextEditingValue newValue) {
+    return TextEditingValue(
+      text: newValue.text.toUpperCase(), // 입력된 텍스트를 대문자로 변환
+      selection: newValue.selection, // 커서 위치 유지
+    );
+  }
+}
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -35,9 +47,9 @@ class _SignupScreenState extends State<SignupScreen> {
 
     try {
       await context.read<AuthProvider>().signUp(
-        _employeeNumberController.text.trim(),
-        _passwordController.text,
-      );
+            _employeeNumberController.text.trim(),
+            _passwordController.text,
+          );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('사용 등록이 완료되었습니다. 로그인해 주세요.')),
@@ -71,13 +83,27 @@ class _SignupScreenState extends State<SignupScreen> {
                   textAlign: TextAlign.center,
                   style: TextStyle(color: AppColors.textPrimary),
                 ),
+                // const SizedBox(height: 32),
+                // TextField(
+                //   controller: _employeeNumberController,
+                //   decoration: const InputDecoration(labelText: '사번'),
+                //   keyboardType: TextInputType.text,
+                //   textCapitalization: TextCapitalization.characters,
+                // ),
                 const SizedBox(height: 32),
                 TextField(
                   controller: _employeeNumberController,
                   decoration: const InputDecoration(labelText: '사번'),
                   keyboardType: TextInputType.text,
                   textCapitalization: TextCapitalization.characters,
+                  // 영문/숫자 제한 및 실시간 대문자 변환 포매터 주입
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                        RegExp(r'[a-zA-Z0-9]')), // 영문 및 숫자만 허용
+                    UpperCaseTextFormatter(), // 소문자 입력 시 대문자로 강제 변환
+                  ],
                 ),
+
                 const SizedBox(height: 12),
                 TextField(
                   controller: _passwordController,
