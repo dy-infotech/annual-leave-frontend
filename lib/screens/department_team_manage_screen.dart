@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../data/mock_department_team_store.dart';
 import '../models/department_team_models.dart';
 import '../models/employee.dart';
 import '../services/api_client.dart';
@@ -14,9 +15,12 @@ import '../widgets/employee_picker_dialog.dart';
 // 팀은 관리자를 최소 1명 지정해야 저장할 수 있다(백엔드 team.project_manager_id NOT NULL).
 //
 // 주의: 부서/팀 CRUD API 는 백엔드에 아직 없다(2026-08 기준).
-// 목록 조회는 /api/admin/auth/common 으로 폴백하여 화면이 뜨도록 했고,
-// 폴백 상태에서는 id 를 알 수 없으므로 추가·수정 진입을 모두 막는다.
-// 아래 추정 경로와 확인 사항은 docs/api-spec-department-team.md 참고.
+// 그래서 kUseMockDepartmentTeamData(= true)일 때는 HTTP 를 호출하지 않고
+// 메모리 목업 저장소로 동작한다. 조회·추가·수정이 모두 실제로 동작하되
+// 변경 사항은 앱을 다시 시작하면 사라진다.
+//
+// 백엔드가 아래 엔드포인트를 제공하면 그 상수만 false 로 바꾸면 된다.
+// (요청/응답 형식과 확인 사항은 docs/api-spec-department-team.md 참고)
 //   GET/POST /api/admin/departments, PUT /api/admin/departments/{departmentId}
 //   GET/POST /api/admin/teams,       PUT /api/admin/teams/{teamId}
 
@@ -44,13 +48,10 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   String? _deptError;
   String? _teamError;
 
-  /// 목록 조회가 폴백(이름만 조회)으로 떨어졌는지.
-  /// 이 경우 id 가 없어 수정할 수 없고, 추가 API 도 없으므로 추가도 막는다.
-  bool _deptFallback = false;
-  bool _teamFallback = false;
-
-  /// 부서/팀 폴백이 같은 /api/admin/auth/common 을 각각 호출하지 않도록 공유한다.
-  Future<Map<String, dynamic>>? _commonFuture;
+  /// 목록을 목업 저장소에서 읽었는지(= 백엔드 API 호출 실패).
+  /// 이 모드에서도 조회·추가·수정이 모두 동작하되, 변경은 메모리에만 남는다.
+  bool _deptMock = false;
+  bool _teamMock = false;
 
   @override
   void initState() {
@@ -70,17 +71,8 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   // ---------------------------------------------------------------- 조회
 
   void _refreshAll() {
-    _commonFuture = null; // 새로고침 때는 공통 코드도 다시 받는다
     _fetchDepartments();
     _fetchTeams();
-  }
-
-  /// 부서/팀 폴백이 공유하는 공통 코드 조회. 한 번만 호출된다.
-  Future<Map<String, dynamic>> _fetchCommon() {
-    return _commonFuture ??= ApiClient()
-        .dio
-        .get('/api/admin/auth/common')
-        .then((res) => res.data as Map<String, dynamic>);
   }
 
   // 1. 부서 목록 조회
@@ -92,6 +84,15 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     });
 
     try {
+      if (kUseMockDepartmentTeamData) {
+        if (!mounted) return;
+        setState(() {
+          _departments = MockDepartmentTeamStore.instance.fetchDepartments();
+          _deptMock = true;
+        });
+        return;
+      }
+
       final response = await ApiClient().dio.get('/api/admin/departments');
       final fetched = (response.data as List)
           .map((json) => Department.fromJson(json as Map<String, dynamic>))
@@ -100,35 +101,18 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       if (!mounted) return;
       setState(() {
         _departments = fetched;
-        _deptFallback = false;
+        _deptMock = false;
       });
     } catch (e) {
-      debugPrint('부서 목록 조회 실패, 공통 코드로 폴백: $e');
-      await _fetchDepartmentsFromCommon();
+      // 백엔드에 부서 CRUD API 가 아직 없다. 화면 확인이 가능하도록 목업으로 대체한다.
+      debugPrint('부서 목록 조회 실패, 임시 데이터로 대체: $e');
+      if (!mounted) return;
+      setState(() {
+        _departments = MockDepartmentTeamStore.instance.fetchDepartments();
+        _deptMock = true;
+      });
     } finally {
       if (mounted) setState(() => _isDeptLoading = false);
-    }
-  }
-
-  /// 부서 CRUD API 가 없을 때의 폴백. 이름만 얻을 수 있어 추가·수정은 불가능하다.
-  Future<void> _fetchDepartmentsFromCommon() async {
-    try {
-      final data = await _fetchCommon();
-      final names = List<String>.from(data['department'] ?? const []);
-
-      if (!mounted) return;
-      setState(() {
-        _departments = names.map((name) => Department.fromName(name)).toList();
-        _deptFallback = true;
-      });
-    } catch (e) {
-      debugPrint('부서 공통 코드 조회 실패: $e');
-      if (!mounted) return;
-      setState(() {
-        _departments = [];
-        _deptFallback = false; // 안내 문구와 에러 문구가 겹치지 않도록 되돌린다
-        _deptError = _messageOf(e, '부서 목록 조회에 실패했습니다.');
-      });
     }
   }
 
@@ -141,6 +125,15 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     });
 
     try {
+      if (kUseMockDepartmentTeamData) {
+        if (!mounted) return;
+        setState(() {
+          _teams = MockDepartmentTeamStore.instance.fetchTeams();
+          _teamMock = true;
+        });
+        return;
+      }
+
       final response = await ApiClient().dio.get('/api/admin/teams');
       final fetched = (response.data as List)
           .map((json) => Team.fromJson(json as Map<String, dynamic>))
@@ -149,37 +142,18 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       if (!mounted) return;
       setState(() {
         _teams = fetched;
-        _teamFallback = false;
+        _teamMock = false;
       });
     } catch (e) {
-      debugPrint('팀 목록 조회 실패, 공통 코드로 폴백: $e');
-      await _fetchTeamsFromCommon();
+      // 백엔드에 팀 CRUD API 가 아직 없다. 화면 확인이 가능하도록 목업으로 대체한다.
+      debugPrint('팀 목록 조회 실패, 임시 데이터로 대체: $e');
+      if (!mounted) return;
+      setState(() {
+        _teams = MockDepartmentTeamStore.instance.fetchTeams();
+        _teamMock = true;
+      });
     } finally {
       if (mounted) setState(() => _isTeamLoading = false);
-    }
-  }
-
-  /// 팀 CRUD API 가 없을 때의 폴백. 관리자 정보는 얻을 수 없다.
-  Future<void> _fetchTeamsFromCommon() async {
-    try {
-      final data = await _fetchCommon();
-      // 배포된 서버는 accessibleTeam, 로컬 백엔드는 team 으로 내려준다.
-      final names = List<String>.from(
-          data['accessibleTeam'] ?? data['team'] ?? const []);
-
-      if (!mounted) return;
-      setState(() {
-        _teams = names.map((name) => Team.fromName(name)).toList();
-        _teamFallback = true;
-      });
-    } catch (e) {
-      debugPrint('팀 공통 코드 조회 실패: $e');
-      if (!mounted) return;
-      setState(() {
-        _teams = [];
-        _teamFallback = false;
-        _teamError = _messageOf(e, '팀 목록 조회에 실패했습니다.');
-      });
     }
   }
 
@@ -206,6 +180,17 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     setState(() => _isDeptLoading = true);
 
     try {
+      // 임시 데이터 모드에서는 메모리 저장소에 반영한다.
+      if (_deptMock) {
+        MockDepartmentTeamStore.instance.saveDepartment(
+          departmentId: origin?.departmentId,
+          departmentName: name,
+        );
+        _showSnackBar(isEdit ? '부서가 수정되었습니다. (임시 데이터)' : '부서가 등록되었습니다. (임시 데이터)');
+        await _fetchDepartments();
+        return;
+      }
+
       final body = DepartmentSaveRequest(departmentName: name).toJson();
       final response = isEdit
           ? await ApiClient()
@@ -219,6 +204,9 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       } else {
         _showSnackBar(isEdit ? '부서 수정에 실패했습니다.' : '부서 등록에 실패했습니다.');
       }
+    } on StateError catch (e) {
+      // 목업 저장소의 제약 위반(이름 중복 등)
+      _showSnackBar(e.message);
     } catch (e) {
       debugPrint('부서 저장 실패: $e');
       _showSnackBar(
@@ -235,6 +223,19 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     setState(() => _isTeamLoading = true);
 
     try {
+      // 임시 데이터 모드에서는 메모리 저장소에 반영한다.
+      if (_teamMock) {
+        MockDepartmentTeamStore.instance.saveTeam(
+          teamId: origin?.teamId,
+          teamName: form.teamName,
+          parentTeam: form.parentTeam,
+          managers: form.managers,
+        );
+        _showSnackBar(isEdit ? '팀이 수정되었습니다. (임시 데이터)' : '팀이 등록되었습니다. (임시 데이터)');
+        await _fetchTeams();
+        return;
+      }
+
       final body = TeamSaveRequest(
         teamName: form.teamName,
         parentTeam: form.parentTeam,
@@ -254,6 +255,9 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       } else {
         _showSnackBar(isEdit ? '팀 수정에 실패했습니다.' : '팀 등록에 실패했습니다.');
       }
+    } on StateError catch (e) {
+      // 목업 저장소의 제약 위반(이름 중복, 관리자 미지정 등)
+      _showSnackBar(e.message);
     } catch (e) {
       debugPrint('팀 저장 실패: $e');
       _showSnackBar(
@@ -335,16 +339,14 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   // 7. 부서 관리 탭 화면
   Widget _buildDepartmentTab() {
-    // 폴백 상태에서는 추가 API 도 없으므로 버튼을 막는다.
-    final canAdd = !_isDeptLoading && !_deptFallback;
     return Column(
       children: [
         _buildTabHeader(
           addLabel: '부서 추가',
           count: _departments.length,
-          onAdd: canAdd ? () => _openDepartmentDialog() : null,
+          onAdd: _isDeptLoading ? null : () => _openDepartmentDialog(),
         ),
-        if (_deptFallback) _buildFallbackNotice('부서'),
+        if (_deptMock) _buildMockNotice(),
         _buildErrorSection(_deptError),
         Expanded(
           child: _buildListArea(
@@ -364,15 +366,14 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   // 8. 팀 관리 탭 화면
   Widget _buildTeamTab() {
-    final canAdd = !_isTeamLoading && !_teamFallback;
     return Column(
       children: [
         _buildTabHeader(
           addLabel: '팀 추가',
           count: _teams.length,
-          onAdd: canAdd ? () => _openTeamDialog() : null,
+          onAdd: _isTeamLoading ? null : () => _openTeamDialog(),
         ),
-        if (_teamFallback) _buildFallbackNotice('팀'),
+        if (_teamMock) _buildMockNotice(),
         _buildErrorSection(_teamError),
         Expanded(
           child: _buildListArea(
@@ -426,22 +427,28 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
   }
 
-  /// 목록이 폴백 경로로 조회됐을 때의 안내. 이 상태에서는 추가·수정이 모두 불가능하다.
-  Widget _buildFallbackNotice(String label) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-      child: Row(
+  /// 목업 데이터로 동작 중임을 알리는 배너.
+  /// 조회·추가·수정은 모두 동작하지만 변경 사항은 메모리에만 남는다.
+  Widget _buildMockNotice() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.amber.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.only(top: 1),
-            child: Icon(Icons.info_outline, size: 14, color: AppColors.amber),
+            child: Icon(Icons.science_outlined, size: 14, color: AppColors.amber),
           ),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Expanded(
             child: Text(
-              '$label 관리 API가 아직 준비되지 않아 이름만 조회했습니다. 추가·수정은 사용할 수 없습니다.',
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+              '임시 데이터로 동작 중입니다. 백엔드 API가 아직 없어 변경 사항은 앱을 다시 시작하면 사라집니다.',
+              style: TextStyle(fontSize: 11, color: AppColors.textPrimary),
             ),
           ),
         ],

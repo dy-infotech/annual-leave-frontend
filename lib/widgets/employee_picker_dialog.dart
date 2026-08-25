@@ -1,6 +1,6 @@
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
+import '../data/mock_department_team_store.dart';
 import '../models/employee.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -40,10 +40,12 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
 
   List<Employee> _items = [];
   bool _isLoading = false;
-  String? _errorMessage;
 
   /// 요청 순번. 늦게 도착한 이전 응답이 최신 결과를 덮어쓰지 못하게 한다.
   int _requestSeq = 0;
+
+  /// 사원 API 호출이 실패해 임시 데이터로 대체됐는지.
+  bool _isMock = false;
 
   @override
   void initState() {
@@ -62,12 +64,23 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   Future<void> _fetch() async {
     if (!mounted) return;
     final seq = ++_requestSeq;
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    setState(() => _isLoading = true);
 
     try {
+      if (kUseMockDepartmentTeamData) {
+        final mock = MockDepartmentTeamStore.instance
+            .searchEmployees(_searchController.text)
+            .where((emp) =>
+                !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
+            .toList();
+        if (!mounted || seq != _requestSeq) return;
+        setState(() {
+          _items = mock;
+          _isMock = true;
+        });
+        return;
+      }
+
       final Map<String, dynamic> queryParams = {};
       if (_searchController.text.trim().isNotEmpty) {
         queryParams['searchParam'] = _searchController.text.trim();
@@ -88,26 +101,23 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
       if (!mounted || seq != _requestSeq) return;
       setState(() => _items = fetched);
     } catch (e) {
-      debugPrint('사원 목록 조회 실패: $e');
+      // 사원 API 를 못 쓰는 환경에서도 관리자 지정 흐름을 확인할 수 있도록 임시 데이터로 대체한다.
+      debugPrint('사원 목록 조회 실패, 임시 데이터로 대체: $e');
       if (!mounted || seq != _requestSeq) return;
+      final mock = MockDepartmentTeamStore.instance
+          .searchEmployees(_searchController.text)
+          .where((emp) =>
+              !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
+          .toList();
       setState(() {
-        _items = [];
-        _errorMessage = _messageOf(e, '사원 목록 조회에 실패했습니다.');
+        _items = mock;
+        _isMock = true;
       });
     } finally {
       if (mounted && seq == _requestSeq) {
         setState(() => _isLoading = false);
       }
     }
-  }
-
-  /// ApiClient 인터셉터가 서버의 message 를 DioException.message 로 옮겨 둔다.
-  String _messageOf(Object error, String fallback) {
-    if (error is DioException) {
-      final message = error.message;
-      if (message != null && message.trim().isNotEmpty) return message;
-    }
-    return fallback;
   }
 
   @override
@@ -126,6 +136,14 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
         child: Column(
           children: [
             _buildSearchField(),
+            if (_isMock)
+              const Padding(
+                padding: EdgeInsets.only(top: 6),
+                child: Text(
+                  '임시 데이터로 조회 중입니다.',
+                  style: TextStyle(fontSize: 11, color: AppColors.amber),
+                ),
+              ),
             const SizedBox(height: 10),
             Expanded(child: _buildResultList()),
           ],
@@ -193,15 +211,6 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.slate),
-      );
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Text(
-          _errorMessage!,
-          style: const TextStyle(color: Colors.red, fontSize: 13),
-        ),
       );
     }
 
