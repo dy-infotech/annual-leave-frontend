@@ -80,16 +80,6 @@ class AppDrawer extends StatelessWidget {
                     _NavItem(
                         label: '내 정보',
                         onTap: () => _navigate(context, '/my-info')),
-
-                    // TODO(테스트): '부서 및 팀 관리'를 임시로 전체 사용자에게 공개 중.
-                    // 원래 자리는 아래 관리자 섹션의 '관리자별 관리팀 설정' 바로 위이며,
-                    // 노출 조건은 info.role == 'ADMIN' && info.position == '사장' 이다.
-                    // 테스트가 끝나면 이 항목을 지우고 관리자 섹션으로 되돌릴 것.
-                    _NavItem(
-                        label: '부서 및 팀 관리',
-                        onTap: () =>
-                            _navigate(context, '/department-team-manage')),
-
                     // 관리자 섹션
                     if (info != null && info.role == 'ADMIN') ...[
                       const Padding(
@@ -129,6 +119,13 @@ class AppDrawer extends StatelessWidget {
                           adminTextColor: navyPrimary,
                           onTap: () => _navigate(
                               context, '/search_employee_number_screen')),
+                      if (info.position == '사장')
+                        _NavItem(
+                            label: '부서 및 팀 관리',
+                            isAdmin: true,
+                            adminTextColor: navyPrimary,
+                            onTap: () =>
+                                _navigate(context, '/department-team-manage')),
                       // 조건 추가: 역할이 ADMIN이면서 동시에 포지션이 '사장'일 때만 노출
                       if (info.position == '사장')
                         _NavItem(
