@@ -48,7 +48,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   final List<String> _departmentList = []; //부서
   final List<String> _positionList = []; //직급
   String? _selectedTeam; //선택된 팀
-  String? _otherTeamName; //기타선택시 입력된 팀명
+  //String? _otherTeamName; //기타선택시 입력된 팀명
   String? _selectedDepartment; //선택된 부서
   String? _selectedPosition; //선택된 직급
   RoleType? _selectedManagerYn = RoleType.employee; //선택된 관리자여부
@@ -73,9 +73,12 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
         if (data.length >= 3) {
           DateTime today = DateTime.now();
           _selectedDate = _selectedDate ?? today;
-          _hireDateController.text = DateFormat(
-                  '${_selectedDate?.year}년 ${_selectedDate?.month}월 ${_selectedDate?.day}일')
-              .format(_selectedDate!);
+
+// 이 두 줄을 추가하여 초기 로딩 시 서버 전송용 날짜 변수(formatDate)를 세팅해 줍니다.
+          formatDate = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+
+          _hireDateController.text =
+              '${_selectedDate!.year}년 ${_selectedDate!.month}월 ${_selectedDate!.day}일';
 
           _departmentList.clear();
           _teamList.clear();
@@ -135,9 +138,7 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
           _employeeNumberController.text.trim(),
           _employeeNameController.text.trim(),
           _selectedDepartment ?? '',
-          (_selectedTeam == '기타'
-              ? (_otherTeamName ?? '')
-              : (_selectedTeam ?? '')),
+          _selectedTeam ?? '',
           _selectedPosition ?? '',
           _selectedManagerYn?.code ?? '',
           _emailController.text.trim(),
@@ -195,11 +196,11 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
     //final RoleType currentUserRole = RoleType.admin; // 현재 접속자의 역할 (관리자)
 
     String userPosition = info != null ? info.position : '';
-    if (auth.isAdmin && userPosition == "사장" && !_teamList.contains('기타')) {
-      //신규 팀 정보 생성 시 필요
-      // 관리자이고 사장일 때만 "기타" 추가
-      _teamList.add('기타');
-    }
+    // if (auth.isAdmin && userPosition == "사장" && !_teamList.contains('기타')) {
+    //   //신규 팀 정보 생성 시 필요
+    //   // 관리자이고 사장일 때만 "기타" 추가
+    //   _teamList.add('기타');
+    // }
 
     return Scaffold(
       appBar: AppBar(title: const Text('사용자 등록 관리')),
@@ -277,7 +278,20 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     errorText: _departmentError,
                   ),
                   value: _selectedDepartment,
+                  // 🌟 변경 포인트: 사장이 아닐 경우, 전체 부서 목록 중 본인의 소속 부서(auth.employeeInfo.department) 하나만 노출되도록 필터링합니다.
                   items: _departmentList
+                      .where((dept) {
+                        if (currentUserPosition == '사장') {
+                          return true; // 사장 계정은 전사 모든 부서 표시 및 선택 가능
+                        }
+                        // 일반 중간 관리자는 오직 본인의 실제 소속 부서 명칭만 리스트에 남김
+                        return dept ==
+                            (context
+                                    .read<AuthProvider>()
+                                    .employeeInfo
+                                    ?.department ??
+                                '');
+                      })
                       .map((dept) => DropdownMenuItem<String>(
                             value: dept,
                             child: Text(dept),
@@ -287,12 +301,14 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     setState(() {
                       _selectedDepartment = value;
                       _departmentError = null;
+                      _selectedTeam = null; // 부서 변경 시 하위 팀 선택 값 강제 리셋
                     });
                   },
                   onSaved: (value) {
                     _selectedDepartment = value;
                   },
                 ),
+
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
@@ -301,7 +317,16 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     errorText: _teamError,
                   ),
                   value: _selectedTeam,
+                  // 🌟 변경 포인트: 전체 팀 목록 중 현재 선택된 부서에 맞는 팀만 필터링하여 노출합니다.
                   items: _teamList
+                      .where((team) {
+                        if (_selectedDepartment == '대표이사') {
+                          // 부서가 '대표이사'일 때는 팀명에 '대표'가 포함되거나 '대표이사'인 팀만 필터링
+                          return team == '대표이사' || team.contains('대표');
+                        }
+                        // 다른 부서일 때는 '대표이사' 팀을 제외하고 표시 (필요에 따라 규칙 추가 가능)
+                        return team != '대표이사';
+                      })
                       .map((team) => DropdownMenuItem<String>(
                             value: team,
                             child: Text(team),
@@ -311,29 +336,30 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
                     setState(() {
                       _selectedTeam = value;
                       _teamError = null;
-                      if (value != '기타') {
-                        _otherTeamName = null;
-                      }
+                      // if (value != '기타') {
+                      //   _otherTeamName = null;
+                      // }
                     });
                   },
                   onSaved: (value) {
                     _selectedTeam = value;
                   },
                 ),
-                if (_selectedTeam == '기타') ...[
-                  const SizedBox(height: 12),
-                  TextField(
-                    decoration: const InputDecoration(
-                      labelText: '기타 팀명을 입력하세요',
-                      border: OutlineInputBorder(),
-                    ),
-                    onChanged: (text) {
-                      setState(() {
-                        _otherTeamName = text;
-                      });
-                    },
-                  ),
-                ],
+
+                // if (_selectedTeam == '기타') ...[
+                //   const SizedBox(height: 12),
+                //   TextField(
+                //     decoration: const InputDecoration(
+                //       labelText: '기타 팀명을 입력하세요',
+                //       border: OutlineInputBorder(),
+                //     ),
+                //     onChanged: (text) {
+                //       setState(() {
+                //         _otherTeamName = text;
+                //       });
+                //     },
+                //   ),
+                // ],
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
