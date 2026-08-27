@@ -1,15 +1,19 @@
 // LVE002_D01: 휴가 신청 상세 화면 (LVE002_M02/M03, LVE003_M01에서 진입)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/leave_status_badge.dart';
 
 class LeaveRequestDetailScreen extends StatefulWidget {
   final int requestId;
 
-  const LeaveRequestDetailScreen({super.key, required this.requestId});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const LeaveRequestDetailScreen(
+      {super.key, required this.requestId, this.repository});
 
   @override
   State<LeaveRequestDetailScreen> createState() =>
@@ -17,6 +21,8 @@ class LeaveRequestDetailScreen extends StatefulWidget {
 }
 
 class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
   LeaveRequestDetail? _detail;
   bool _isLoading = true;
   String? _errorMessage;
@@ -40,10 +46,10 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final response =
-          await ApiClient().dio.get('/api/leave-requests/${widget.requestId}');
+      final detail =
+          await _repository.fetchLeaveRequestDetail(widget.requestId);
       setState(() {
-        _detail = LeaveRequestDetail.fromJson(response.data);
+        _detail = detail;
       });
     } catch (e) {
       setState(() => _errorMessage = '상세 정보를 불러오지 못했습니다.');
