@@ -39,4 +39,31 @@ class FakeLeaveRepository implements LeaveRepository {
     cancelledIds.add(requestId);
     if (cancelErrorToThrow != null) throw cancelErrorToThrow!;
   }
+
+  List<PendingLeaveRequest> pendingRequestsToReturn = [];
+  Object? approveErrorToThrow;
+  Object? rejectErrorToThrow;
+
+  int pendingFetchCount = 0;
+  final List<int> approvedIds = [];
+  final List<Map<String, String?>> rejections = [];
+
+  @override
+  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
+    pendingFetchCount++;
+    if (errorToThrow != null) throw errorToThrow!;
+    return pendingRequestsToReturn;
+  }
+
+  @override
+  Future<void> approveLeaveRequest(int requestId) async {
+    approvedIds.add(requestId);
+    if (approveErrorToThrow != null) throw approveErrorToThrow!;
+  }
+
+  @override
+  Future<void> rejectLeaveRequest(int requestId, {String? rejectReason}) async {
+    rejections.add({'requestId': '$requestId', 'rejectReason': rejectReason});
+    if (rejectErrorToThrow != null) throw rejectErrorToThrow!;
+  }
 }

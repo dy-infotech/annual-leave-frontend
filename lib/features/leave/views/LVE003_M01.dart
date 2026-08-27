@@ -2,8 +2,8 @@
 import 'package:annual_leave_frontend/app/app.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
@@ -11,7 +11,10 @@ import 'package:intl/intl.dart';
 import 'LVE002_D01.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
-  const PendingApprovalScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const PendingApprovalScreen({super.key, this.repository});
 
   @override
   State<PendingApprovalScreen> createState() => _PendingApprovalScreenState();
@@ -19,6 +22,8 @@ class PendingApprovalScreen extends StatefulWidget {
 
 class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     with RouteAware {
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
   List<PendingLeaveRequest> _requests = [];
   bool _isLoading = true;
   String? _errorMessage;
@@ -42,11 +47,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     });
 
     try {
-      final response =
-          await ApiClient().dio.get('/api/admin/leave-requests/pending');
-      final list = (response.data as List)
-          .map((json) => PendingLeaveRequest.fromJson(json))
-          .toList();
+      final list = await _repository.fetchPendingLeaveRequests();
       setState(() => _requests = list);
     } catch (e) {
       setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
@@ -122,9 +123,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
   Future<void> _approve(int requestId) async {
     setState(() => _processingIds.add(requestId));
     try {
-      await ApiClient()
-          .dio
-          .post('/api/admin/leave-requests/$requestId/approve');
+      await _repository.approveLeaveRequest(requestId);
       _showSnackBar('승인 처리되었습니다.');
       await _fetchPendingList();
     } catch (e) {
@@ -187,9 +186,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
   Future<void> _reject(int requestId, String reason) async {
     setState(() => _processingIds.add(requestId));
     try {
-      await ApiClient().dio.post(
-        '/api/admin/leave-requests/$requestId/reject',
-        data: {'rejectReason': reason.isEmpty ? null : reason},
+      await _repository.rejectLeaveRequest(
+        requestId,
+        rejectReason: reason.isEmpty ? null : reason,
       );
       _showSnackBar('반려 처리되었습니다.');
       await _fetchPendingList();

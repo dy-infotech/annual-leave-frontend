@@ -43,4 +43,27 @@ class LeaveRepository {
   Future<void> cancelLeaveRequest(int requestId) async {
     await _dio.delete('/api/leave-requests/$requestId');
   }
+
+  /// 결재 대기 목록 조회. GET /api/admin/leave-requests/pending
+  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
+    final response = await _dio.get('/api/admin/leave-requests/pending');
+    return (response.data as List)
+        .map((json) => PendingLeaveRequest.fromJson(json))
+        .toList();
+  }
+
+  /// 휴가 신청 승인. POST /api/admin/leave-requests/{requestId}/approve
+  Future<void> approveLeaveRequest(int requestId) async {
+    await _dio.post('/api/admin/leave-requests/$requestId/approve');
+  }
+
+  /// 휴가 신청 반려. POST /api/admin/leave-requests/{requestId}/reject
+  ///
+  /// 사유 미입력 시 rejectReason은 null로 전송한다. (기존 화면과 동일)
+  Future<void> rejectLeaveRequest(int requestId, {String? rejectReason}) async {
+    await _dio.post(
+      '/api/admin/leave-requests/$requestId/reject',
+      data: {'rejectReason': rejectReason},
+    );
+  }
 }
