@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
-import '../services/department_team_api.dart';
+import 'package:annual_leave_frontend/services/department_team_api.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 /// 사원을 검색해서 한 명을 고르는 다이얼로그.
