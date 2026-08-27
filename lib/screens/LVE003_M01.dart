@@ -1,3 +1,4 @@
+// LVE003_M01: 결재 대기 목록 화면
 import 'package:annual_leave_frontend/main.dart';
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,7 @@ import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
 
-import 'leave_request_detail_screen.dart';
+import 'LVE002_D01.dart';
 
 class PendingApprovalScreen extends StatefulWidget {
   const PendingApprovalScreen({super.key});

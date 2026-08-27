@@ -1,3 +1,4 @@
+// LVE002_M02: 전직원 휴가 신청 목록 화면
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
@@ -11,7 +12,7 @@ import '../widgets/date_range_dialog.dart';
 import 'package:annual_leave_frontend/main.dart';
 import 'package:intl/intl.dart';
 
-import 'leave_request_detail_screen.dart';
+import 'LVE002_D01.dart';
 
 class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;

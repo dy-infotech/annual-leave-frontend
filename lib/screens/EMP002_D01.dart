@@ -1,3 +1,4 @@
+// EMP002_D01: 사원 상세 화면 (EMP002_M01에서 진입)
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
 import 'package:annual_leave_frontend/models/auth_models.dart';

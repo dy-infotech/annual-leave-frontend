@@ -1,6 +1,6 @@
 # 부서 및 팀 관리 — API 명세
 
-`부서 및 팀 관리` 화면(`lib/screens/department_team_manage_screen.dart`)이 호출하는 API 정의서다.
+`부서 및 팀 관리` 화면(`lib/screens/ADM003_M01.dart`)이 호출하는 API 정의서다.
 백엔드 `feature/department-team-admin-api` 브랜치(PR #57) 기준으로 확정된 스펙이며,
 프론트엔드 호출 코드는 `lib/services/department_team_api.dart` 에 모여 있다.
 

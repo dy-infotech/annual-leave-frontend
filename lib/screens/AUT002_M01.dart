@@ -1,3 +1,4 @@
+// AUT002_M01: 사용자 등록(회원가입) 화면
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
