@@ -51,6 +51,14 @@ class SignupManageViewModel extends ChangeNotifier {
   String? get emailError => _emailError;
   String? get hireDateError => _hireDateError;
 
+  /// 관리자 역할 부여 가능 여부. 사장이면서 관리자인 접속자만 부여할 수 있다.
+  static bool canAssignAdminRole({
+    required String currentUserPosition,
+    required String currentUserRole,
+  }) {
+    return currentUserPosition == "사장" && currentUserRole == "ADMIN";
+  }
+
   Future<void> fetch() async {
     _isLoading = true;
     notifyListeners();

@@ -4,6 +4,8 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/models/public_holiday.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
+import 'package:annual_leave_frontend/core/error/result.dart';
+import 'package:annual_leave_frontend/features/leave/usecases/submit_leave_request.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 
@@ -16,13 +18,17 @@ class LeaveRequestViewModel extends ChangeNotifier {
     required AuthSession authProvider,
     LeaveRepository? repository,
     PublicHolidayRepository? holidayRepository,
+    SubmitLeaveRequest? submitLeaveRequest,
   })  : _authProvider = authProvider,
         _repository = repository ?? LeaveRepository(),
-        _holidayRepository = holidayRepository ?? PublicHolidayRepository();
+        _holidayRepository = holidayRepository ?? PublicHolidayRepository(),
+        _submitLeaveRequest =
+            submitLeaveRequest ?? SubmitLeaveRequest(repository: repository);
 
   final AuthSession _authProvider;
   final LeaveRepository _repository;
   final PublicHolidayRepository _holidayRepository;
+  final SubmitLeaveRequest _submitLeaveRequest;
 
   DateTime focusedDay = DateTime.now();
   LeaveType _selectedLeaveType = LeaveType.full;
@@ -204,12 +210,14 @@ class LeaveRequestViewModel extends ChangeNotifier {
     }
     final effectiveEndDate = _endDate ?? _startDate!;
 
-    return _hasOverlap(_startDate!, effectiveEndDate, _selectedLeaveType.code);
+    return SubmitLeaveRequest.hasOverlap(
+        _myRequests, _startDate!, effectiveEndDate, _selectedLeaveType.code);
   }
 
   /// 선택한 기간의 사용 일수가 잔여 연차를 초과하는지 확인한다.
   bool exceedsRemaining() {
-    return useDays > remainingLeaveDays;
+    return SubmitLeaveRequest.exceedsRemaining(
+        useDays: useDays, remainingLeaveDays: remainingLeaveDays);
   }
 
   /// 휴가 신청 제출. 성공 시 데이터를 갱신하고 선택 상태를 초기화한다.
@@ -227,10 +235,11 @@ class LeaveRequestViewModel extends ChangeNotifier {
         leaveReason: leaveReason,
       );
 
-      await _repository.submitLeaveRequest(request);
-    } catch (e) {
-      _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.';
-      return false; // 신청 실패 시 여기서 종료 (갱신 또는 초기화 진행 안 함)
+      final result = await _submitLeaveRequest(request);
+      if (result case Err(:final failure)) {
+        _errorMessage = failure.message;
+        return false; // 신청 실패 시 여기서 종료 (갱신 또는 초기화 진행 안 함)
+      }
     } finally {
       _isSubmitting = false;
       notifyListeners();
@@ -252,48 +261,6 @@ class LeaveRequestViewModel extends ChangeNotifier {
     reasonController.clear();
     notifyListeners();
     return true;
-  }
-
-  // 새 신청의 기간(start~end)과 종류(newLeaveType)가 기존 신청과 겹치는지 확인
-  bool _hasOverlap(DateTime start, DateTime end, String newLeaveType) {
-    // 시간 정보를 제거하고 순수 날짜(연/월/일)만 남긴 로컬 DateTime으로 정규화
-    DateTime normalize(DateTime dateTime) {
-      final local = dateTime.toLocal();
-      return DateTime(local.year, local.month, local.day);
-    }
-
-    final normalizedStart = normalize(start);
-    final normalizedEnd = normalize(end);
-
-    return _myRequests
-        .where((item) =>
-            item.status == LeaveState.pending.code ||
-            item.status == LeaveState.approved.code)
-        .any((item) {
-      final itemStart = normalize(DateTime.parse(item.startDate));
-      final itemEnd = normalize(DateTime.parse(item.endDate));
-
-      // 1. 날짜 범위가 안 겹치면 무조건 겹침 아님
-      final dateOverlaps = !normalizedStart.isAfter(itemEnd) &&
-          !normalizedEnd.isBefore(itemStart);
-      if (!dateOverlaps) return false;
-
-      // 2. 날짜는 겹치는데, 둘 다 반차이고 오전/오후가 서로 다르면 겹침 아님
-      // (예: 기존 오전 반차 + 신규 오후 반차 -> 허용)
-      if (_isHalf(newLeaveType) && _isHalf(item.leaveType)) {
-        // 서로 다른 반차 시간대면 겹치지 않음
-        if (newLeaveType != item.leaveType) return false;
-      }
-
-      // 그 외(종일이 하나라도 끼거나, 같은 시간대 반차끼리)는 겹침
-      return true;
-    });
-  }
-
-  // 반차(오전/오후) 여부
-  bool _isHalf(String leaveType) {
-    return (leaveType == LeaveType.amHalf.code) ||
-        (leaveType == LeaveType.pmHalf.code);
   }
 
   // 특정 날짜의 휴가 신청 상태 (오전/오후 각각의 상태)

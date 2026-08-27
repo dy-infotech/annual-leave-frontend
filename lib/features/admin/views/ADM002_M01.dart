@@ -268,8 +268,10 @@ class _SignupManageViewState extends State<_SignupManageView> {
 
                     // 2. 현재 접속자가 사장이면서 동시에 관리자인지 권한 확인
                     final bool isCurrentUserCeoAndAdmin =
-                        (currentUserPosition == "사장" &&
-                            currentUserRole == "ADMIN");
+                        SignupManageViewModel.canAssignAdminRole(
+                      currentUserPosition: currentUserPosition,
+                      currentUserRole: currentUserRole,
+                    );
 
                     // 3. 만약 관리자 아이템인데, 현재 접속자가 [사장 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
                     if (isManagerItem && !isCurrentUserCeoAndAdmin) {
