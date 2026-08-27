@@ -1,7 +1,7 @@
 // AUT003_M01: 계정 찾기 화면 (아이디/비밀번호 찾기 탭)
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
