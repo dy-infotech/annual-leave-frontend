@@ -6,7 +6,10 @@
 - 기능번호(3자리): 기능 단위 그룹 번호
 - 유형: `M`(메인) · `T`(탭) · `D`(디테일) · `P`(팝업)
 
-추후 MVVM 적용 시 `lib/features/<기능코드>/` 하위로 이동할 예정이며, 현재는 `lib/screens/`에 위치한다.
+MVVM 적용이 완료되어 화면 파일은 `lib/features/<기능명>/views/`에 위치한다.
+기능명 매핑: AUT -> auth, DSH -> dashboard, LVE -> leave, EMP -> employee, ADM -> admin.
+화면별 ViewModel은 같은 기능의 `view_models/` 아래에 `<화면코드>_view_model.dart`로 짝을 이룬다.
+전체 구조와 마이그레이션 이력은 docs/mvvm-migration-plan.md 참고.
 
 ## 화면 목록
 
