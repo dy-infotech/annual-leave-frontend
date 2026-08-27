@@ -45,19 +45,6 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
 
-    // 기존 화면의 알려진 디버그 단언(ListTile이 배경색 있는 DecoratedBox 안에 있음)은
-    // 현재 동작 그대로 기록하기 위해 테스트에서만 무시한다.
-    final oldOnError = FlutterError.onError;
-    FlutterError.onError = (details) {
-      if (details.exception
-          .toString()
-          .contains('ListTile background color or ink splashes')) {
-        return;
-      }
-      oldOnError?.call(details);
-    };
-    addTearDown(() => FlutterError.onError = oldOnError);
-
     await pumpApp(
       tester,
       AdminSettingsScreen(
