@@ -1,5 +1,5 @@
 import 'package:annual_leave_frontend/features/auth/views/AUT001_M01.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,7 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/pump_app.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 
 /// 로그인 화면(AUT001_M01) 특성화 테스트.
 ///
@@ -23,11 +23,11 @@ void main() {
         .setMockMethodCallHandler(channel, (call) async => null);
   });
 
-  late FakeAuthProvider fakeAuth;
+  late FakeAuthSession fakeAuth;
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
-    fakeAuth = FakeAuthProvider();
+    fakeAuth = FakeAuthSession();
   });
 
   Future<void> pumpLoginScreen(WidgetTester tester) async {
@@ -39,7 +39,7 @@ void main() {
       tester,
       const LoginScreen(),
       providers: [
-        ChangeNotifierProvider<AuthProvider>(create: (_) => fakeAuth),
+        ChangeNotifierProvider<AuthSession>(create: (_) => fakeAuth),
       ],
       routes: {
         '/dashboard': (_) => const Scaffold(body: Text('dashboard-stub')),

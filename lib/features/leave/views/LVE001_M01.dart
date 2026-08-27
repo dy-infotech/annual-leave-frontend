@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:annual_leave_frontend/features/leave/view_models/LVE001_M01_view_model.dart';
@@ -22,7 +22,7 @@ class LeaveRequestScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => LeaveRequestViewModel(
-        authProvider: context.read<AuthProvider>(),
+        authProvider: context.read<AuthSession>(),
         repository: repository,
         holidayRepository: holidayRepository,
       )..load(),
@@ -365,7 +365,7 @@ class _LeaveRequestViewState extends State<_LeaveRequestView> {
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<LeaveRequestViewModel>();
-    final authProvider = context.watch<AuthProvider>().employeeInfo;
+    final authProvider = context.watch<AuthSession>().employeeInfo;
 
     return Scaffold(
       appBar: AppBar(title: const Text('휴가 신청')),

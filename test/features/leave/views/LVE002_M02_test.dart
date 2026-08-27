@@ -1,14 +1,14 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE002_M02.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/pump_app.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 import '../../../helpers/test_doubles/fake_leave_repository.dart';
 
 /// 전직원 휴가 신청 목록 화면(LVE002_M02) 특성화 테스트.
@@ -44,8 +44,8 @@ void main() {
       tester,
       AllLeaveRequestsScreen(repository: fake),
       providers: [
-        ChangeNotifierProvider<AuthProvider>(
-            create: (_) => FakeAuthProvider(employeeInfo: loginUser)),
+        ChangeNotifierProvider<AuthSession>(
+            create: (_) => FakeAuthSession(employeeInfo: loginUser)),
       ],
     );
     await tester.pumpAndSettle();

@@ -1,7 +1,6 @@
 // AUT002_M01: 사용자 등록(회원가입) 화면
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -17,13 +16,18 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AuthRepository? repository;
+
+  const SignupScreen({super.key, this.repository});
 
   @override
   State<SignupScreen> createState() => _SignupScreenState();
 }
 
 class _SignupScreenState extends State<SignupScreen> {
+  late final AuthRepository _repository =
+      widget.repository ?? AuthRepository();
   final _employeeNumberController = TextEditingController();
   final _passwordController = TextEditingController();
   final _passwordConfirmController = TextEditingController();
@@ -47,10 +51,10 @@ class _SignupScreenState extends State<SignupScreen> {
     });
 
     try {
-      await context.read<AuthProvider>().signUp(
-            _employeeNumberController.text.trim(),
-            _passwordController.text,
-          );
+      await _repository.signUp(
+        _employeeNumberController.text.trim(),
+        _passwordController.text,
+      );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('사용 등록이 완료되었습니다. 로그인해 주세요.')),

@@ -1,7 +1,6 @@
 // AUT003_M01: 계정 찾기 화면 (아이디/비밀번호 찾기 탭)
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -17,7 +16,10 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class FindAccountScreen extends StatefulWidget {
-  const FindAccountScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AuthRepository? repository;
+
+  const FindAccountScreen({super.key, this.repository});
 
   @override
   State<FindAccountScreen> createState() => _FindAccountScreenState();
@@ -25,6 +27,8 @@ class FindAccountScreen extends StatefulWidget {
 
 class _FindAccountScreenState extends State<FindAccountScreen>
     with SingleTickerProviderStateMixin {
+  late final AuthRepository _repository =
+      widget.repository ?? AuthRepository();
   late TabController _tabController;
 
   // 공통 및 아이디 찾기용 컨트롤러
@@ -80,11 +84,10 @@ class _FindAccountScreenState extends State<FindAccountScreen>
     });
 
     try {
-      // 💡 AuthProvider에 findId 기능을 구현하여 호출해야 합니다.
-      await context.read<AuthProvider>().findId(
-            _nameController.text.trim(),
-            _emailForIdController.text.trim(),
-          );
+      await _repository.findId(
+        _nameController.text.trim(),
+        _emailForIdController.text.trim(),
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -117,10 +120,10 @@ class _FindAccountScreenState extends State<FindAccountScreen>
     });
 
     try {
-      await context.read<AuthProvider>().sendPasswordResetEmail(
-            _employeeNoController.text.trim(),
-            _emailForPwController.text.trim(),
-          );
+      await _repository.sendPasswordResetEmail(
+        _employeeNoController.text.trim(),
+        _emailForPwController.text.trim(),
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

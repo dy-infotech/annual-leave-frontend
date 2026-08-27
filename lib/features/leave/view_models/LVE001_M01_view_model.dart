@@ -4,7 +4,7 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/models/public_holiday.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 
 /// 휴가 신청 화면(LVE001_M01)의 ViewModel.
@@ -13,14 +13,14 @@ import 'package:flutter/material.dart';
 /// PublicHolidayProvider(공휴일 판정)의 로직을 흡수했다.
 class LeaveRequestViewModel extends ChangeNotifier {
   LeaveRequestViewModel({
-    required AuthProvider authProvider,
+    required AuthSession authProvider,
     LeaveRepository? repository,
     PublicHolidayRepository? holidayRepository,
   })  : _authProvider = authProvider,
         _repository = repository ?? LeaveRepository(),
         _holidayRepository = holidayRepository ?? PublicHolidayRepository();
 
-  final AuthProvider _authProvider;
+  final AuthSession _authProvider;
   final LeaveRepository _repository;
   final PublicHolidayRepository _holidayRepository;
 

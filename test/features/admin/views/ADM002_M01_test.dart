@@ -1,14 +1,14 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM002_M01.dart';
 import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/pump_app.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 import '../../../helpers/test_doubles/fake_common_code_repository.dart';
 import '../../../helpers/test_doubles/fake_signup_manage_repository.dart';
 
@@ -48,8 +48,8 @@ void main() {
         commonCodeRepository: fakeCodes,
       ),
       providers: [
-        ChangeNotifierProvider<AuthProvider>(
-            create: (_) => FakeAuthProvider(employeeInfo: login)),
+        ChangeNotifierProvider<AuthSession>(
+            create: (_) => FakeAuthSession(employeeInfo: login)),
       ],
     );
     await tester.pumpAndSettle();

@@ -1,21 +1,19 @@
 import 'package:annual_leave_frontend/features/auth/views/AUT002_M01.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 
 import '../../../helpers/pump_app.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_repository.dart';
 
 /// 사용자 등록 화면(AUT002_M01) 특성화 테스트.
 ///
 /// ViewModel 추출 전의 현재 동작을 기록한다. 이후 리팩터링 단계에서
 /// 이 테스트는 수정 없이 통과해야 한다. (주입 배선만 변경 가능)
 void main() {
-  late FakeAuthProvider fakeAuth;
+  late FakeAuthRepository fakeAuth;
 
   setUp(() {
-    fakeAuth = FakeAuthProvider();
+    fakeAuth = FakeAuthRepository();
   });
 
   Future<void> pumpSignupScreen(WidgetTester tester) async {
@@ -27,16 +25,13 @@ void main() {
             child: ElevatedButton(
               onPressed: () => Navigator.push(
                 context,
-                MaterialPageRoute(builder: (_) => const SignupScreen()),
+                MaterialPageRoute(builder: (_) => SignupScreen(repository: fakeAuth)),
               ),
               child: const Text('go'),
             ),
           ),
         ),
       ),
-      providers: [
-        ChangeNotifierProvider<AuthProvider>(create: (_) => fakeAuth),
-      ],
     );
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();

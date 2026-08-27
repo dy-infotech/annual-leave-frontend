@@ -1,6 +1,6 @@
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -62,7 +62,7 @@ void main() {
       tester,
       const LeaveRequestScreen(),
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthSession()),
       ],
     );
     await pumpFor(tester, duration: const Duration(seconds: 1));

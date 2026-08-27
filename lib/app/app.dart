@@ -1,6 +1,6 @@
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM001_M01.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM002_M01.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM003_M01.dart';
@@ -28,7 +28,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => AuthSession()),
       ],
       child: MaterialApp(
         title: '연차 관리',

@@ -5,7 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // 👈 암호화 저장소 임포트
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -99,7 +99,7 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await context.read<AuthProvider>().login(
+      await context.read<AuthSession>().login(
             _employeeNumberController.text.trim(),
             _passwordController.text,
           );

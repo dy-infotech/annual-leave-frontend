@@ -1,7 +1,7 @@
 import 'package:annual_leave_frontend/core/services/fcm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -23,7 +23,7 @@ class AppDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<AuthSession>();
     final info = auth.employeeInfo;
 
     // 관리자 전용 네이비 컬러 정의
@@ -146,7 +146,7 @@ class AppDrawer extends StatelessWidget {
               color: AppColors.coral,
               onTap: () async {
                 Navigator.pop(context);
-                final authProvider = context.read<AuthProvider>();
+                final authProvider = context.read<AuthSession>();
 
                 await FcmService.instance.closeSubscription();
                 await authProvider.logout();

@@ -1,6 +1,6 @@
 import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM003_M01.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
@@ -23,7 +23,7 @@ void main() {
   Future<void> pumpScreen(WidgetTester tester) async {
     await tester.pumpWidget(
       MultiProvider(
-        providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
+        providers: [ChangeNotifierProvider(create: (_) => AuthSession())],
         child: MaterialApp(
           theme: AppTheme.theme,
           home: DepartmentTeamManageScreen(repository: fake),

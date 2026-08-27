@@ -1,16 +1,16 @@
 import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 
 /// 내 정보 화면(EMP001_M01)의 ViewModel.
 class MyInfoViewModel extends ChangeNotifier {
   MyInfoViewModel({
-    required AuthProvider authProvider,
+    required AuthSession authProvider,
     EmployeeRepository? repository,
   })  : _authProvider = authProvider,
         _repository = repository ?? EmployeeRepository();
 
-  final AuthProvider _authProvider;
+  final AuthSession _authProvider;
   final EmployeeRepository _repository;
 
   final currentPasswordController = TextEditingController();

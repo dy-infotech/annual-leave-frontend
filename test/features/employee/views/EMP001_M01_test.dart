@@ -1,13 +1,13 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/employee/views/EMP001_M01.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/pump_app.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 import '../../../helpers/test_doubles/fake_employee_repository.dart';
 
 /// 내 정보 화면(EMP001_M01) 특성화 테스트.
@@ -16,11 +16,11 @@ import '../../../helpers/test_doubles/fake_employee_repository.dart';
 /// 이 테스트는 수정 없이 통과해야 한다.
 void main() {
   late FakeEmployeeRepository fake;
-  late FakeAuthProvider fakeAuth;
+  late FakeAuthSession fakeAuth;
 
   setUp(() {
     fake = FakeEmployeeRepository();
-    fakeAuth = FakeAuthProvider(
+    fakeAuth = FakeAuthSession(
       employeeInfo: Employee.fromJson(fixtureJson('admin/employee.json')),
     );
   });
@@ -34,7 +34,7 @@ void main() {
       tester,
       MyInfoScreen(repository: fake),
       providers: [
-        ChangeNotifierProvider<AuthProvider>(create: (_) => fakeAuth),
+        ChangeNotifierProvider<AuthSession>(create: (_) => fakeAuth),
       ],
     );
     await tester.pumpAndSettle();

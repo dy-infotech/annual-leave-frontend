@@ -64,7 +64,7 @@ class _AdminSearchLeaveRequestsViewState
     final statusName = vm.statusName;
 
     //로그인 사용자 직급 "사장"여부 확인
-    /* final auth = context.watch<AuthProvider>();
+    /* final auth = context.watch<AuthSession>();
     final info = auth.employeeInfo;
     bool isCeo = false;
     if(auth.isAdmin && info?.position == "사장"){

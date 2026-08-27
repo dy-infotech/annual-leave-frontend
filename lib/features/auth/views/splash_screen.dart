@@ -1,5 +1,5 @@
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -18,7 +18,7 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLoginStatus() async {
-    final auth = context.read<AuthProvider>();
+    final auth = context.read<AuthSession>();
     await auth.tryAutoLogin();
 
     if (!mounted) return;

@@ -1,6 +1,6 @@
 // LVE002_M02: 전직원 휴가 신청 목록 화면
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
@@ -143,7 +143,7 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
   Widget build(BuildContext context) {
     final vm = context.watch<AllLeaveRequestsViewModel>();
     final userEmployeeNumber =
-        context.watch<AuthProvider>().employeeInfo?.employeeNumber;
+        context.watch<AuthSession>().employeeInfo?.employeeNumber;
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
       {'label': '대기', 'value': 'PENDING'},

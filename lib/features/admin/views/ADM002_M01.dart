@@ -8,7 +8,7 @@ import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import '../widgets/date_input_dialog.dart';
 import 'package:flutter/services.dart';
 
@@ -86,7 +86,7 @@ class _SignupManageViewState extends State<_SignupManageView> {
   @override
   Widget build(BuildContext context) {
     context.watch<SignupManageViewModel>();
-    final auth = context.watch<AuthProvider>();
+    final auth = context.watch<AuthSession>();
     final info = auth.employeeInfo;
     // 1. [상태 변수 선언부] 현재 로그인한 사용자의 실제 데이터 정보가 담겨있다고 가정합니다.
     final String currentUserPosition =
@@ -179,7 +179,7 @@ class _SignupManageViewState extends State<_SignupManageView> {
                         // 일반 중간 관리자는 오직 본인의 실제 소속 부서 명칭만 리스트에 남김
                         return dept ==
                             (context
-                                    .read<AuthProvider>()
+                                    .read<AuthSession>()
                                     .employeeInfo
                                     ?.department ??
                                 '');
