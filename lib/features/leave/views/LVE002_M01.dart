@@ -1,12 +1,14 @@
 // LVE002_M01: 내 휴가 신청 목록 화면
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE002_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 
-class MyLeaveRequestsScreen extends StatefulWidget {
+class MyLeaveRequestsScreen extends StatelessWidget {
 
   final String? status;
 
@@ -16,74 +18,23 @@ class MyLeaveRequestsScreen extends StatefulWidget {
   const MyLeaveRequestsScreen({super.key, this.status, this.repository});
 
   @override
-  State<MyLeaveRequestsScreen> createState() => _MyLeaveRequestsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => MyLeaveRequestsViewModel(
+        initialStatus: status,
+        repository: repository,
+      )..load(),
+      child: const _MyLeaveRequestsView(),
+    );
+  }
 }
 
-class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
+class _MyLeaveRequestsView extends StatelessWidget {
+  const _MyLeaveRequestsView();
 
-  late final LeaveRepository _repository =
-      widget.repository ?? LeaveRepository();
-  List<LeaveRequestListItem> _items = [];
-  bool _isLoading = true;
-  String? _statusFilter; // null = 전체
-  DateTimeRange? _dateRange;
-  final Set<int> _processingIds = {};   
-  
-  @override
-  void initState() {
-    
-    super.initState(); 
-    if(widget.status != null){
-      _statusFilter = widget.status;
-      _setFilter(widget.status);
-      //widget.status = '';
-    }
-    
-    _fetch(_statusFilter);
-  }
-
-  Future<void> _fetch(widgetStatus) async {
-    setState(() => _isLoading = true);
-    try {
-      if(widgetStatus != null){
-        _statusFilter = widget.status;
-      }
-
-      final items = await _repository.fetchMyLeaveRequests(
-        status: _statusFilter,
-        startDate: _dateRange != null ? _formatDate(_dateRange!.start) : null,
-        endDate: _dateRange != null ? _formatDate(_dateRange!.end) : null,
-      );
-      setState(() {
-        _items = items;
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _setFilter(String? status) {
-    setState(() => _statusFilter = status);
-    _fetch(null);
-  }
-
-  bool _isCancelable(LeaveRequestListItem item) {
-    
-    if (item.status == 'PENDING') return true;
-
-    return false;
-    
-    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
-
-    final startDate = DateTime.parse(item.startDate);
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-
-    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly); */
-  }
-
-  Future<void> _confirmCancel(LeaveRequestListItem item) async {
+  Future<void> _confirmCancel(BuildContext context,
+      MyLeaveRequestsViewModel vm, LeaveRequestListItem item) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -108,37 +59,20 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
     );
 
     if (confirmed == true) {
-      await _cancel(item.requestId);
-    } 
-  }
-
-  Future<void> _cancel(int requestId) async {
-    setState(() => _processingIds.add(requestId));
-    try {
-      await _repository.cancelLeaveRequest(requestId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
-      }
-      await _fetch(null);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
-      }
-    } finally {
-      setState(() => _processingIds.remove(requestId));
+      final ok = await vm.cancel(item.requestId);
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
     }
   }
 
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-
-  Future<void> _pickDateRange() async {
+  Future<void> _pickDateRange(
+      BuildContext context, MyLeaveRequestsViewModel vm) async {
     final now = DateTime.now();
     final picked = await showDateRangePicker(
       context: context,
       firstDate: DateTime(now.year - 1),
       lastDate: DateTime(now.year + 1),
-      initialDateRange: _dateRange,
+      initialDateRange: vm.dateRange,
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(primary: AppColors.slate),
@@ -148,17 +82,14 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
     );
 
     if (picked != null) {
-      setState(() => _dateRange = picked);
-      _fetch(null);
+      vm.setDateRange(picked);
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
-    //로그인 사용자 정보
-    //final info = context.watch<AuthProvider>().employeeInfo;
-    
-    
+    final vm = context.watch<MyLeaveRequestsViewModel>();
+
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
       {'label': '대기', 'value': 'PENDING'},
@@ -172,7 +103,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
       body: Column(
         children: [
           SizedBox(
-            height: 60, 
+            height: 60,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
               child: Row(
@@ -182,7 +113,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.3,
                     child: DropdownButton<String?>(
-                      value: _statusFilter,
+                      value: vm.statusFilter,
                       items: statusOptions.map((option) {
                         return DropdownMenuItem<String?>(
                           value: option['value'],
@@ -190,8 +121,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                         );
                       }).toList(),
                       onChanged: (value) {
-                        _statusFilter = '';
-                        _setFilter(value);
+                        vm.setFilter(value);
                       },
                       underline: Container(height: 1, color: Colors.grey),
                       isExpanded: true,
@@ -199,7 +129,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                   ),
                   ElevatedButton.icon(
                     onPressed: () {
-                      _pickDateRange();  
+                      _pickDateRange(context, vm);
                     },
                     icon: const Icon(Icons.calendar_today, size: 20),
                     label: const Text(
@@ -215,18 +145,18 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
               ),
             ),
           ),
-          if (_dateRange != null)
+          if (vm.dateRange != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
-                  Text('${_formatDate(_dateRange!.start)} — ${_formatDate(_dateRange!.end)}',
+                  Text(
+                      '${MyLeaveRequestsViewModel.formatDate(vm.dateRange!.start)} — ${MyLeaveRequestsViewModel.formatDate(vm.dateRange!.end)}',
                       style: const TextStyle(fontSize: 12, color: AppColors.textMuted)),
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
-                      setState(() => _dateRange = null);
-                      _fetch(null);
+                      vm.clearDateRange();
                     },
                     child: const Text('지우기', style: TextStyle(fontSize: 12, color: AppColors.coral, fontWeight: FontWeight.w600)),
                   ),
@@ -234,19 +164,19 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
               ),
             ),
           Expanded(
-            child: _isLoading
+            child: vm.isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
-                : _items.isEmpty
+                : vm.items.isEmpty
                 ? const Center(child: Text('신청 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
                 : ListView.builder(
               padding: const EdgeInsets.all(20),
-              itemCount: _items.length,
+              itemCount: vm.items.length,
               itemBuilder: (context, index) {
-                final item = _items[index];
+                final item = vm.items[index];
                 final isRejected = item.status == 'REJECTED' &&
                     item.rejectReason != null &&
                     item.rejectReason!.isNotEmpty;
-                final isProcessing = _processingIds.contains(item.requestId);
+                final isProcessing = vm.isProcessing(item.requestId);
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -281,8 +211,8 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.baseline,   
-                            textBaseline: TextBaseline.alphabetic,             
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
                             children: [
                               const Text('반려 사유',
                                   style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.coral)),
@@ -294,15 +224,15 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
                         ),
                       ],
 
-                      // 취소 버튼: 대기/승인 + 아직 시작 안 한 휴가만 표시
-                      if (_isCancelable(item)) ...[
+                      // 취소 버튼: 대기 상태만 표시
+                      if (MyLeaveRequestsViewModel.isCancelable(item)) ...[
                         const SizedBox(height: 12),
                         const Divider(height: 1, color: AppColors.divider),
                         const SizedBox(height: 4),
                         Align(
                           alignment: Alignment.centerRight,
                           child: TextButton(
-                            onPressed: isProcessing ? null : () => _confirmCancel(item),
+                            onPressed: isProcessing ? null : () => _confirmCancel(context, vm, item),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                               minimumSize: Size.zero,
