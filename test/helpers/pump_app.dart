@@ -10,6 +10,7 @@ Future<void> pumpApp(
   WidgetTester tester,
   Widget home, {
   List<SingleChildWidget> providers = const [],
+  Map<String, WidgetBuilder> routes = const {},
 }) async {
   final app = MaterialApp(
     theme: AppTheme.theme,
@@ -21,6 +22,7 @@ Future<void> pumpApp(
     ],
     supportedLocales: const [Locale('ko', 'KR')],
     home: home,
+    routes: routes,
   );
   await tester.pumpWidget(
     providers.isEmpty

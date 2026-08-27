@@ -1,7 +1,8 @@
 // AUT002_M01: 사용자 등록(회원가입) 화면
 import 'package:flutter/material.dart';
+import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
+import 'package:annual_leave_frontend/features/auth/view_models/AUT002_M01_view_model.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -16,60 +17,45 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
-class SignupScreen extends StatefulWidget {
-  const SignupScreen({super.key});
+class SignupScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AuthRepository? repository;
+
+  const SignupScreen({super.key, this.repository});
 
   @override
-  State<SignupScreen> createState() => _SignupScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => SignupViewModel(repository: repository),
+      child: const _SignupView(),
+    );
+  }
 }
 
-class _SignupScreenState extends State<SignupScreen> {
-  final _employeeNumberController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _passwordConfirmController = TextEditingController();
-  bool _isLoading = false;
-  String? _errorMessage;
+class _SignupView extends StatefulWidget {
+  const _SignupView();
+
+  @override
+  State<_SignupView> createState() => _SignupViewState();
+}
+
+class _SignupViewState extends State<_SignupView> {
+  SignupViewModel get _vm => context.read<SignupViewModel>();
 
   Future<void> _handleSignup() async {
-    if (_employeeNumberController.text.isEmpty ||
-        _passwordController.text.isEmpty) {
-      setState(() => _errorMessage = '사번과 비밀번호를 입력해 주세요.');
-      return;
-    }
-    if (_passwordController.text != _passwordConfirmController.text) {
-      setState(() => _errorMessage = '비밀번호가 일치하지 않습니다.');
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await context.read<AuthProvider>().signUp(
-            _employeeNumberController.text.trim(),
-            _passwordController.text,
-          );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('사용 등록이 완료되었습니다. 로그인해 주세요.')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      setState(
-        () => _errorMessage = e.toString().contains('DioException')
-            ? e.toString()
-            : '사용 등록에 실패했습니다.',
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.signUp();
+    if (ok && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('사용 등록이 완료되었습니다. 로그인해 주세요.')),
       );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<SignupViewModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('사용 등록')),
       body: SafeArea(
@@ -86,14 +72,14 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
                 // const SizedBox(height: 32),
                 // TextField(
-                //   controller: _employeeNumberController,
+                //   controller: _vm.employeeNumberController,
                 //   decoration: const InputDecoration(labelText: '사번'),
                 //   keyboardType: TextInputType.text,
                 //   textCapitalization: TextCapitalization.characters,
                 // ),
                 const SizedBox(height: 32),
                 TextField(
-                  controller: _employeeNumberController,
+                  controller: _vm.employeeNumberController,
                   decoration: const InputDecoration(labelText: '사번'),
                   keyboardType: TextInputType.text,
                   textCapitalization: TextCapitalization.characters,
@@ -107,21 +93,21 @@ class _SignupScreenState extends State<SignupScreen> {
 
                 const SizedBox(height: 12),
                 TextField(
-                  controller: _passwordController,
+                  controller: _vm.passwordController,
                   decoration: const InputDecoration(labelText: '비밀번호'),
                   obscureText: true,
                 ),
                 const SizedBox(height: 12),
                 TextField(
-                  controller: _passwordConfirmController,
+                  controller: _vm.passwordConfirmController,
                   decoration: const InputDecoration(labelText: '비밀번호 확인'),
                   obscureText: true,
                   onSubmitted: (_) => _handleSignup(),
                 ),
-                if (_errorMessage != null) ...[
+                if (_vm.errorMessage != null) ...[
                   const SizedBox(height: 12),
                   Text(
-                    _errorMessage!,
+                    _vm.errorMessage!,
                     style: const TextStyle(color: Colors.red),
                   ),
                 ],
@@ -129,8 +115,8 @@ class _SignupScreenState extends State<SignupScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _handleSignup,
-                    child: _isLoading
+                    onPressed: _vm.isLoading ? null : _handleSignup,
+                    child: _vm.isLoading
                         ? const SizedBox(
                             width: 20,
                             height: 20,

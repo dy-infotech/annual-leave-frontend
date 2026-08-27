@@ -1,7 +1,7 @@
 // EMP001_M01: 내 정보 화면
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
 import 'package:annual_leave_frontend/features/employee/view_models/EMP001_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
@@ -18,7 +18,7 @@ class MyInfoScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => MyInfoViewModel(
-        authProvider: context.read<AuthProvider>(),
+        authProvider: context.read<AuthSession>(),
         repository: repository,
       ),
       child: const _MyInfoView(),
@@ -57,7 +57,7 @@ class _MyInfoViewState extends State<_MyInfoView> {
   @override
   Widget build(BuildContext context) {
     context.watch<MyInfoViewModel>();
-    final info = context.watch<AuthProvider>().employeeInfo;
+    final info = context.watch<AuthSession>().employeeInfo;
 
     return Scaffold(
       appBar: AppBar(title: const Text('내 정보')),

@@ -1,6 +1,6 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM004_D01.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -8,7 +8,7 @@ import 'package:provider/provider.dart';
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_doubles/fake_admin_employee_repository.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 import '../../../helpers/test_doubles/fake_common_code_repository.dart';
 
 /// 사원 상세 화면(ADM004_D01) 특성화 테스트.
@@ -49,8 +49,8 @@ void main() {
         commonCodeRepository: fakeCodes,
       ),
       providers: [
-        ChangeNotifierProvider<AuthProvider>(
-            create: (_) => FakeAuthProvider(employeeInfo: login)),
+        ChangeNotifierProvider<AuthSession>(
+            create: (_) => FakeAuthSession(employeeInfo: login)),
       ],
     );
     await tester.pumpAndSettle();

@@ -6,19 +6,19 @@ import 'package:annual_leave_frontend/features/leave/view_models/LVE001_M01_view
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fixture_reader.dart';
-import '../../../helpers/test_doubles/fake_auth_provider.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
 import '../../../helpers/test_doubles/fake_leave_repository.dart';
 import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
 
 void main() {
   late FakeLeaveRepository fake;
   late FakePublicHolidayRepository fakeHolidays;
-  late FakeAuthProvider fakeAuth;
+  late FakeAuthSession fakeAuth;
 
   setUp(() {
     fake = FakeLeaveRepository();
     fakeHolidays = FakePublicHolidayRepository();
-    fakeAuth = FakeAuthProvider(
+    fakeAuth = FakeAuthSession(
       employeeInfo: Employee.fromJson(fixtureJson('admin/employee.json')),
     );
   });
@@ -214,7 +214,7 @@ void main() {
     });
 
     test('잔여 연차가 부족하면 true다', () {
-      fakeAuth = FakeAuthProvider(
+      fakeAuth = FakeAuthSession(
         employeeInfo: Employee.fromJson(
             fixtureJson('admin/employee.json')..['remainingLeaveDays'] = 0.0),
       );

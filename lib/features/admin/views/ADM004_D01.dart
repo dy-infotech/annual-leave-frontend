@@ -9,7 +9,7 @@ import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/registe_status_badge.dart';
 import '../widgets/date_input_dialog.dart';
 import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 
 class EmployeeDetailScreen extends StatelessWidget {
   final Employee employee;
@@ -91,7 +91,7 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
   @override
   Widget build(BuildContext context) {
     context.watch<EmployeeDetailViewModel>();
-    final authProvider = Provider.of<AuthProvider>(context);
+    final authProvider = Provider.of<AuthSession>(context);
 
     return Scaffold(
       appBar: AppBar(
