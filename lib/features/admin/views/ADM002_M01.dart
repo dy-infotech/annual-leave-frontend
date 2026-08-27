@@ -3,7 +3,7 @@ import 'package:annual_leave_frontend/features/admin/repositories/common_code_re
 import 'package:annual_leave_frontend/features/admin/repositories/signup_manage_repository.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM002_M01_view_model.dart';
 import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
-import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
+import 'package:annual_leave_frontend/features/dashboard/views/DSH001_M01.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';

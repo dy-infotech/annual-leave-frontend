@@ -2,7 +2,6 @@ import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM002_M01.dart';
 import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
@@ -51,7 +50,6 @@ void main() {
       providers: [
         ChangeNotifierProvider<AuthProvider>(
             create: (_) => FakeAuthProvider(employeeInfo: login)),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
     );
     await tester.pumpAndSettle();

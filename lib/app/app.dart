@@ -1,7 +1,6 @@
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM001_M01.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM002_M01.dart';
 import 'package:annual_leave_frontend/features/admin/views/ADM003_M01.dart';
@@ -9,7 +8,7 @@ import 'package:annual_leave_frontend/features/admin/views/ADM004_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT001_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT002_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT003_M01.dart';
-import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
+import 'package:annual_leave_frontend/features/dashboard/views/DSH001_M01.dart';
 import 'package:annual_leave_frontend/screens/EMP001_M01.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
 //import 'package:annual_leave_frontend/features/leave/views/LVE002_M01.dart';
@@ -30,7 +29,6 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: MaterialApp(
         title: '연차 관리',
