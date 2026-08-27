@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
-import 'package:annual_leave_frontend/services/department_team_api.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 /// 사원을 검색해서 한 명을 고르는 다이얼로그.
@@ -71,7 +71,7 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
 
     try {
       final search =
-          widget.searchFn ?? DepartmentTeamApi.instance.searchEmployees;
+          widget.searchFn ?? DepartmentTeamRepository().searchEmployees;
       final fetched = (await search(_searchController.text))
           .where((emp) =>
               !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))

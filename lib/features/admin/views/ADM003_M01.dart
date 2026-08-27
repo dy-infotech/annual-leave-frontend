@@ -1,10 +1,11 @@
 // ADM003_M01: 부서 및 팀 관리 화면 (부서/팀 탭)
-import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
 import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
-import 'package:annual_leave_frontend/services/department_team_api.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
+import 'package:annual_leave_frontend/features/admin/view_models/ADM003_M01_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/employee_picker_dialog.dart';
@@ -20,34 +21,38 @@ import '../widgets/employee_picker_dialog.dart';
 //   루트 팀(대표이사)은 상위 팀이 자기 자신이므로 상위 팀 변경과 삭제를 노출하지 않는다.
 // - 입력은 모달 바텀시트로 받고, 서버가 거부한 사유(중복 이름 등)는 시트 안에 그대로 보여준다.
 
-class DepartmentTeamManageScreen extends StatefulWidget {
-  const DepartmentTeamManageScreen({super.key});
+class DepartmentTeamManageScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final DepartmentTeamRepository? repository;
+
+  const DepartmentTeamManageScreen({super.key, this.repository});
 
   @override
-  State<DepartmentTeamManageScreen> createState() =>
-      _DepartmentTeamManageScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) =>
+          DepartmentTeamViewModel(repository: repository)..refreshAll(),
+      child: const _DepartmentTeamManageView(),
+    );
+  }
 }
 
-class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
+class _DepartmentTeamManageView extends StatefulWidget {
+  const _DepartmentTeamManageView();
+
+  @override
+  State<_DepartmentTeamManageView> createState() =>
+      _DepartmentTeamManageViewState();
+}
+
+class _DepartmentTeamManageViewState extends State<_DepartmentTeamManageView>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   final _deptScrollController = ScrollController();
   final _teamScrollController = ScrollController();
 
-  List<Department> _departments = [];
-  List<Team> _teams = [];
-
-  // 탭별로 목록이 독립적이므로 로딩/에러 상태도 탭별로 분리한다.
-  bool _isDeptLoading = false;
-  bool _isTeamLoading = false;
-  String? _deptError;
-  String? _teamError;
-
-  /// 팀 탭의 부서 필터. null 이면 전체.
-  int? _teamFilterDeptId;
-
-  DepartmentTeamApi get _api => DepartmentTeamApi.instance;
+  DepartmentTeamViewModel get _vm => context.read<DepartmentTeamViewModel>();
 
   @override
   void initState() {
@@ -57,7 +62,6 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     _tabController.addListener(() {
       if (mounted) setState(() {});
     });
-    _refreshAll();
   }
 
   @override
@@ -68,108 +72,27 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     super.dispose();
   }
 
-  // ---------------------------------------------------------------- 조회
-
-  Future<void> _refreshAll() =>
-      Future.wait([_fetchDepartments(), _fetchTeams()]);
-
-  // 1. 부서 목록 조회
-  Future<void> _fetchDepartments() async {
-    if (!mounted) return;
-    setState(() {
-      _isDeptLoading = true;
-      _deptError = null;
-    });
-
-    try {
-      final fetched = await _api.fetchDepartments();
-      if (!mounted) return;
-      setState(() => _departments = fetched);
-    } catch (e) {
-      debugPrint('부서 목록 조회 실패: $e');
-      if (!mounted) return;
-      setState(() => _deptError = _messageOf(e, '부서 목록을 불러오지 못했습니다.'));
-    } finally {
-      if (mounted) setState(() => _isDeptLoading = false);
-    }
-  }
-
-  // 2. 팀 목록 조회
-  Future<void> _fetchTeams() async {
-    if (!mounted) return;
-    setState(() {
-      _isTeamLoading = true;
-      _teamError = null;
-    });
-
-    try {
-      final fetched = await _api.fetchTeams();
-      if (!mounted) return;
-      setState(() {
-        _teams = fetched;
-        // 필터로 걸어둔 부서가 사라졌으면 전체로 되돌린다.
-        if (_teamFilterDeptId != null &&
-            !fetched.any((t) => t.departmentId == _teamFilterDeptId)) {
-          _teamFilterDeptId = null;
-        }
-      });
-    } catch (e) {
-      debugPrint('팀 목록 조회 실패: $e');
-      if (!mounted) return;
-      setState(() => _teamError = _messageOf(e, '팀 목록을 불러오지 못했습니다.'));
-    } finally {
-      if (mounted) setState(() => _isTeamLoading = false);
-    }
-  }
-
-  /// ApiClient 인터셉터가 응답 body 의 message 를 DioException.message 로 옮겨 둔다.
-  /// 서버가 준 사유가 있으면 그것을 쓰고, 없으면 기본 문구를 쓴다.
-  String _messageOf(Object error, String fallback) {
-    if (error is DioException) {
-      final message = error.message;
-      if (message != null && message.trim().isNotEmpty) return message;
-    }
-    return fallback;
-  }
-
-  List<Team> _teamsOfDepartment(int departmentId) =>
-      _teams.where((t) => t.departmentId == departmentId).toList();
-
   // ---------------------------------------------------------------- 부서 저장/삭제
-
-  /// 부서 등록/이름 변경. 성공 시 null, 실패 시 시트에 보여줄 메시지를 반환한다.
-  Future<String?> _submitDepartment(Department? origin, String name) async {
-    try {
-      if (origin == null) {
-        await _api.createDepartment(name);
-      } else {
-        await _api.updateDepartment(origin.departmentId, name);
-      }
-      return null;
-    } catch (e) {
-      debugPrint('부서 저장 실패: $e');
-      return _messageOf(
-          e, origin == null ? '부서 등록에 실패했습니다.' : '부서 수정에 실패했습니다.');
-    }
-  }
 
   // 3. 부서 추가/수정 시트 (department 가 null 이면 추가 모드)
   Future<void> _openDepartmentSheet({Department? department}) async {
+    final vm = _vm;
     final saved = await _showFormSheet<bool>(
       builder: (_) => _DepartmentFormSheet(
         department: department,
-        onSubmit: (name) => _submitDepartment(department, name),
+        onSubmit: (name) => vm.submitDepartment(department, name),
       ),
     );
     if (saved != true) return;
     _showSnackBar(department == null ? '부서가 등록되었습니다.' : '부서 이름이 변경되었습니다.');
     // 부서 이름은 팀 카드에도 표시되므로 두 목록을 함께 갱신한다.
-    await _refreshAll();
+    await vm.refreshAll();
   }
 
   // 4. 부서 삭제
   Future<void> _deleteDepartment(Department dept) async {
-    final teamCount = _teamsOfDepartment(dept.departmentId).length;
+    final vm = _vm;
+    final teamCount = vm.teamsOfDepartment(dept.departmentId).length;
     final confirmed = await _confirmDelete(
       title: '부서 삭제',
       message: teamCount > 0
@@ -179,60 +102,21 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (!confirmed) return;
 
-    try {
-      await _api.deleteDepartment(dept.departmentId);
-      _showSnackBar('부서가 삭제되었습니다.');
-      await _refreshAll();
-    } catch (e) {
-      debugPrint('부서 삭제 실패: $e');
-      _showSnackBar(_messageOf(e, '부서 삭제에 실패했습니다.'));
+    final error = await vm.deleteDepartment(dept);
+    if (error != null) {
+      _showSnackBar(error);
+      return;
     }
+    _showSnackBar('부서가 삭제되었습니다.');
+    await vm.refreshAll();
   }
 
   // ---------------------------------------------------------------- 팀 저장/삭제
 
-  /// 팀 등록. 성공 시 null, 실패 시 시트에 보여줄 메시지를 반환한다.
-  Future<String?> _submitTeamCreate(_TeamFormData data) async {
-    try {
-      await _api.createTeam(TeamCreateRequest(
-        teamName: data.teamName,
-        projectManagerId: data.managerId!,
-        departmentId: data.departmentId!,
-        parentTeamId: data.parentTeamId,
-      ));
-      return null;
-    } catch (e) {
-      debugPrint('팀 등록 실패: $e');
-      return _messageOf(e, '팀 등록에 실패했습니다.');
-    }
-  }
-
-  /// 팀 수정. 바뀐 필드만 보내고 나머지는 서버가 기존 값을 유지한다.
-  Future<String?> _submitTeamUpdate(Team origin, _TeamFormData data) async {
-    final request = TeamUpdateRequest(
-      teamName: data.teamName != origin.teamName ? data.teamName : null,
-      departmentId:
-          data.departmentId != origin.departmentId ? data.departmentId : null,
-      parentTeamId: data.parentTeamId != null &&
-              data.parentTeamId != origin.parentTeamId
-          ? data.parentTeamId
-          : null,
-      projectManagerId: data.managerId,
-    );
-    if (request.isEmpty) return null;
-
-    try {
-      await _api.updateTeam(origin.teamId, request);
-      return null;
-    } catch (e) {
-      debugPrint('팀 수정 실패: $e');
-      return _messageOf(e, '팀 수정에 실패했습니다.');
-    }
-  }
-
   // 5. 팀 추가/수정 시트 (team 이 null 이면 추가 모드)
   Future<void> _openTeamSheet({Team? team}) async {
-    if (_departments.isEmpty) {
+    final vm = _vm;
+    if (vm.departments.isEmpty) {
       _showSnackBar('부서 정보를 불러온 뒤 이용할 수 있습니다.');
       return;
     }
@@ -240,20 +124,33 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     final saved = await _showFormSheet<bool>(
       builder: (_) => _TeamFormSheet(
         team: team,
-        departments: _departments,
-        teams: _teams,
+        departments: vm.departments,
+        teams: vm.teams,
+        searchEmployees: vm.searchEmployees,
         onSubmit: (data) => team == null
-            ? _submitTeamCreate(data)
-            : _submitTeamUpdate(team, data),
+            ? vm.submitTeamCreate(
+                teamName: data.teamName,
+                managerId: data.managerId!,
+                departmentId: data.departmentId!,
+                parentTeamId: data.parentTeamId,
+              )
+            : vm.submitTeamUpdate(
+                team,
+                teamName: data.teamName,
+                departmentId: data.departmentId,
+                parentTeamId: data.parentTeamId,
+                managerId: data.managerId,
+              ),
       ),
     );
     if (saved != true) return;
     _showSnackBar(team == null ? '팀이 등록되었습니다.' : '팀이 수정되었습니다.');
-    await _refreshAll();
+    await vm.refreshAll();
   }
 
   // 6. 팀 삭제
   Future<void> _deleteTeam(Team team) async {
+    final vm = _vm;
     final confirmed = await _confirmDelete(
       title: '팀 삭제',
       message: "'${team.teamName}' 팀을 삭제할까요?\n"
@@ -261,14 +158,13 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (!confirmed) return;
 
-    try {
-      await _api.deleteTeam(team.teamId);
-      _showSnackBar('팀이 삭제되었습니다.');
-      await _refreshAll();
-    } catch (e) {
-      debugPrint('팀 삭제 실패: $e');
-      _showSnackBar(_messageOf(e, '팀 삭제에 실패했습니다.'));
+    final error = await vm.deleteTeam(team);
+    if (error != null) {
+      _showSnackBar(error);
+      return;
     }
+    _showSnackBar('팀이 삭제되었습니다.');
+    await vm.refreshAll();
   }
 
   // ---------------------------------------------------------------- 공통 UI 유틸
@@ -332,7 +228,8 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = _isDeptLoading || _isTeamLoading;
+    context.watch<DepartmentTeamViewModel>();
+    final isLoading = _vm.isDeptLoading || _vm.isTeamLoading;
     final isDeptTab = _tabController.index == 0;
 
     return Scaffold(
@@ -341,7 +238,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
         actions: [
           IconButton(
             tooltip: '새로고침',
-            onPressed: isLoading ? null : _refreshAll,
+            onPressed: isLoading ? null : _vm.refreshAll,
             icon: const Icon(Icons.refresh),
           ),
         ],
@@ -353,8 +250,8 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
           labelStyle:
               const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
           tabs: [
-            Tab(text: _departments.isEmpty ? '부서' : '부서 ${_departments.length}'),
-            Tab(text: _teams.isEmpty ? '팀' : '팀 ${_teams.length}'),
+            Tab(text: _vm.departments.isEmpty ? '부서' : '부서 ${_vm.departments.length}'),
+            Tab(text: _vm.teams.isEmpty ? '팀' : '팀 ${_vm.teams.length}'),
           ],
         ),
       ),
@@ -382,15 +279,15 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   // 7. 부서 관리 탭 화면
   Widget _buildDepartmentTab() {
-    if (_isDeptLoading && _departments.isEmpty) {
+    if (_vm.isDeptLoading && _vm.departments.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.slate),
       );
     }
-    if (_deptError != null) {
-      return _buildErrorState(_deptError!, _fetchDepartments);
+    if (_vm.deptError != null) {
+      return _buildErrorState(_vm.deptError!, _vm.fetchDepartments);
     }
-    if (_departments.isEmpty) {
+    if (_vm.departments.isEmpty) {
       return _buildEmptyState(
         icon: Icons.domain_outlined,
         message: '등록된 부서가 없습니다.',
@@ -400,7 +297,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
     return RefreshIndicator(
       color: AppColors.slate,
-      onRefresh: _refreshAll,
+      onRefresh: _vm.refreshAll,
       child: Scrollbar(
         controller: _deptScrollController,
         interactive: true,
@@ -408,9 +305,9 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
           controller: _deptScrollController,
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-          itemCount: _departments.length,
+          itemCount: _vm.departments.length,
           itemBuilder: (context, index) =>
-              _buildDepartmentCard(_departments[index]),
+              _buildDepartmentCard(_vm.departments[index]),
         ),
       ),
     );
@@ -418,15 +315,15 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   // 8. 팀 관리 탭 화면
   Widget _buildTeamTab() {
-    if (_isTeamLoading && _teams.isEmpty) {
+    if (_vm.isTeamLoading && _vm.teams.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.slate),
       );
     }
-    if (_teamError != null) {
-      return _buildErrorState(_teamError!, _fetchTeams);
+    if (_vm.teamError != null) {
+      return _buildErrorState(_vm.teamError!, _vm.fetchTeams);
     }
-    if (_teams.isEmpty) {
+    if (_vm.teams.isEmpty) {
       return _buildEmptyState(
         icon: Icons.groups_outlined,
         message: '등록된 팀이 없습니다.',
@@ -434,9 +331,9 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       );
     }
 
-    final filtered = _teamFilterDeptId == null
-        ? _teams
-        : _teamsOfDepartment(_teamFilterDeptId!);
+    final filtered = _vm.teamFilterDeptId == null
+        ? _vm.teams
+        : _vm.teamsOfDepartment(_vm.teamFilterDeptId!);
 
     return Column(
       children: [
@@ -444,7 +341,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
         Expanded(
           child: RefreshIndicator(
             color: AppColors.slate,
-            onRefresh: _refreshAll,
+            onRefresh: _vm.refreshAll,
             child: filtered.isEmpty
                 ? _buildEmptyState(
                     icon: Icons.groups_outlined,
@@ -510,16 +407,16 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
           children: [
             chip(
               label: '전체',
-              count: _teams.length,
-              selected: _teamFilterDeptId == null,
-              onTap: () => setState(() => _teamFilterDeptId = null),
+              count: _vm.teams.length,
+              selected: _vm.teamFilterDeptId == null,
+              onTap: () => _vm.setTeamFilter(null),
             ),
-            ..._departments.map((dept) => chip(
+            ..._vm.departments.map((dept) => chip(
                   label: dept.departmentName,
-                  count: _teamsOfDepartment(dept.departmentId).length,
-                  selected: _teamFilterDeptId == dept.departmentId,
+                  count: _vm.teamsOfDepartment(dept.departmentId).length,
+                  selected: _vm.teamFilterDeptId == dept.departmentId,
                   onTap: () =>
-                      setState(() => _teamFilterDeptId = dept.departmentId),
+                      _vm.setTeamFilter(dept.departmentId),
                 )),
           ],
         ),
@@ -529,7 +426,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   // 9. 부서 카드 — 부서명과 소속 팀을 함께 보여준다.
   Widget _buildDepartmentCard(Department dept) {
-    final teams = _teamsOfDepartment(dept.departmentId);
+    final teams = _vm.teamsOfDepartment(dept.departmentId);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -1001,12 +898,14 @@ class _TeamFormSheet extends StatefulWidget {
   final List<Department> departments;
   final List<Team> teams;
   final Future<String?> Function(_TeamFormData data) onSubmit;
+  final Future<List<Employee>> Function(String? keyword) searchEmployees;
 
   const _TeamFormSheet({
     this.team,
     required this.departments,
     required this.teams,
     required this.onSubmit,
+    required this.searchEmployees,
   });
 
   @override
@@ -1109,6 +1008,7 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
         excludeEmployeeNumbers: [
           if (_pickedManager != null) _pickedManager!.employeeNumber,
         ],
+        searchFn: widget.searchEmployees,
       ),
     );
     if (picked == null || !mounted) return;
