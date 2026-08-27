@@ -1,6 +1,7 @@
+// EMP002_M01: 사원 사번 조회 화면
 import 'package:annual_leave_frontend/main.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
-import 'employee_detail_screen.dart';
+import 'EMP002_D01.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';

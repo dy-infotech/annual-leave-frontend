@@ -1,4 +1,4 @@
-import 'package:annual_leave_frontend/screens/search_employee_number_screen.dart';
+import 'package:annual_leave_frontend/screens/EMP002_M01.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:annual_leave_frontend/theme/app_theme.dart';
@@ -12,18 +12,18 @@ import 'providers/auth_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'providers/leave_request_list_provider.dart';
 import 'providers/public_holiday_provider.dart';
-import 'screens/login_screen.dart';
-import 'screens/signup_screen.dart';
-import 'screens/forgotPasswordScreen.dart';
-import 'screens/dashboard_screen.dart';
-import 'screens/leave_request_screen.dart';
-//import 'screens/my_leave_requests_screen.dart';
-import 'screens/all_leave_requests_screen.dart';
-import 'screens/pending_approval_screen.dart';
-import 'screens/my_info_screen.dart';
-import 'screens/signup_manage_screen.dart';
-import 'screens/admin-settings.dart';
-import 'screens/department_team_manage_screen.dart';
+import 'screens/AUT001_M01.dart';
+import 'screens/AUT002_M01.dart';
+import 'screens/AUT003_M01.dart';
+import 'screens/DSH001_M01.dart';
+import 'screens/LVE001_M01.dart';
+//import 'screens/LVE002_M01.dart';
+import 'screens/LVE002_M02.dart';
+import 'screens/LVE003_M01.dart';
+import 'screens/EMP001_M01.dart';
+import 'screens/ADM002_M01.dart';
+import 'screens/ADM001_M01.dart';
+import 'screens/ADM003_M01.dart';
 
 final RouteObserver<PageRoute<dynamic>> routeObserver =
     RouteObserver<PageRoute<dynamic>>();

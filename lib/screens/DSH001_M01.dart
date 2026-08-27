@@ -1,12 +1,13 @@
-import 'package:annual_leave_frontend/screens/admin_search_leave_requests_screen.dart';
+// DSH001_M01: 대시보드 화면
+import 'package:annual_leave_frontend/screens/LVE002_M03.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../main.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
-import '../screens/all_leave_requests_screen.dart';
-import '../screens/pending_approval_screen.dart';
+import '../screens/LVE002_M02.dart';
+import '../screens/LVE003_M01.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});

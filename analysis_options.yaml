@@ -21,6 +21,8 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
+    # 화면 파일명은 대문자 화면 코드 체계(docs/screen-codes.md)를 따르므로 비활성화
+    file_names: false
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 
