@@ -43,6 +43,10 @@ class Employee {
     this.createdAt,
   });
 
+  /// 최고 경영자 직급 여부.
+  /// DB 표기가 '사장'(시드)과 '대표이사'(운영 데이터)로 혼재해 둘 다 인정한다.
+  bool get isCeo => position == '사장' || position == '대표이사';
+
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
       employeeId: json['employeeId'],

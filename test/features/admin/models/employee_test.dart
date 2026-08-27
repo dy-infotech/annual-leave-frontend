@@ -39,6 +39,16 @@ void main() {
       expect(emp.isRegisted, isFalse);
     });
 
+    test('isCeo - 사장과 대표이사 표기를 모두 대표 직급으로 인정한다', () {
+      Employee withPosition(String position) => Employee.fromJson(
+          fixtureJson('admin/employee.json')..['position'] = position);
+
+      expect(withPosition('사장').isCeo, isTrue);
+      expect(withPosition('대표이사').isCeo, isTrue);
+      expect(withPosition('과장').isCeo, isFalse);
+      expect(withPosition('이사').isCeo, isFalse);
+    });
+
     test('copyWith는 지정한 필드만 바꾸고 나머지를 유지한다', () {
       final emp = Employee.fromJson(fixtureJson('admin/employee.json'));
       final updated = emp.copyWith(email: 'new@example.com');

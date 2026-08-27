@@ -206,13 +206,11 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                                   isDense: true,
                                   filled: true,
                                   fillColor: (_vm.isEditing &&
-                                          authProvider.employeeInfo?.position ==
-                                              '사장')
+                                          (authProvider.employeeInfo?.isCeo ?? false))
                                       ? Colors.white
                                       : Colors.grey.shade50,
                                   border: (_vm.isEditing &&
-                                          authProvider.employeeInfo?.position ==
-                                              '사장')
+                                          (authProvider.employeeInfo?.isCeo ?? false))
                                       ? const OutlineInputBorder()
                                       : const OutlineInputBorder(
                                           borderSide: BorderSide.none),
@@ -250,9 +248,8 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                           _buildRow(
                               '부서',
                               _vm.isEditing &&
-                                      authProvider.employeeInfo?.position ==
-                                          '사장' &&
-                                      widget.employee.position != '사장'
+                                      (authProvider.employeeInfo?.isCeo ?? false) &&
+                                      !widget.employee.isCeo
                                   ? DropdownButtonFormField<String>(
                                       value: _vm.departmentList
                                               .contains(_vm.selectedDepartment)
@@ -295,9 +292,8 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                           _buildRow(
                               '팀',
                               (_vm.isEditing &&
-                                      authProvider.employeeInfo?.position ==
-                                          '사장' &&
-                                      widget.employee.position != '사장')
+                                      (authProvider.employeeInfo?.isCeo ?? false) &&
+                                      !widget.employee.isCeo)
                                   ? DropdownButtonFormField<String>(
                                       value: (_vm.selectedTeam != '기타' &&
                                               _vm.teamList.contains(_vm.selectedTeam))
@@ -340,11 +336,10 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
 
                           _buildRow(
                             '직급',
-                            // 편집 모드이고, 현재 선택된 직급이 '사장'일 때만 Dropdown 표시
+                            // 편집 모드이고, 접속자가 대표 직급일 때만 Dropdown 표시
                             (_vm.isEditing &&
-                                    authProvider.employeeInfo?.position ==
-                                        '사장' &&
-                                    widget.employee.position != '사장')
+                                    (authProvider.employeeInfo?.isCeo ?? false) &&
+                                    !widget.employee.isCeo)
                                 ? DropdownButtonFormField<String>(
                                     value: _vm.positionList
                                             .contains(_vm.selectedPosition)
@@ -388,8 +383,7 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                           _buildRow(
                               '입사일',
                               (_vm.isEditing &&
-                                      authProvider.employeeInfo?.position ==
-                                          '사장')
+                                      (authProvider.employeeInfo?.isCeo ?? false))
                                   ? TextFormField(
                                       controller: _vm.hireDateController,
                                       readOnly: true,
@@ -484,9 +478,8 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                           _buildRow(
                               '퇴사일',
                               (_vm.isEditing &&
-                                      authProvider.employeeInfo?.position ==
-                                          '사장' &&
-                                      widget.employee.position != '사장')
+                                      (authProvider.employeeInfo?.isCeo ?? false) &&
+                                      !widget.employee.isCeo)
                                   ? TextFormField(
                                       controller:
                                           _vm.fireDateController, // ⭕ 수정 모드 매핑
