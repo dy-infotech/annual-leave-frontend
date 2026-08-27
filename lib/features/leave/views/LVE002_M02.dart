@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE002_M02_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
@@ -14,7 +15,7 @@ import 'package:intl/intl.dart';
 
 import 'LVE002_D01.dart';
 
-class AllLeaveRequestsScreen extends StatefulWidget {
+class AllLeaveRequestsScreen extends StatelessWidget {
   final String? status;
   final String? filter;
 
@@ -25,70 +26,28 @@ class AllLeaveRequestsScreen extends StatefulWidget {
       {super.key, this.status, this.filter, this.repository});
 
   @override
-  State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AllLeaveRequestsViewModel(
+        initialStatus: status,
+        initialFilter: filter,
+        repository: repository,
+      )..load(),
+      child: const _AllLeaveRequestsView(),
+    );
+  }
 }
 
-class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
-    with RouteAware {
-  late final LeaveRepository _repository =
-      widget.repository ?? LeaveRepository();
-  List<LeaveRequestListItem> _items = [];
-  bool _isLoading = true;
-  String? _statusFilter; // null = 전체
-  DateTimeRange? _dateRange;
-  String _buttonLabel = '전체'; //로드 시 기본 버튼 라벨
-  final Set<int> _processingIds = {};
-  // 오늘 날짜 구하기
-  final DateTime _today = DateTime.now();
-  final ScrollController _scrollController = ScrollController();
+class _AllLeaveRequestsView extends StatefulWidget {
+  const _AllLeaveRequestsView();
 
   @override
-  void initState() {
-    super.initState();
+  State<_AllLeaveRequestsView> createState() => _AllLeaveRequestsViewState();
+}
 
-    if (widget.status != null) {
-      _statusFilter = widget.status;
-
-      if (widget.filter != null) {
-        _buttonLabel = widget.filter! == 'my' ? "내 신청" : "전체";
-      }
-      _setFilter(widget.status);
-    }
-
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      // 기본 당해년도 조회 날짜 세팅
-      // 오늘 날짜가 속한 연도 구하기
-      int year = _today.year;
-
-      // 그 연도의 1월 1일 날짜 만들기
-      DateTime firstDayOfYear = DateTime(year, 1, 1);
-      DateTime lastDayOfYear = DateTime(year, 12, 31);
-
-      String startDate = _formatDate(firstDayOfYear);
-      String endDate = _formatDate(lastDayOfYear);
-
-      if (_dateRange != null) {
-        startDate = _formatDate(_dateRange!.start);
-        endDate = _formatDate(_dateRange!.end);
-      }
-
-      final items = _buttonLabel == "내 신청"
-          ? await _repository.fetchMyLeaveRequests(
-              status: _statusFilter, startDate: startDate, endDate: endDate)
-          : await _repository.fetchAllLeaveRequests(
-              status: _statusFilter, startDate: startDate, endDate: endDate);
-      setState(() {
-        _items = items;
-      });
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
+    with RouteAware {
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void didChangeDependencies() {
@@ -111,27 +70,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   @override
   void didPopNext() {
     // 다른 화면에서 돌아왔을 때
-    _fetch();
+    context.read<AllLeaveRequestsViewModel>().fetch();
   }
 
-  bool _isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
-    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber) {
-      return true;
-    }
-
-    return false;
-
-    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
-
-    final startDate = DateTime.parse(item.startDate);
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-
-    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly); */
-  }
-
-  Future<void> _confirmCancel(LeaveRequestListItem item) async {
+  Future<void> _confirmCancel(
+      AllLeaveRequestsViewModel vm, LeaveRequestListItem item) async {
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -160,35 +104,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
     );
 
     if (confirmed == true) {
-      await _cancel(item.requestId);
+      final ok = await vm.cancel(item.requestId);
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
     }
   }
 
-  Future<void> _cancel(int requestId) async {
-    setState(() => _processingIds.add(requestId));
-    try {
-      await _repository.cancelLeaveRequest(requestId);
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
-      }
-      await _fetch();
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
-      }
-    } finally {
-      setState(() => _processingIds.remove(requestId));
-    }
-  }
-
-  String _formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
-
-  Future<void> _pickDateRange() async {
-    final year = _today.year;
-    final initial = _dateRange ??
+  Future<void> _pickDateRange(AllLeaveRequestsViewModel vm) async {
+    final year = DateTime.now().year;
+    final initial = vm.dateRange ??
         DateTimeRange(
           start: DateTime(year, 1, 1),
           end: DateTime(year, 12, 31),
@@ -210,25 +134,16 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
     );
 
     // 값이 실제로 바뀌었고, 화면이 아직 살아있을 때만 반영 및 재조회
-    if (picked != null && picked != _dateRange && mounted) {
-      setState(() {
-        _dateRange = picked;
-      });
-
-      _fetch();
+    if (picked != null && mounted) {
+      vm.setDateRange(picked);
     }
-  }
-
-  void _setFilter(String? status) {
-    setState(() => _statusFilter = status);
-    _fetch();
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<AllLeaveRequestsViewModel>();
     final userEmployeeNumber =
         context.watch<AuthProvider>().employeeInfo?.employeeNumber;
-    //final userEmployeeNumber = AuthProvider().employeeInfo?.employeeNumber;
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
       {'label': '대기', 'value': 'PENDING'},
@@ -262,7 +177,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
                       child: DropdownButtonFormField<String>(
                         isExpanded: true,
-                        value: _statusFilter,
+                        value: vm.statusFilter,
                         style:
                             const TextStyle(fontSize: 13, color: Colors.black),
                         icon: const Icon(Icons.arrow_drop_down,
@@ -296,7 +211,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           ),
                         ),
                         onChanged: (String? newValue) {
-                          _setFilter(newValue);
+                          vm.setFilter(newValue);
                         },
                         items: statusOptions.map((option) {
                           return DropdownMenuItem<String>(
@@ -329,7 +244,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                   scale: 0.8, // 라디오 원 크기 축소
                                   child: Radio<String>(
                                     value: label,
-                                    groupValue: _buttonLabel,
+                                    groupValue: vm.buttonLabel,
                                     // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
 
                                     visualDensity: const VisualDensity(
@@ -340,10 +255,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                     materialTapTargetSize:
                                         MaterialTapTargetSize.shrinkWrap,
                                     onChanged: (value) {
-                                      setState(() {
-                                        _buttonLabel = value!;
-                                        _setFilter(_statusFilter);
-                                      });
+                                      vm.setButtonLabel(value!);
                                     },
                                   ),
                                 ),
@@ -360,7 +272,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
 
                       ElevatedButton.icon(
                         onPressed: () {
-                          _pickDateRange();
+                          _pickDateRange(vm);
                         },
                         icon: const Icon(Icons.calendar_today, size: 16),
                         label: const Text(
@@ -379,20 +291,19 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
               ),
             ),
           ),
-          if (_dateRange != null)
+          if (vm.dateRange != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Row(
                 children: [
                   Text(
-                      '${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}',
+                      '${AllLeaveRequestsViewModel.formatDate(vm.dateRange!.start)} - ${AllLeaveRequestsViewModel.formatDate(vm.dateRange!.end)}',
                       style: const TextStyle(
                           fontSize: 12, color: AppColors.textMuted)),
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
-                      setState(() => _dateRange = null);
-                      _fetch();
+                      vm.clearDateRange();
                     },
                     child: const Text('지우기',
                         style: TextStyle(
@@ -411,10 +322,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
               // 메인 축 정렬을 우측 정렬 설정
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시 (조회건수)
+                // 실제 리스트 데이터인 items의 길이를 가져와 동적으로 건수를 표시 (조회건수)
 
                 Text(
-                  '${_items.length}건',
+                  '${vm.items.length}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate,
@@ -425,10 +336,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             ),
           ),
           Expanded(
-            child: _isLoading
+            child: vm.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : _items.isEmpty
+                : vm.items.isEmpty
                     ? const Center(
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
@@ -453,28 +364,13 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                 left: 20.0,
                                 right: 20.0,
                                 bottom: 20.0),
-                            itemCount: _items.length,
+                            itemCount: vm.items.length,
                             itemBuilder: (context, index) {
-                              final item = _items[index];
+                              final item = vm.items[index];
                               final isProcessing =
-                                  _processingIds.contains(item.requestId);
+                                  vm.isProcessing(item.requestId);
                               final leaveTypeNm =
                                   LeaveType.getLabel(item.leaveType);
-                              // 1. 영문 구분 코드를 한글명으로 매핑하는 맵 객체 선언
-                              /* final Map<String, String> leaveTypeMap = {
-                                'FULL': '연차',
-                                'AM_HALF': '반차(오전)',
-                                'PM_HALF': '반차(오후)',
-                                'ALTERNATIVE': '대체 휴가',
-                                'PARENTAL': '출산 휴가',
-                                'FAMILY': '가족 돌봄 휴가',
-                                'OTHER': '기타',
-                              };
-
-                              // 2. 현재 아이템의 휴가 종류 값을 가져와 매핑 (데이터 필드명에 맞게 item.leaveType 등으로 수정 가능)
-                              final String rawType = item.leaveType ?? 'FULL';
-                              final String leaveTypeNm =
-                                  leaveTypeMap[rawType] ?? rawType; */
 
                               return Padding(
                                 padding: const EdgeInsets.only(bottom: 12),
@@ -586,13 +482,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                                                             FontWeight.w600)),
                                                 const SizedBox(width: 12),
                                                 const Spacer(),
-                                                if (_isCancelable(item,
-                                                    userEmployeeNumber)) ...[
+                                                if (AllLeaveRequestsViewModel
+                                                    .isCancelable(item,
+                                                        userEmployeeNumber)) ...[
                                                   TextButton(
                                                     onPressed: isProcessing
                                                         ? null
                                                         : () => _confirmCancel(
-                                                            item),
+                                                            vm, item),
                                                     style: TextButton.styleFrom(
                                                       padding: const EdgeInsets
                                                           .symmetric(
