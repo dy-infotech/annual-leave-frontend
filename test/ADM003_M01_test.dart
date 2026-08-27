@@ -1,5 +1,5 @@
-import 'package:annual_leave_frontend/models/department_team_models.dart';
-import 'package:annual_leave_frontend/models/employee.dart';
+import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/screens/ADM003_M01.dart';
 import 'package:annual_leave_frontend/services/department_team_api.dart';

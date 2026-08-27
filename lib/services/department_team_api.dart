@@ -1,5 +1,5 @@
-import '../models/department_team_models.dart';
-import '../models/employee.dart';
+import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 
 /// 부서/팀 관리 API 호출 모음. (docs/api-spec-department-team.md 참고)
