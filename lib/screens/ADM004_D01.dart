@@ -1,11 +1,11 @@
 // ADM004_D01: 사원 상세 화면 (ADM004_M01에서 진입)
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/models/employee.dart';
-import 'package:annual_leave_frontend/models/auth_models.dart';
-import 'package:annual_leave_frontend/models/enums/RoleType.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
+import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:intl/intl.dart';
-import '../services/api_client.dart';
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/registe_status_badge.dart';
 import '../widgets/date_input_dialog.dart';
 import 'package:provider/provider.dart';

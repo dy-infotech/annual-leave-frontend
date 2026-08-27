@@ -1,9 +1,9 @@
 // LVE002_D01: 휴가 신청 상세 화면 (LVE002_M02/M03, LVE003_M01에서 진입)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../services/api_client.dart';
-import '../models/leave_request_models.dart';
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/leave_status_badge.dart';
 
 class LeaveRequestDetailScreen extends StatefulWidget {

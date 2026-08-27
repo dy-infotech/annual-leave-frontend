@@ -6,7 +6,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // 👈 암호화 저장소 임포트
 import '../providers/auth_provider.dart';
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
 class UpperCaseTextFormatter extends TextInputFormatter {

@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../models/public_holiday.dart';
-import '../services/api_client.dart';
+import 'package:annual_leave_frontend/features/leave/models/public_holiday.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 
 class PublicHolidayProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();

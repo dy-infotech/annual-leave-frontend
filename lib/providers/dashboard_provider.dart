@@ -5,9 +5,9 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:shared_preferences/shared_preferences.dart'
     show SharedPreferences;
-import '../models/dashboard_models.dart';
-import '../services/api_client.dart';
-import '../models/auth_models.dart' show SyncFcmTokenRequest;
+import 'package:annual_leave_frontend/features/dashboard/models/dashboard_models.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart' show SyncFcmTokenRequest;
 
 class DashboardProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();

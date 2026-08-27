@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../config/api_config.dart';
+import 'package:annual_leave_frontend/core/config/api_config.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();

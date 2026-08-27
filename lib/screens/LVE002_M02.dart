@@ -1,15 +1,15 @@
 // LVE002_M02: 전직원 휴가 신청 목록 화면
-import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
+import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/api_client.dart';
-import '../models/leave_request_models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 import '../widgets/date_range_dialog.dart';
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:intl/intl.dart';
 
 import 'LVE002_D01.dart';

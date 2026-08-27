@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 // 사용자 등록 상태를 색상 텍스트로 표시
 // 상태 뱃지: 미등록(textMuted)/등록(sage) 색상

@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
-import '../models/enums/LeaveState.dart';
-import '../models/enums/LeaveType.dart';
-import '../services/api_client.dart';
-import '../models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dart';
+import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 
 class LeaveRequestListProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();
