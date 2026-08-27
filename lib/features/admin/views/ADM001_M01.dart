@@ -1,18 +1,28 @@
 // ADM001_M01: 관리자별 관리팀 설정 화면
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart'; // 기존 Employee 모델 경로 확인
+import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 
 class AdminSettingsScreen extends StatefulWidget {
-  const AdminSettingsScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AdminEmployeeRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const AdminSettingsScreen(
+      {super.key, this.repository, this.commonCodeRepository});
 
   @override
   State<AdminSettingsScreen> createState() => _AdminSettingsScreenState();
 }
 
 class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
+  late final AdminEmployeeRepository _repository =
+      widget.repository ?? AdminEmployeeRepository();
+  late final CommonCodeRepository _commonCodeRepository =
+      widget.commonCodeRepository ?? CommonCodeRepository();
   List<Employee> _employees = [];
   Employee? _selectedEmployee;
 
@@ -46,10 +56,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   Future<void> _fetchEmployees() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiClient().dio.get('/api/admin/employees/all');
-      final List<Employee> fetched = (response.data as List)
-          .map((json) => Employee.fromJson(json))
-          .toList();
+      final List<Employee> fetched = await _repository.fetchEmployees();
       setState(() {
         _employees = fetched;
         if (_employees.isNotEmpty) {
@@ -69,18 +76,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     if (_selectedEmployee == null) return;
     try {
       // 공통 기초 데이터에서 시스템 전체의 모든 팀 목록 확보
-      final commonResponse =
-          await ApiClient().dio.get('/api/admin/auth/common');
+      final commonData = await _commonCodeRepository.fetchCommonCodes();
 
       List<String> rawAllTeams = [];
-      if (commonResponse.data != null &&
-          commonResponse.data is Map<String, dynamic>) {
-        final commonData = commonResponse.data as Map<String, dynamic>;
-        final rawTeams =
-            commonData['accessibleTeam'] ?? commonData['team'] ?? [];
-        if (rawTeams is List) {
-          rawAllTeams = rawTeams.map((e) => e.toString()).toList();
-        }
+      final rawTeams = commonData['accessibleTeam'] ?? commonData['team'] ?? [];
+      if (rawTeams is List) {
+        rawAllTeams = rawTeams.map((e) => e.toString()).toList();
       }
 
       // 🎯 [핵심] DB 중복 이름 방어: 동일한 이름이 있으면 "대표이사 (1)", "대표이사 (2)" 형태로 유니크하게 변환
@@ -250,9 +251,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final saveResponse = await ApiClient().dio.put(
-        '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
-        data: {
+      final statusCode = await _repository.updateEmployee(
+        _selectedEmployee!.employeeNumber,
+        {
           'name': _selectedEmployee!.name,
           'email': _selectedEmployee!.email ?? '',
           'department': _selectedEmployee!.department,
@@ -263,7 +264,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         },
       );
 
-      if (saveResponse.statusCode == 200 || saveResponse.statusCode == 204) {
+      if (statusCode == 200 || statusCode == 204) {
         /* ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
         ); */
