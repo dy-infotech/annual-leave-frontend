@@ -9,7 +9,7 @@ import 'package:annual_leave_frontend/features/admin/views/ADM004_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT001_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT002_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT003_M01.dart';
-import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
+import 'package:annual_leave_frontend/features/dashboard/views/DSH001_M01.dart';
 import 'package:annual_leave_frontend/screens/EMP001_M01.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
 //import 'package:annual_leave_frontend/features/leave/views/LVE002_M01.dart';
