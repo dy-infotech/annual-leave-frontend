@@ -7,7 +7,7 @@ import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
+import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import '../widgets/date_input_dialog.dart';
 import 'package:flutter/services.dart';
 
