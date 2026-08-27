@@ -1,0 +1,17 @@
+{
+  "teamId": 3,
+  "teamName": "SI사업팀",
+  "enabled": true,
+  "departmentId": 2,
+  "departmentName": "경영지원부",
+  "parentTeamId": 1,
+  "parentTeamName": "대표이사",
+  "managers": [
+    {
+      "employeeId": 5,
+      "employeeNumber": "A0001",
+      "name": "홍길동",
+      "position": "부장"
+    }
+  ]
+}

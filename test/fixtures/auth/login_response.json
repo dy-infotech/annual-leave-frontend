@@ -1,0 +1,6 @@
+{
+  "token": "header.payload.signature",
+  "employeeId": 7,
+  "name": "홍길동",
+  "role": "ADMIN"
+}

@@ -1,0 +1,13 @@
+{
+  "requestId": 21,
+  "employeeNumber": "A0003",
+  "employeeName": "이신청",
+  "department": "경영지원부",
+  "team": "SI사업팀",
+  "position": "대리",
+  "startDate": "2026-09-01",
+  "endDate": "2026-09-02",
+  "useDays": 2,
+  "createdAt": "2026-08-20",
+  "leaveType": "FULL"
+}

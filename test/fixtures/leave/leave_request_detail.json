@@ -1,0 +1,19 @@
+{
+  "employeeNumber": "A0001",
+  "employeeName": "홍길동",
+  "position": "과장",
+  "department": "경영지원부",
+  "team": "SI사업팀",
+  "leaveType": "AM_HALF",
+  "startDate": "2026-08-10",
+  "endDate": "2026-08-10",
+  "useDays": 0.5,
+  "status": "APPROVED",
+  "leaveReason": "개인 사유",
+  "createdAt": "2026-08-01",
+  "approverNumber": "A0002",
+  "approverName": "김결재",
+  "approverPosition": "부장",
+  "approverDepartment": "경영지원부",
+  "managedAt": "2026-08-02"
+}
