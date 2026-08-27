@@ -226,6 +226,20 @@ admin 전용 위젯 3개 이동.
 - Result/Failure를 repository 반환 타입에 일괄 적용하는 것도 이 단계에서.
   (그 전까지 repository는 기존과 동일하게 예외를 던져 동작 차이를 없앤다)
 
+**실제 적용 기록 (2026-08-28)**
+
+- `submit_leave_request.dart` 도입 완료. 중복/잔여연차 판정은 순수 정적
+  함수로, 제출은 `Result<void>` 반환으로 구현했고 LVE001 VM이 위임한다.
+- ADM002는 코드 확인 결과 별도 유스케이스로 뗄 승인 규칙이 없어(필드
+  검증은 VM에 정리 완료), 관리자 역할 부여 규칙만
+  `SignupManageViewModel.canAssignAdminRole` 정책 함수로 추출했다.
+- Result/Failure의 repository 일괄 적용은 보류했다. 일부 VM(예: 내 목록
+  조회)은 오류 시 예외가 그대로 전파되는 것이 현재 동작인데, Result로
+  바꾸면 이 오류 경로의 동작이 달라져 이번 마이그레이션의 동작 보존
+  원칙과 충돌한다. 오류 상태 표시를 화면별로 설계하는 후속 작업에서
+  화면 단위로 전환한다. 신규 유스케이스(`submit_leave_request`)가 적용
+  패턴의 예시다.
+
 ### 9단계: 마무리 (S)
 
 - `lib/screens`, `lib/providers`, `lib/services`, `lib/models`,
