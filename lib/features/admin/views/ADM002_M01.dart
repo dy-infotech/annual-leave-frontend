@@ -1,7 +1,9 @@
 // ADM002_M01: 사용자 등록 관리 화면
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/signup_manage_repository.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
@@ -23,13 +25,22 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class SignupManageScreen extends StatefulWidget {
-  const SignupManageScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final SignupManageRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const SignupManageScreen(
+      {super.key, this.repository, this.commonCodeRepository});
 
   @override
   State<SignupManageScreen> createState() => _SignupManageScreenState();
 }
 
 class _SignupManageScreenState extends State<SignupManageScreen> {
+  late final SignupManageRepository _signupRepository =
+      widget.repository ?? SignupManageRepository();
+  late final CommonCodeRepository _commonCodeRepository =
+      widget.commonCodeRepository ?? CommonCodeRepository();
   final _employeeNumberController = TextEditingController();
   final _employeeNameController = TextEditingController();
   final _emailController = TextEditingController();
@@ -65,12 +76,8 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final response = await ApiClient().dio.get(
-            '/api/admin/auth/common',
-          );
+      final data = await _commonCodeRepository.fetchCommonCodes();
       setState(() {
-        final data = response.data as Map<String, dynamic>;
-
         if (data.length >= 3) {
           DateTime today = DateTime.now();
           _selectedDate = _selectedDate ?? today;
@@ -135,15 +142,16 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
     });
 
     try {
-      await context.read<AuthProvider>().adminAuthRegister(
-          _employeeNumberController.text.trim(),
-          _employeeNameController.text.trim(),
-          _selectedDepartment ?? '',
-          _selectedTeam ?? '',
-          _selectedPosition ?? '',
-          _selectedManagerYn?.code ?? '',
-          _emailController.text.trim(),
-          formatDate.toString());
+      await _signupRepository.registerUser(AdminAuthRegisterRequest(
+        employeeNumber: _employeeNumberController.text.trim(),
+        name: _employeeNameController.text.trim(),
+        department: _selectedDepartment ?? '',
+        team: _selectedTeam ?? '',
+        position: _selectedPosition ?? '',
+        role: _selectedManagerYn?.code ?? '',
+        email: _emailController.text.trim(),
+        hireDate: formatDate.toString(),
+      ));
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('사용자 등록이 완료되었습니다. 사용 등록 후 로그인 가능합니다.')),
