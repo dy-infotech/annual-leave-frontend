@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 
-import '../data/mock_department_team_store.dart';
 import '../models/employee.dart';
-import '../services/api_client.dart';
+import '../services/department_team_api.dart';
 import '../theme/app_theme.dart';
 
 /// 사원을 검색해서 한 명을 고르는 다이얼로그.
 ///
 /// 선택하면 [Employee] 를, 그냥 닫으면 null 을 반환한다.
-/// 팀 관리자 지정처럼 여러 명이 필요한 경우 호출부에서 반복 호출해 누적한다.
 ///
 /// ```dart
 /// final picked = await showDialog<Employee>(
@@ -24,10 +22,14 @@ class EmployeePickerDialog extends StatefulWidget {
 
   final String title;
 
+  /// 사원 검색 함수. 지정하지 않으면 관리자 사원 목록 API 를 사용한다.
+  final Future<List<Employee>> Function(String? keyword)? searchFn;
+
   const EmployeePickerDialog({
     super.key,
     this.excludeEmployeeNumbers = const [],
     this.title = '사원 선택',
+    this.searchFn,
   });
 
   @override
@@ -40,12 +42,10 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
 
   List<Employee> _items = [];
   bool _isLoading = false;
+  String? _error;
 
   /// 요청 순번. 늦게 도착한 이전 응답이 최신 결과를 덮어쓰지 못하게 한다.
   int _requestSeq = 0;
-
-  /// 사원 API 호출이 실패해 임시 데이터로 대체됐는지.
-  bool _isMock = false;
 
   @override
   void initState() {
@@ -64,35 +64,15 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   Future<void> _fetch() async {
     if (!mounted) return;
     final seq = ++_requestSeq;
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
     try {
-      if (kUseMockDepartmentTeamData) {
-        final mock = MockDepartmentTeamStore.instance
-            .searchEmployees(_searchController.text)
-            .where((emp) =>
-                !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
-            .toList();
-        if (!mounted || seq != _requestSeq) return;
-        setState(() {
-          _items = mock;
-          _isMock = true;
-        });
-        return;
-      }
-
-      final Map<String, dynamic> queryParams = {};
-      if (_searchController.text.trim().isNotEmpty) {
-        queryParams['searchParam'] = _searchController.text.trim();
-      }
-
-      final response = await ApiClient().dio.get(
-            '/api/admin/employees/all',
-            queryParameters: queryParams.isEmpty ? null : queryParams,
-          );
-
-      final fetched = (response.data as List)
-          .map((json) => Employee.fromJson(json))
+      final search =
+          widget.searchFn ?? DepartmentTeamApi.instance.searchEmployees;
+      final fetched = (await search(_searchController.text))
           .where((emp) =>
               !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
           .toList();
@@ -101,17 +81,11 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
       if (!mounted || seq != _requestSeq) return;
       setState(() => _items = fetched);
     } catch (e) {
-      // 사원 API 를 못 쓰는 환경에서도 관리자 지정 흐름을 확인할 수 있도록 임시 데이터로 대체한다.
-      debugPrint('사원 목록 조회 실패, 임시 데이터로 대체: $e');
+      debugPrint('사원 목록 조회 실패: $e');
       if (!mounted || seq != _requestSeq) return;
-      final mock = MockDepartmentTeamStore.instance
-          .searchEmployees(_searchController.text)
-          .where((emp) =>
-              !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
-          .toList();
       setState(() {
-        _items = mock;
-        _isMock = true;
+        _items = [];
+        _error = '사원 목록을 불러오지 못했습니다.';
       });
     } finally {
       if (mounted && seq == _requestSeq) {
@@ -136,14 +110,6 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
         child: Column(
           children: [
             _buildSearchField(),
-            if (_isMock)
-              const Padding(
-                padding: EdgeInsets.only(top: 6),
-                child: Text(
-                  '임시 데이터로 조회 중입니다.',
-                  style: TextStyle(fontSize: 11, color: AppColors.amber),
-                ),
-              ),
             const SizedBox(height: 10),
             Expanded(child: _buildResultList()),
           ],
@@ -211,6 +177,31 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
     if (_isLoading) {
       return const Center(
         child: CircularProgressIndicator(color: AppColors.slate),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _error!,
+              style: const TextStyle(color: AppColors.coral, fontSize: 13),
+            ),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: _fetch,
+              child: const Text(
+                '다시 시도',
+                style: TextStyle(
+                  color: AppColors.slate,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
       );
     }
 

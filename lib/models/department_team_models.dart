@@ -1,126 +1,160 @@
 // 부서 및 팀 관리 화면 전용 모델.
 //
-// 백엔드에 부서/팀 CRUD API가 아직 없어(2026-08 기준) 응답 형태가 확정되지 않았다.
-// 그래서 fromJson 은 키 이름을 여러 후보로 받아들이고, id 계열은 전부 nullable 로 둔다.
-// 서버 스펙이 확정되면 후보 키와 nullable 을 정리할 것.
+// 백엔드 부서/팀 CRUD API(feature/department-team-admin-api, PR #57) 응답에 대응한다.
+// 상세 명세는 docs/api-spec-department-team.md 참고.
 
-/// 부서. 현재 백엔드에서는 DepartmentType enum 이라 id 가 없다.
+/// 대표이사 부서/팀 이름. 백엔드 DepartmentType 이 이름으로 식별하므로
+/// 화면에서도 같은 이름으로 보호 대상(수정·삭제 불가)을 판별한다.
+const String kCeoName = '대표이사';
+
+/// 부서. GET /api/admin/departments 응답 한 건.
 class Department {
-  final int? departmentId;
+  final int departmentId;
   final String departmentName;
-
-  /// 목록에 '팀 N개' 를 표기하기 위한 값. 서버가 안 내려주면 null.
-  final int? teamCount;
+  final bool enabled;
 
   Department({
-    this.departmentId,
+    required this.departmentId,
     required this.departmentName,
-    this.teamCount,
+    this.enabled = true,
   });
 
   factory Department.fromJson(Map<String, dynamic> json) => Department(
-        departmentId: json['departmentId'],
-        departmentName:
-            json['departmentName'] ?? json['department'] ?? json['name'] ?? '',
-        teamCount: json['teamCount'],
+        departmentId: json['departmentId'] as int,
+        departmentName: json['departmentName'] ?? '',
+        enabled: json['enabled'] ?? true,
       );
 
-  /// 이름만 내려주는 폴백 경로(/api/admin/auth/common)용.
-  factory Department.fromName(String name) => Department(departmentName: name);
-
-  /// id 가 없는 폴백 데이터는 수정할 수 없다.
-  bool get isEditable => departmentId != null;
+  /// 대표이사 부서는 백엔드가 이름 변경·삭제를 거부한다.
+  bool get isProtected => departmentName == kCeoName;
 }
 
-/// 팀 관리자. 백엔드 team.project_manager_id 에 대응한다.
+/// 팀 담당자(PM). GET /api/admin/teams 응답의 managers 한 건.
 class TeamManager {
+  final int employeeId;
   final String employeeNumber;
   final String name;
   final String position;
 
   TeamManager({
+    required this.employeeId,
     required this.employeeNumber,
     required this.name,
     required this.position,
   });
 
   factory TeamManager.fromJson(Map<String, dynamic> json) => TeamManager(
+        employeeId: json['employeeId'] as int,
         employeeNumber: json['employeeNumber'] ?? '',
         name: json['name'] ?? '',
         position: json['position'] ?? '',
       );
 
   /// '홍길동 부장' 형태의 표시용 문자열.
-  String get display =>
-      position.isEmpty ? name : '$name $position';
+  String get display => position.isEmpty ? name : '$name $position';
 }
 
-/// 팀. 백엔드 team 테이블(seq, team, project_manager_id, parent_team)에 대응한다.
-///
-/// 주의: 백엔드는 팀 하나에 관리자가 여러 명이면 같은 team 이름으로 행을 여러 개 만든다.
-/// 화면에서는 팀 이름 기준으로 묶어 managers 리스트로 다룬다.
+/// 팀. GET /api/admin/teams 응답 한 건.
 class Team {
-  final int? teamId;
+  final int teamId;
   final String teamName;
-
-  /// 상위 팀. 백엔드 parent_team 컬럼은 NOT NULL 이다.
-  final String? parentTeam;
-
-  /// 최소 1명. 비어 있는 팀은 백엔드 제약상 존재할 수 없지만 방어적으로 빈 리스트를 허용한다.
+  final bool enabled;
+  final int? departmentId;
+  final String departmentName;
+  final int? parentTeamId;
+  final String? parentTeamName;
   final List<TeamManager> managers;
 
   Team({
-    this.teamId,
+    required this.teamId,
     required this.teamName,
-    this.parentTeam,
-    required this.managers,
+    this.enabled = true,
+    this.departmentId,
+    this.departmentName = '',
+    this.parentTeamId,
+    this.parentTeamName,
+    this.managers = const [],
   });
 
   factory Team.fromJson(Map<String, dynamic> json) => Team(
-        teamId: json['teamId'] ?? json['seq'],
-        teamName: json['teamName'] ?? json['team'] ?? json['name'] ?? '',
-        parentTeam: json['parentTeam'],
+        teamId: json['teamId'] as int,
+        teamName: json['teamName'] ?? '',
+        enabled: json['enabled'] ?? true,
+        departmentId: json['departmentId'],
+        departmentName: json['departmentName'] ?? '',
+        parentTeamId: json['parentTeamId'],
+        parentTeamName: json['parentTeamName'],
         managers: (json['managers'] as List<dynamic>?)
                 ?.map((e) => TeamManager.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             const [],
       );
 
-  /// 이름만 내려주는 폴백 경로(/api/admin/auth/common)용.
-  factory Team.fromName(String name) => Team(teamName: name, managers: const []);
-
-  /// id 가 없는 폴백 데이터는 수정할 수 없다.
-  bool get isEditable => teamId != null;
+  /// 루트 팀(대표이사)은 상위 팀이 자기 자신이다.
+  bool get isRoot => parentTeamId != null && parentTeamId == teamId;
 }
 
-/// 부서 등록/수정 요청 body.
+/// 부서 등록/수정 요청 body. (POST·PUT /api/admin/departments)
 class DepartmentSaveRequest {
   final String departmentName;
 
   DepartmentSaveRequest({required this.departmentName});
 
-  Map<String, dynamic> toJson() => {
-        'departmentName': departmentName,
-      };
+  Map<String, dynamic> toJson() => {'departmentName': departmentName};
 }
 
-/// 팀 등록/수정 요청 body.
+/// 팀 등록 요청 body. (POST /api/admin/teams)
 ///
-/// managerEmployeeNumbers 는 최소 1건이어야 한다(화면에서 검증).
-class TeamSaveRequest {
+/// parentTeamId 미지정 시 백엔드가 대표이사 팀을 상위 팀으로 설정한다.
+class TeamCreateRequest {
   final String teamName;
-  final String? parentTeam;
-  final List<String> managerEmployeeNumbers;
+  final int projectManagerId;
+  final int departmentId;
+  final int? parentTeamId;
 
-  TeamSaveRequest({
+  TeamCreateRequest({
     required this.teamName,
-    this.parentTeam,
-    required this.managerEmployeeNumbers,
+    required this.projectManagerId,
+    required this.departmentId,
+    this.parentTeamId,
   });
 
   Map<String, dynamic> toJson() => {
         'teamName': teamName,
-        'parentTeam': parentTeam,
-        'managerEmployeeNumbers': managerEmployeeNumbers,
+        'projectManagerId': projectManagerId,
+        'departmentId': departmentId,
+        if (parentTeamId != null) 'parentTeamId': parentTeamId,
+      };
+}
+
+/// 팀 수정 요청 body. (PUT /api/admin/teams/{teamId})
+///
+/// null 인 필드는 body 에서 제외되며 백엔드가 기존 값을 유지한다.
+/// projectManagerId 지정 시 기존 담당자 전원이 이 사원 1명으로 교체되고,
+/// departmentId 지정 시 소속 사원 전원의 부서도 함께 변경된다.
+class TeamUpdateRequest {
+  final String? teamName;
+  final int? projectManagerId;
+  final int? departmentId;
+  final int? parentTeamId;
+
+  TeamUpdateRequest({
+    this.teamName,
+    this.projectManagerId,
+    this.departmentId,
+    this.parentTeamId,
+  });
+
+  bool get isEmpty =>
+      teamName == null &&
+      projectManagerId == null &&
+      departmentId == null &&
+      parentTeamId == null;
+
+  Map<String, dynamic> toJson() => {
+        if (teamName != null) 'teamName': teamName,
+        if (projectManagerId != null) 'projectManagerId': projectManagerId,
+        if (departmentId != null) 'departmentId': departmentId,
+        if (parentTeamId != null) 'parentTeamId': parentTeamId,
       };
 }
