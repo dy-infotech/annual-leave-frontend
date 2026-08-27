@@ -4,7 +4,8 @@ import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:intl/intl.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/registe_status_badge.dart';
 import '../widgets/date_input_dialog.dart';
@@ -14,9 +15,15 @@ import 'package:annual_leave_frontend/providers/auth_provider.dart';
 class EmployeeDetailScreen extends StatefulWidget {
   final Employee employee;
 
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AdminEmployeeRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
   const EmployeeDetailScreen({
     super.key,
     required this.employee,
+    this.repository,
+    this.commonCodeRepository,
   });
 
   @override
@@ -24,6 +31,10 @@ class EmployeeDetailScreen extends StatefulWidget {
 }
 
 class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
+  late final AdminEmployeeRepository _repository =
+      widget.repository ?? AdminEmployeeRepository();
+  late final CommonCodeRepository _commonCodeRepository =
+      widget.commonCodeRepository ?? CommonCodeRepository();
   bool _isEditing = false; // 현재 수정 모드 여부
   bool _isSaving = false; // 저장 API 호출 중 로딩 상태
   bool _isLoadingCommon = true; // 기초 데이터 로딩 상태
@@ -134,8 +145,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   Future<void> _fetchCommonData() async {
     setState(() => _isLoadingCommon = true);
     try {
-      final response = await ApiClient().dio.get('/api/admin/auth/common');
-      final data = response.data as Map<String, dynamic>;
+      final data = await _commonCodeRepository.fetchCommonCodes();
 
       final List<String> fetchedDepartments =
           List<String>.from(data['department'] ?? []);
@@ -225,11 +235,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       print(
           '🚀 [API 전송 시작] hireDate: "$formattedHireDate", fireDate: "$formattedFireDate"');
 
-      final response = // 💾 _saveChanges() 함수 내부의 API 전송 객체 영역 최종 방어벽 구축
-          // 💾 _saveChanges() 함수 내부의 API 전송 객체 영역 최종 덮어쓰기
-          await ApiClient().dio.put(
-        '/api/admin/employees/${widget.employee.employeeNumber}',
-        data: {
+      final statusCode = await _repository.updateEmployee(
+        widget.employee.employeeNumber,
+        {
           'name': _nameController.text.trim(),
           'email': _emailController.text.trim(),
           'password': _passwordController.text.trim().isEmpty
@@ -264,7 +272,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       );
 
       // 본문이 null 이어도 상태코드가 성공이면 화면 락 갱신 보장
-      if (response.statusCode == 200 || response.statusCode == 204) {
+      if (statusCode == 200 || statusCode == 204) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('사원 정보가 성공적으로 수정되었습니다.')),

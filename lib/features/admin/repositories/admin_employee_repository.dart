@@ -22,4 +22,14 @@ class AdminEmployeeRepository {
         .map((json) => Employee.fromJson(json))
         .toList();
   }
+
+  /// 사원 정보 수정. PUT /api/admin/employees/{employeeNumber}
+  ///
+  /// 호출부가 상태코드로 성공 여부를 판단하므로 statusCode를 그대로 돌려준다.
+  Future<int?> updateEmployee(
+      String employeeNumber, Map<String, dynamic> data) async {
+    final response =
+        await _dio.put('/api/admin/employees/$employeeNumber', data: data);
+    return response.statusCode;
+  }
 }
