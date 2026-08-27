@@ -2,19 +2,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/email_autocomplete_field.dart';
 
 class MyInfoScreen extends StatefulWidget {
-  const MyInfoScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final EmployeeRepository? repository;
+
+  const MyInfoScreen({super.key, this.repository});
 
   @override
   State<MyInfoScreen> createState() => _MyInfoScreenState();
 }
 
 class _MyInfoScreenState extends State<MyInfoScreen> {
+  late final EmployeeRepository _repository =
+      widget.repository ?? EmployeeRepository();
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _newPasswordConfirmController = TextEditingController();
@@ -56,12 +61,9 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     });
 
     try {
-      await ApiClient().dio.patch(
-        '/api/employees/me/password',
-        data: {
-          'currentPassword': _currentPasswordController.text,
-          'newPassword': _newPasswordController.text,
-        },
+      await _repository.changePassword(
+        currentPassword: _currentPasswordController.text,
+        newPassword: _newPasswordController.text,
       );
       if (mounted) {
         ScaffoldMessenger.of(
@@ -96,8 +98,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
     });
 
     try {
-      await ApiClient().dio.patch('/api/employees/me/email',
-          data: {"email": _emailController.text});
+      await _repository.changeEmail(_emailController.text);
 
       if (mounted) {
         ScaffoldMessenger.of(
