@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
 
@@ -16,6 +17,21 @@ class ApiClient {
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
     ));
+
+    // 디버그 빌드에서만 요청 내용을 로그로 남긴다.
+    // 리팩터링 전후로 같은 시나리오의 요청이 동일한지 비교하는 용도.
+    // Authorization 헤더는 남기지 않는다.
+    if (kDebugMode) {
+      dio.interceptors.add(InterceptorsWrapper(
+        onRequest: (options, handler) {
+          final query =
+              options.queryParameters.isEmpty ? '' : ' query=${options.queryParameters}';
+          final body = options.data == null ? '' : ' body=${options.data}';
+          debugPrint('[API] ${options.method} ${options.path}$query$body');
+          return handler.next(options);
+        },
+      ));
+    }
 
     // 요청마다, 저장된 JWT를 자동으로 Authorization 헤더에 할당
     dio.interceptors.add(InterceptorsWrapper(
