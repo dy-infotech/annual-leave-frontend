@@ -1,4 +1,4 @@
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
+import 'package:annual_leave_frontend/core/services/fcm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
@@ -146,10 +146,9 @@ class AppDrawer extends StatelessWidget {
               color: AppColors.coral,
               onTap: () async {
                 Navigator.pop(context);
-                final dashboardProvider = context.read<DashboardProvider>();
                 final authProvider = context.read<AuthProvider>();
 
-                await dashboardProvider.closeSubscription();
+                await FcmService.instance.closeSubscription();
                 await authProvider.logout();
 
                 if (!context.mounted) return;

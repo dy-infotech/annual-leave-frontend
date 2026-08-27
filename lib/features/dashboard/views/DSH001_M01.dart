@@ -3,27 +3,47 @@ import 'package:annual_leave_frontend/features/leave/views/LVE002_M03.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/app/app.dart' show routeObserver;
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
+import 'package:annual_leave_frontend/features/dashboard/repositories/dashboard_repository.dart';
+import 'package:annual_leave_frontend/features/dashboard/view_models/DSH001_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE002_M02.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE003_M01.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+class DashboardScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final DashboardRepository? repository;
+  final Future<void> Function()? registerFcm;
+
+  const DashboardScreen({super.key, this.repository, this.registerFcm});
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => DashboardViewModel(
+        repository: repository,
+        registerFcm: registerFcm,
+      ),
+      child: const _DashboardView(),
+    );
+  }
 }
 
-class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
+class _DashboardView extends StatefulWidget {
+  const _DashboardView();
+
+  @override
+  State<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<_DashboardView> with RouteAware {
   String? flagTest; // null = 전체
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().fetchDashboard();
+      context.read<DashboardViewModel>().fetchDashboard();
     });
   }
 
@@ -44,12 +64,12 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
   // 이 대시보드 화면으로 다시 돌아왔을 때 자동으로 호출됨
   @override
   void didPopNext() {
-    context.read<DashboardProvider>().fetchDashboard();
+    context.read<DashboardViewModel>().fetchDashboard();
   }
 
   @override
   Widget build(BuildContext context) {
-    final dashboard = context.watch<DashboardProvider>();
+    final dashboard = context.watch<DashboardViewModel>();
 
     return Scaffold(
       appBar: AppBar(
@@ -63,13 +83,13 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
       ),
       drawer: const AppDrawer(),
       body: RefreshIndicator(
-        onRefresh: () => context.read<DashboardProvider>().fetchDashboard(),
+        onRefresh: () => context.read<DashboardViewModel>().fetchDashboard(),
         child: _buildBody(dashboard),
       ),
     );
   }
 
-  Widget _buildBody(DashboardProvider dashboard) {
+  Widget _buildBody(DashboardViewModel dashboard) {
     if (dashboard.isLoading && dashboard.data == null) {
       return const Center(
           child: CircularProgressIndicator(color: AppColors.slate));
@@ -84,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
             const SizedBox(height: 12),
             OutlinedButton(
               onPressed: () =>
-                  context.read<DashboardProvider>().fetchDashboard(),
+                  context.read<DashboardViewModel>().fetchDashboard(),
               child: const Text('다시 시도'),
             ),
           ],

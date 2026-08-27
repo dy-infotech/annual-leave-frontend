@@ -1,8 +1,7 @@
 import 'package:annual_leave_frontend/features/dashboard/models/dashboard_models.dart';
+import 'package:annual_leave_frontend/features/dashboard/repositories/dashboard_repository.dart';
 import 'package:annual_leave_frontend/features/dashboard/views/DSH001_M01.dart';
-import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:provider/provider.dart';
 
 import '../pump_app.dart';
 
@@ -17,34 +16,32 @@ Future<void> pumpDashboardScreen(
 }) async {
   await pumpApp(
     tester,
-    const DashboardScreen(),
-    providers: [
-      ChangeNotifierProvider<DashboardProvider>(
-        create: (_) => _FakeDashboardProvider(
-          dataToReturn: data,
-          errorMessageToReturn: errorMessage,
-        ),
+    DashboardScreen(
+      repository: FakeDashboardRepository(
+        dataToReturn: data,
+        shouldThrow: errorMessage != null,
       ),
-    ],
+      registerFcm: () async {},
+    ),
   );
   await pumpFor(tester, duration: const Duration(milliseconds: 500));
 }
 
-class _FakeDashboardProvider extends DashboardProvider {
-  _FakeDashboardProvider({this.dataToReturn, this.errorMessageToReturn});
+/// DashboardRepository 인메모리 페이크.
+class FakeDashboardRepository implements DashboardRepository {
+  FakeDashboardRepository({this.dataToReturn, this.shouldThrow = false});
 
   final DashboardData? dataToReturn;
-  final String? errorMessageToReturn;
+  final bool shouldThrow;
+
+  int fetchCount = 0;
 
   @override
-  DashboardData? get data => dataToReturn;
-
-  @override
-  String? get errorMessage => errorMessageToReturn;
-
-  @override
-  bool get isLoading => false;
-
-  @override
-  Future<void> fetchDashboard() async {}
+  Future<DashboardData> fetchDashboard() async {
+    fetchCount++;
+    if (shouldThrow || dataToReturn == null) {
+      throw Exception('dashboard fetch failed');
+    }
+    return dataToReturn!;
+  }
 }
