@@ -3,123 +3,60 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
+import 'package:annual_leave_frontend/features/employee/view_models/EMP001_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/email_autocomplete_field.dart';
 
-class MyInfoScreen extends StatefulWidget {
+class MyInfoScreen extends StatelessWidget {
   /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
   final EmployeeRepository? repository;
 
   const MyInfoScreen({super.key, this.repository});
 
   @override
-  State<MyInfoScreen> createState() => _MyInfoScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => MyInfoViewModel(
+        authProvider: context.read<AuthProvider>(),
+        repository: repository,
+      ),
+      child: const _MyInfoView(),
+    );
+  }
 }
 
-class _MyInfoScreenState extends State<MyInfoScreen> {
-  late final EmployeeRepository _repository =
-      widget.repository ?? EmployeeRepository();
-  final _currentPasswordController = TextEditingController();
-  final _newPasswordController = TextEditingController();
-  final _newPasswordConfirmController = TextEditingController();
-  bool _isSubmitting = false;
-  String? _errorMessage;
-  String? _emailErrorMessage;
-
-  bool isEditingEmail = false;
-  final TextEditingController _emailController = TextEditingController();
+class _MyInfoView extends StatefulWidget {
+  const _MyInfoView();
 
   @override
-  void dispose() {
-    _currentPasswordController.dispose();
-    _newPasswordController.dispose();
-    _newPasswordConfirmController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
+  State<_MyInfoView> createState() => _MyInfoViewState();
+}
+
+class _MyInfoViewState extends State<_MyInfoView> {
+  MyInfoViewModel get _vm => context.read<MyInfoViewModel>();
 
   Future<void> _handleChangePassword() async {
-    if (_currentPasswordController.text.isEmpty ||
-        _newPasswordController.text.isEmpty ||
-        _newPasswordConfirmController.text.isEmpty) {
-      setState(() => _errorMessage = '모든 항목을 입력해주세요.');
-      return;
-    }
-    if (_newPasswordController.text != _newPasswordConfirmController.text) {
-      setState(() => _errorMessage = '새 비밀번호가 일치하지 않습니다.');
-      return;
-    }
-    if (_newPasswordController.text == _currentPasswordController.text) {
-      setState(() => _errorMessage = '현재 비밀번호와 다른 비밀번호를 입력해주세요.');
-      return;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _repository.changePassword(
-        currentPassword: _currentPasswordController.text,
-        newPassword: _newPasswordController.text,
-      );
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('비밀번호가 변경되었습니다.')));
-        _currentPasswordController.clear();
-        _newPasswordController.clear();
-        _newPasswordConfirmController.clear();
-      }
-    } catch (e) {
-      setState(() => _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.');
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.changePassword();
+    if (ok && mounted) {
+      messenger
+          .showSnackBar(const SnackBar(content: Text('비밀번호가 변경되었습니다.')));
     }
   }
 
   Future<bool> _handleChangeEmail() async {
-    if (_emailController.text.isEmpty) {
-      setState(() => _emailErrorMessage = '이메일 정보를 입력해 주세요.');
-      return false;
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.changeEmail();
+    if (ok && mounted) {
+      messenger.showSnackBar(const SnackBar(content: Text('이메일이 변경되었습니다.')));
     }
-
-    final emailRegex = RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,}$');
-    if (!emailRegex.hasMatch(_emailController.text)) {
-      setState(() => _emailErrorMessage = '올바른 이메일 형식이 아닙니다.');
-      return false;
-    }
-
-    setState(() {
-      _isSubmitting = true;
-      _emailErrorMessage = null;
-    });
-
-    try {
-      await _repository.changeEmail(_emailController.text);
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('이메일이 변경되었습니다.')));
-        context.read<AuthProvider>().updateEmail(_emailController.text);
-
-        _emailController.clear();
-      }
-
-      return true;
-    } catch (e) {
-      setState(() => _emailErrorMessage = '이메일 변경에 실패했습니다.');
-      return false;
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
+    return ok;
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<MyInfoViewModel>();
     final info = context.watch<AuthProvider>().employeeInfo;
 
     return Scaffold(
@@ -177,16 +114,11 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                           Expanded(
                             child: _InfoRow(
                               label: '이메일',
-                              value: isEditingEmail
+                              value: _vm.isEditingEmail
                                   ? EmailAutocompleteField(
-                                      controller: _emailController,
+                                      controller: _vm.emailController,
                                       onSubmitted: () async {
-                                        final success =
-                                            await _handleChangeEmail();
-                                        if (success && mounted) {
-                                          setState(
-                                              () => isEditingEmail = false);
-                                        }
+                                        await _handleChangeEmail();
                                       },
                                     )
                                   : Text(
@@ -205,18 +137,14 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                               padding: EdgeInsets.zero,
                             ),
                             onPressed: () async {
-                              if (isEditingEmail) {
-                                final success = await _handleChangeEmail();
-                                if (success) {
-                                  setState(() => isEditingEmail = false);
-                                }
+                              if (_vm.isEditingEmail) {
+                                await _handleChangeEmail();
                               } else {
-                                _emailController.text = info?.email ?? '';
-                                setState(() => isEditingEmail = true);
+                                _vm.startEditingEmail();
                               }
                             },
                             child: Icon(
-                              isEditingEmail ? Icons.check : Icons.edit,
+                              _vm.isEditingEmail ? Icons.check : Icons.edit,
                               size: 20,
                               color: Colors.black54,
                             ),
@@ -225,12 +153,12 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                       ),
                     ),
                   ),
-                  if (_emailErrorMessage != null) ...[
+                  if (_vm.emailErrorMessage != null) ...[
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        _emailErrorMessage!,
+                        _vm.emailErrorMessage!,
                         style: const TextStyle(
                           color: AppColors.coral,
                           fontSize: 13,
@@ -260,29 +188,29 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
               child: Column(
                 children: [
                   TextField(
-                    controller: _currentPasswordController,
+                    controller: _vm.currentPasswordController,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: '현재 비밀번호'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: _newPasswordController,
+                    controller: _vm.newPasswordController,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: '새 비밀번호'),
                   ),
                   const SizedBox(height: 12),
                   TextField(
-                    controller: _newPasswordConfirmController,
+                    controller: _vm.newPasswordConfirmController,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: '새 비밀번호 확인'),
                     onSubmitted: (_) => _handleChangePassword(),
                   ),
-                  if (_errorMessage != null) ...[
+                  if (_vm.errorMessage != null) ...[
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerLeft,
                       child: Text(
-                        _errorMessage!,
+                        _vm.errorMessage!,
                         style: const TextStyle(
                           color: AppColors.coral,
                           fontSize: 13,
@@ -294,8 +222,8 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _handleChangePassword,
-                      child: _isSubmitting
+                      onPressed: _vm.isSubmitting ? null : _handleChangePassword,
+                      child: _vm.isSubmitting
                           ? const SizedBox(
                               width: 18,
                               height: 18,
