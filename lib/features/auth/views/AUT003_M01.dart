@@ -1,6 +1,8 @@
 // AUT003_M01: 계정 찾기 화면 (아이디/비밀번호 찾기 탭)
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
+import 'package:annual_leave_frontend/features/auth/view_models/AUT003_M01_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -15,33 +17,33 @@ class UpperCaseTextFormatter extends TextInputFormatter {
   }
 }
 
-class FindAccountScreen extends StatefulWidget {
+class FindAccountScreen extends StatelessWidget {
   /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
   final AuthRepository? repository;
 
   const FindAccountScreen({super.key, this.repository});
 
   @override
-  State<FindAccountScreen> createState() => _FindAccountScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => FindAccountViewModel(repository: repository),
+      child: const _FindAccountView(),
+    );
+  }
 }
 
-class _FindAccountScreenState extends State<FindAccountScreen>
+class _FindAccountView extends StatefulWidget {
+  const _FindAccountView();
+
+  @override
+  State<_FindAccountView> createState() => _FindAccountViewState();
+}
+
+class _FindAccountViewState extends State<_FindAccountView>
     with SingleTickerProviderStateMixin {
-  late final AuthRepository _repository =
-      widget.repository ?? AuthRepository();
   late TabController _tabController;
 
-  // 공통 및 아이디 찾기용 컨트롤러
-  final _nameController = TextEditingController();
-  final _emailForIdController = TextEditingController();
-
-  // 비밀번호 찾기용 컨트롤러
-  final _employeeNoController = TextEditingController();
-  final _emailForPwController = TextEditingController();
-
-  bool _isLoading = false;
-  String? _errorMessage;
-  String? _foundId; // 찾은 아이디 저장 변수
+  FindAccountViewModel get _vm => context.read<FindAccountViewModel>();
 
   @override
   void initState() {
@@ -50,7 +52,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
     // 탭 변경 시 에러 메시지 및 결과 초기화
     _tabController.addListener(() {
       if (_tabController.indexIsChanging) {
-        _clearInputs();
+        _vm.clearInputs();
       }
     });
   }
@@ -58,89 +60,36 @@ class _FindAccountScreenState extends State<FindAccountScreen>
   @override
   void dispose() {
     _tabController.dispose();
-    _nameController.dispose();
-    _emailForIdController.dispose();
-    _employeeNoController.dispose();
-    _emailForPwController.dispose();
     super.dispose();
-  }
-
-  void _clearInputs() {
-    setState(() {
-      _errorMessage = null;
-      _foundId = null;
-    });
   }
 
   // 아이디 찾기 요청 처리
   Future<void> _handleFindId() async {
-    if (_nameController.text.isEmpty || _emailForIdController.text.isEmpty) {
-      setState(() => _errorMessage = '성함과 이메일을 모두 입력해 주세요.');
-      return;
-    }
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _repository.findId(
-        _nameController.text.trim(),
-        _emailForIdController.text.trim(),
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.findId();
+    if (ok && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('아이디를 성공적으로 전송하였습니다.')),
       );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('아이디를 성공적으로 전송하였습니다.')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      print("아이디 찾기 에러 발생: $e");
-      setState(() => _errorMessage = '등록된 정보가 일치하지 않습니다.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      Navigator.pop(context);
     }
   }
 
   // 비밀번호 찾기(이메일 발송) 요청 처리
   Future<void> _handleForgotPassword() async {
-    // 사번이나 이메일 중 하나라도 비어있으면 에러 메시지 표시
-    if (_employeeNoController.text.isEmpty ||
-        _emailForPwController.text.isEmpty) {
-      setState(() {
-        _errorMessage = '사번과 이메일을 모두 입력해 주세요.';
-      });
-      return; // 실행 중단
-    }
-
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
-
-    try {
-      await _repository.sendPasswordResetEmail(
-        _employeeNoController.text.trim(),
-        _emailForPwController.text.trim(),
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.sendPasswordResetEmail();
+    if (ok && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('비밀번호 재설정 이메일이 발송되었습니다.')),
       );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('비밀번호 재설정 이메일이 발송되었습니다.')),
-        );
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      print("비밀번호 찾기 에러 발생: $e");
-      setState(() => _errorMessage = '등록된 정보가 일치하지 않거나 발송에 실패했습니다.');
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
+      Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<FindAccountViewModel>();
     return Scaffold(
       appBar: AppBar(
         title: const Text('계정 정보 찾기'),
@@ -179,13 +128,13 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             ),
             const SizedBox(height: 32),
             TextField(
-              controller: _nameController,
+              controller: _vm.nameController,
               decoration: const InputDecoration(labelText: '성함'),
               keyboardType: TextInputType.name,
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _emailForIdController,
+              controller: _vm.emailForIdController,
               decoration: const InputDecoration(labelText: '이메일 주소'),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -194,8 +143,8 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleFindId,
-                child: _isLoading
+                onPressed: _vm.isLoading ? null : _handleFindId,
+                child: _vm.isLoading
                     ? _buildLoadingIndicator()
                     : const Text('이메일 전송'),
               ),
@@ -204,7 +153,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             // SizedBox(
             //   width: double.infinity,
             //   child: ElevatedButton(
-            //     onPressed: _isLoading ? null : _handleFindId,
+            //     onPressed: _vm.isLoading ? null : _handleFindId,
             //     child: _isLoading
             //         ? _buildLoadingIndicator()
             //         : const Text('아이디 찾기'),
@@ -266,7 +215,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             // ),
             const SizedBox(height: 32),
             TextField(
-              controller: _employeeNoController,
+              controller: _vm.employeeNoController,
               decoration: const InputDecoration(labelText: '사번'),
               keyboardType: TextInputType.text,
               enableSuggestions: false,
@@ -281,7 +230,7 @@ class _FindAccountScreenState extends State<FindAccountScreen>
 
             const SizedBox(height: 12),
             TextField(
-              controller: _emailForPwController,
+              controller: _vm.emailForPwController,
               decoration: const InputDecoration(labelText: '이메일 주소'),
               keyboardType: TextInputType.emailAddress,
             ),
@@ -290,8 +239,8 @@ class _FindAccountScreenState extends State<FindAccountScreen>
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isLoading ? null : _handleForgotPassword,
-                child: _isLoading
+                onPressed: _vm.isLoading ? null : _handleForgotPassword,
+                child: _vm.isLoading
                     ? _buildLoadingIndicator()
                     : const Text('이메일 전송'),
               ),
@@ -304,11 +253,11 @@ class _FindAccountScreenState extends State<FindAccountScreen>
 
   // 공통 에러 출력 위젯
   Widget _buildErrorSection() {
-    if (_errorMessage == null) return const SizedBox.shrink();
+    if (_vm.errorMessage == null) return const SizedBox.shrink();
     return Column(
       children: [
         const SizedBox(height: 12),
-        Text(_errorMessage!, style: const TextStyle(color: Colors.red)),
+        Text(_vm.errorMessage!, style: const TextStyle(color: Colors.red)),
       ],
     );
   }
