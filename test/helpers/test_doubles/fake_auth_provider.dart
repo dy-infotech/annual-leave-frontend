@@ -8,6 +8,7 @@ class FakeAuthProvider extends AuthProvider {
   final Employee? _fakeEmployeeInfo;
 
   int fetchMyInfoCount = 0;
+  final List<String> updatedEmails = [];
 
   @override
   Employee? get employeeInfo => _fakeEmployeeInfo;
@@ -15,5 +16,10 @@ class FakeAuthProvider extends AuthProvider {
   @override
   Future<void> fetchMyInfo() async {
     fetchMyInfoCount++;
+  }
+
+  @override
+  Future<void> updateEmail(newEmail) async {
+    updatedEmails.add(newEmail as String);
   }
 }
