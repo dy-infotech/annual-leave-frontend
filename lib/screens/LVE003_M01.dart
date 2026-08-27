@@ -1,5 +1,5 @@
 // LVE003_M01: 결재 대기 목록 화면
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';

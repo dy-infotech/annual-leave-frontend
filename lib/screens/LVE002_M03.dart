@@ -6,7 +6,7 @@ import 'package:annual_leave_frontend/core/network/api_client.dart';
 import '../models/leave_request_models.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:intl/intl.dart';
 
 class AdminSearchLeaveRequestsScreen extends StatefulWidget {

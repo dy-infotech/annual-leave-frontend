@@ -9,7 +9,7 @@ import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
 import '../widgets/date_range_dialog.dart';
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:intl/intl.dart';
 
 import 'LVE002_D01.dart';

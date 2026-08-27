@@ -1,5 +1,5 @@
 // ADM004_M01: 사원 사번 조회 화면
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
 import 'ADM004_D01.dart';
 import 'package:flutter/material.dart';
