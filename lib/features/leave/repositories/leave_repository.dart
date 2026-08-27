@@ -16,4 +16,31 @@ class LeaveRepository {
     final response = await _dio.get('/api/leave-requests/$requestId');
     return LeaveRequestDetail.fromJson(response.data);
   }
+
+  /// 내 휴가 신청 목록 조회. GET /api/leave-requests/my
+  ///
+  /// 조건이 하나도 없으면 쿼리 파라미터 없이 호출한다. (기존 화면과 동일)
+  Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
+    String? status,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final queryParams = <String, dynamic>{
+      if (status != null) 'status': status,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    };
+    final response = await _dio.get(
+      '/api/leave-requests/my',
+      queryParameters: queryParams.isEmpty ? null : queryParams,
+    );
+    return (response.data as List)
+        .map((json) => LeaveRequestListItem.fromJson(json))
+        .toList();
+  }
+
+  /// 휴가 신청 취소. DELETE /api/leave-requests/{requestId}
+  Future<void> cancelLeaveRequest(int requestId) async {
+    await _dio.delete('/api/leave-requests/$requestId');
+  }
 }

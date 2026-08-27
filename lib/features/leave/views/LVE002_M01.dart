@@ -1,7 +1,7 @@
 // LVE002_M01: 내 휴가 신청 목록 화면
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
@@ -9,8 +9,11 @@ import '../widgets/leave_status_badge.dart';
 class MyLeaveRequestsScreen extends StatefulWidget {
 
   final String? status;
-  
-  const MyLeaveRequestsScreen({super.key, this.status});
+
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const MyLeaveRequestsScreen({super.key, this.status, this.repository});
 
   @override
   State<MyLeaveRequestsScreen> createState() => _MyLeaveRequestsScreenState();
@@ -18,6 +21,8 @@ class MyLeaveRequestsScreen extends StatefulWidget {
 
 class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
 
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
@@ -40,27 +45,17 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   Future<void> _fetch(widgetStatus) async {
     setState(() => _isLoading = true);
     try {
-      final queryParams = <String, dynamic>{};
-      if (_statusFilter != null) {
-        queryParams['status'] = _statusFilter;
-      }
       if(widgetStatus != null){
         _statusFilter = widget.status;
-        queryParams['status'] = _statusFilter;
-      }
-      if (_dateRange != null) {
-        queryParams['startDate'] = _formatDate(_dateRange!.start);
-        queryParams['endDate'] = _formatDate(_dateRange!.end);
       }
 
-      final response = await ApiClient().dio.get(
-        '/api/leave-requests/my',
-        queryParameters: queryParams.isEmpty ? null : queryParams,
+      final items = await _repository.fetchMyLeaveRequests(
+        status: _statusFilter,
+        startDate: _dateRange != null ? _formatDate(_dateRange!.start) : null,
+        endDate: _dateRange != null ? _formatDate(_dateRange!.end) : null,
       );
       setState(() {
-        _items = (response.data as List)
-            .map((json) => LeaveRequestListItem.fromJson(json))
-            .toList();
+        _items = items;
       });
     } finally {
       setState(() => _isLoading = false);
@@ -120,7 +115,7 @@ class _MyLeaveRequestsScreenState extends State<MyLeaveRequestsScreen> {
   Future<void> _cancel(int requestId) async {
     setState(() => _processingIds.add(requestId));
     try {
-      await ApiClient().dio.delete('/api/leave-requests/$requestId');
+      await _repository.cancelLeaveRequest(requestId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));
       }
