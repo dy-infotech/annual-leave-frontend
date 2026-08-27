@@ -64,6 +64,29 @@ class LeaveRepository {
     await _dio.delete('/api/leave-requests/$requestId');
   }
 
+  /// 관리자 휴가 검색. GET /api/admin/leave-requests/{status}
+  ///
+  /// 기존 화면과 동일하게 status는 경로와 쿼리에 모두 실리고,
+  /// team은 전체 선택 시 null 값으로 키가 유지된다. (dio가 null 값은 전송하지 않음)
+  Future<List<LeaveRequestListItem>> searchAdminLeaveRequests({
+    required String? status,
+    required String? team,
+    String? employeeParam,
+  }) async {
+    final queryParams = <String, dynamic>{
+      if (status != null) 'status': status,
+      'team': team,
+      if (employeeParam != null) 'employeeParam': employeeParam,
+    };
+    final response = await _dio.get(
+      '/api/admin/leave-requests/$status',
+      queryParameters: queryParams.isEmpty ? null : queryParams,
+    );
+    return (response.data as List)
+        .map((json) => LeaveRequestListItem.fromJson(json))
+        .toList();
+  }
+
   /// 결재 대기 목록 조회. GET /api/admin/leave-requests/pending
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
     final response = await _dio.get('/api/admin/leave-requests/pending');

@@ -2,8 +2,9 @@
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE002_D01.dart';
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:annual_leave_frontend/app/app.dart';
@@ -13,13 +14,26 @@ class AdminSearchLeaveRequestsScreen extends StatefulWidget {
   final String? status;
   final String? filter;
 
-  const AdminSearchLeaveRequestsScreen({super.key, this.status, this.filter});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const AdminSearchLeaveRequestsScreen(
+      {super.key,
+      this.status,
+      this.filter,
+      this.repository,
+      this.commonCodeRepository});
 
   @override
   State<AdminSearchLeaveRequestsScreen> createState() => _AdminSearchLeaveRequestsScreen();
 }
 
 class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScreen> with RouteAware{
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
+  late final CommonCodeRepository _commonCodeRepository =
+      widget.commonCodeRepository ?? CommonCodeRepository();
   List<LeaveRequestListItem> _items = [];
   String? _errorMessage;
   bool _isLoading = true;
@@ -44,11 +58,8 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
 
   Future<void> _getComData() async{
     //기초데이터 조회: 팀목록
-    final comResponse = await ApiClient().dio.get(
-      '/api/admin/auth/common',
-    );
+    final data = await _commonCodeRepository.fetchCommonCodes();
     setState(() {
-      final data = comResponse.data as Map<String, dynamic>;
 
       if (data.length >= 3) {
         _teamList.clear();
@@ -67,28 +78,15 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
     setState(() => _isLoading = true);
     try {
       
-      //상태값 조회 파라미터 세팅     
-      final queryParams = <String, dynamic>{};
-      if (_status != null) {
-        queryParams['status'] = _status;
-      }
-      if (_selectedTeam != null) {
-        queryParams['team'] = _selectedTeam == '전체' ? null: _selectedTeam;
-      }
-      if (_searchEmployeeController.text.isNotEmpty) {
-        queryParams['employeeParam'] = _searchEmployeeController.text;
-      }
-
-      final response = await ApiClient().dio.get(
-            '/api/admin/leave-requests/${_status}',
-            queryParameters: queryParams.isEmpty ? null : queryParams,
-            //'/api/admin/leave-requests/approved',
-            //queryParameters: null
-          );
+      final items = await _repository.searchAdminLeaveRequests(
+        status: _status,
+        team: _selectedTeam == '전체' ? null : _selectedTeam,
+        employeeParam: _searchEmployeeController.text.isNotEmpty
+            ? _searchEmployeeController.text
+            : null,
+      );
       setState(() {
-        _items = (response.data as List)
-            .map((json) => LeaveRequestListItem.fromJson(json))
-            .toList();
+        _items = items;
       });
     } catch (e) {
       setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
