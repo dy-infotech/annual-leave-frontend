@@ -137,6 +137,12 @@ class _LeaveRequestDetailView extends StatelessWidget {
                           ? '-'
                           : DateFormat('yyyy.MM.dd')
                               .format(DateTime.parse(d.managedAt.toString()))),
+                  if (d.status == 'REJECTED')
+                    _row(
+                        '반려 사유',
+                        (d.rejectReason == null || d.rejectReason!.isEmpty)
+                            ? '-'
+                            : d.rejectReason!),
                 ]
               : [
                   const Padding(

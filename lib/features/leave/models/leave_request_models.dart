@@ -94,6 +94,7 @@ class LeaveRequestDetail {
   final double useDays;
   final String status;
   final String? leaveReason; // 권한 없으면 null
+  final String? rejectReason; // 반려 시에만 값 존재
   final String? createdAt;
 
   // 결재자 (미배정 시 null)
@@ -115,6 +116,7 @@ class LeaveRequestDetail {
     required this.useDays,
     required this.status,
     this.leaveReason,
+    this.rejectReason,
     this.createdAt,
     this.approverNumber,
     this.approverName,
@@ -136,6 +138,7 @@ class LeaveRequestDetail {
       useDays: (json['useDays'] ?? 0).toDouble(),
       status: json['status'] ?? '',
       leaveReason: json['leaveReason'],
+      rejectReason: json['rejectReason'],
       createdAt: json['createdAt'],
       approverNumber: json['approverNumber'],
       approverName: json['approverName'],

@@ -76,6 +76,46 @@ void main() {
     expect(find.text('아직 승인되지 않은 요청입니다.'), findsOneWidget);
   });
 
+  testWidgets('반려 - 결재 내역에 반려 사유가 표시된다', (tester) async {
+    final json = fixtureJson('leave/leave_request_detail.json')
+      ..['status'] = 'REJECTED'
+      ..['rejectReason'] = '프로젝트 마감일과 겹칩니다';
+    fake.detailToReturn = LeaveRequestDetail.fromJson(json);
+
+    await pumpDetailScreen(tester);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+
+    expect(find.text('반려 사유'), findsOneWidget);
+    expect(find.text('프로젝트 마감일과 겹칩니다'), findsOneWidget);
+  });
+
+  testWidgets('반려 사유 없이 반려 - 사유 자리에 -가 표시된다', (tester) async {
+    final json = fixtureJson('leave/leave_request_detail.json')
+      ..['status'] = 'REJECTED';
+    fake.detailToReturn = LeaveRequestDetail.fromJson(json);
+
+    await pumpDetailScreen(tester);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+
+    expect(find.text('반려 사유'), findsOneWidget);
+  });
+
+  testWidgets('반려가 아니면 반려 사유 항목이 없다', (tester) async {
+    fake.detailToReturn = LeaveRequestDetail.fromJson(
+        fixtureJson('leave/leave_request_detail.json'));
+
+    await pumpDetailScreen(tester);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -400));
+    await tester.pump();
+
+    expect(find.text('반려 사유'), findsNothing);
+  });
+
   testWidgets('조회 실패 - 오류 메시지가 표시된다', (tester) async {
     fake.errorToThrow = Exception('network');
 
