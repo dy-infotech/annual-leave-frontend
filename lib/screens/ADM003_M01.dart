@@ -2,8 +2,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-import '../models/department_team_models.dart';
-import '../models/employee.dart';
+import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import '../services/department_team_api.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';

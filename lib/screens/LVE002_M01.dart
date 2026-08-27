@@ -1,7 +1,7 @@
 // LVE002_M01: 내 휴가 신청 목록 화면
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
-import '../models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';

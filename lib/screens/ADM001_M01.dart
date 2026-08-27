@@ -1,7 +1,7 @@
 // ADM001_M01: 관리자별 관리팀 설정 화면
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
-import '../models/employee.dart'; // 기존 Employee 모델 경로 확인
+import 'package:annual_leave_frontend/features/admin/models/employee.dart'; // 기존 Employee 모델 경로 확인
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 

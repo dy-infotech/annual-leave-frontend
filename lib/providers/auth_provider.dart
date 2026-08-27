@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
-import '../models/auth_models.dart';
-import '../models/employee.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 
 class AuthProvider extends ChangeNotifier {

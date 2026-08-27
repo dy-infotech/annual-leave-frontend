@@ -1,9 +1,9 @@
 // LVE002_M03: 관리자 휴가 검색 화면
-import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
+import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/screens/LVE002_D01.dart';
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
-import '../models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:annual_leave_frontend/app/app.dart';
