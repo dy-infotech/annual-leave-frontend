@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [develop, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Flutter 설치
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 의존성 설치
+        run: flutter pub get
+
+      # 기존 코드에 info/warning 수준 이슈가 남아 있어 우선 error만 실패 처리한다.
+      # 잔여 이슈 정리 후 플래그를 제거해 기본(경고도 실패)으로 되돌린다.
+      - name: 정적 분석
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: 테스트
+        run: flutter test
