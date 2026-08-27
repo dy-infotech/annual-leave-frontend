@@ -1,15 +1,16 @@
 // ADM004_M01: 사원 사번 조회 화면
 import 'package:annual_leave_frontend/app/app.dart';
-import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'ADM004_D01.dart';
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
+import 'package:annual_leave_frontend/features/admin/view_models/ADM004_M01_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/registe_status_badge.dart';
 
-class SearchEmployeeNumberScreen extends StatefulWidget {
+class SearchEmployeeNumberScreen extends StatelessWidget {
   /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
   final AdminEmployeeRepository? repository;
   final CommonCodeRepository? commonCodeRepository;
@@ -18,61 +19,41 @@ class SearchEmployeeNumberScreen extends StatefulWidget {
       {super.key, this.repository, this.commonCodeRepository});
 
   @override
-  State<SearchEmployeeNumberScreen> createState() =>
-      _SearchEmployeeNumberScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => SearchEmployeeNumberViewModel(
+        repository: repository,
+        commonCodeRepository: commonCodeRepository,
+      )..fetch(),
+      child: const _SearchEmployeeNumberView(),
+    );
+  }
 }
 
-class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
-    with RouteAware {
-  late final AdminEmployeeRepository _repository =
-      widget.repository ?? AdminEmployeeRepository();
-  late final CommonCodeRepository _commonCodeRepository =
-      widget.commonCodeRepository ?? CommonCodeRepository();
-  List<Employee> _items = [];
-  bool _isLoading = true;
-  final TextEditingController _searchParamController = TextEditingController();
-
-  // 등록 상태 검색 조건 상태 변수 ('ALL', 'REGISTERED', 'UNREGISTERED')
-  String _selectedStatus = 'ALL';
-
-  // 팀 검색조건
-  final List<String> _filterTeamList = ['전체']; // 💡 '전체' -> '전체'으로 변경
-  String _selectedTeamFilter = '전체'; // 💡 '전체' -> '전체'으로 변경
-
-  Future<void> _fetchCommonTeams() async {
-    try {
-      final data = await _commonCodeRepository.fetchCommonCodes();
-      final List<String> fetchedTeams =
-          List<String>.from(data['accessibleTeam'] ?? data['team'] ?? []);
-
-      setState(() {
-        _filterTeamList.clear();
-        _filterTeamList.add('전체'); // 💡 콤보박스 첫 칸 명칭을 '전체'으로 고정
-        _filterTeamList.addAll(fetchedTeams);
-      });
-    } catch (e) {
-      print('필터 팀 목록 로드 실패: $e');
-    }
-  }
+class _SearchEmployeeNumberView extends StatefulWidget {
+  const _SearchEmployeeNumberView();
 
   @override
-  void initState() {
-    super.initState();
-    //_fetchCommonTeams(); // 💡 DB 팀 관리 테이블 데이터 먼저 조회
-    _fetch();
-  }
+  State<_SearchEmployeeNumberView> createState() =>
+      _SearchEmployeeNumberViewState();
+}
+
+class _SearchEmployeeNumberViewState extends State<_SearchEmployeeNumberView>
+    with RouteAware {
+  SearchEmployeeNumberViewModel get _vm =>
+      context.read<SearchEmployeeNumberViewModel>();
 
   // 📄 2페이지 전체를 이 정제된 다중 필터 구조 코드로 대체하세요.
   // 📄 2페이지의 _fetch() 함수 전체를 이 최종 버전으로 완전히 교체하세요.
 //   Future<void> _fetch() async {
-//     setState(() => _isLoading = true);
+//     setState(() => _vm.isLoading = true);
 //     try {
 //       final Map<String, dynamic> queryParams = {};
 
 //       // 1️⃣ [수정] 텍스트 검색창(사번/이름 입력)에 글자가 있을 때만 백엔드로 파라미터를 보냅니다.
 //       // 팀 필터 드롭다운 값은 절대로 백엔드로 보내지 않고 공백으로 날려, 백엔드가 전체 사원 데이터(11건)를 안전하게 리턴하도록 유도합니다.
-//       if (_searchParamController.text.trim().isNotEmpty) {
-//         queryParams['searchParam'] = _searchParamController.text.trim();
+//       if (_vm.searchParamController.text.trim().isNotEmpty) {
+//         queryParams['searchParam'] = _vm.searchParamController.text.trim();
 //       }
 
 //       // 서버로 GET 요청 발송 (팀 필터링 조건은 서버로 절대 보내지 않음)
@@ -98,18 +79,18 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
 //       setState(() {
 //         // 💡 [핵심 추가] 추출한 전사 팀 리스트로 드롭다운 콤보박스 목록을 실시간 강제 갱신합니다.
-//         _filterTeamList.clear();
-//         _filterTeamList.add('전체');
-//         _filterTeamList.addAll(extractedTeams);
+//         _vm.filterTeamList.clear();
+//         _vm.filterTeamList.add('전체');
+//         _vm.filterTeamList.addAll(extractedTeams);
 
 //         List<Employee> processedItems = allFetchedItems;
 
 //         // 💡 기준 문자열을 일치시켜 클라이언트 사이드 필터링 진행
-//         if (_selectedTeamFilter != '전체') {
+//         if (_vm.selectedTeamFilter != '전체') {
 //           processedItems = processedItems
 //               .where((emp) =>
 //                   emp.team != null &&
-//                   emp.team!.replaceAll(' ', '').contains(_selectedTeamFilter
+//                   emp.team!.replaceAll(' ', '').contains(_vm.selectedTeamFilter
 //                       .replaceAll(' 팀', '')
 //                       .replaceAll(' ', '')))
 //               .toList();
@@ -118,65 +99,9 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 //     } catch (e) {
 //       print('사원 리스트 조회 실패: $e');
 //     } finally {
-//       setState(() => _isLoading = false);
+//       setState(() => _vm.isLoading = false);
 //     }
 //   }
-
-  Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      // 서버로 사원 정보 요청 발송 (검색창에 글자가 있을 때만 파라미터 전달)
-      final List<Employee> allFetchedItems = await _repository.fetchEmployees(
-        searchParam: _searchParamController.text.trim(),
-      );
-
-      setState(() {
-        // 검색 조건이 없을 때(최초 로드 시), 전체 사원 데이터에서 전사 팀 리스트를 동적으로 추출하여 드롭다운을 채웁니다.
-        if (_searchParamController.text.trim().isEmpty) {
-          final List<String> extractedTeams = allFetchedItems
-              .map((emp) => emp.team?.trim() ?? '')
-              .where((team) => team.isNotEmpty)
-              .toSet() // 중복 제거
-              .toList();
-
-          extractedTeams.sort(); // 가나다 순 정렬
-
-          _filterTeamList.clear();
-          _filterTeamList.add('전체');
-          _filterTeamList.addAll(extractedTeams);
-        }
-
-        List<Employee> processedItems = allFetchedItems;
-
-        // 팀 필터링 적용 (기준 문자열 공백 제거 비교)
-        if (_selectedTeamFilter != '전체') {
-          processedItems = processedItems
-              .where((emp) =>
-                  emp.team != null &&
-                  emp.team!.replaceAll(' ', '').contains(_selectedTeamFilter
-                      .replaceAll(' 팀', '')
-                      .replaceAll(' ', '')))
-              .toList();
-        }
-
-        // 등록 / 미등록 조건 상태 필터링 연동
-        if (_selectedStatus == 'ALL') {
-          _items = processedItems;
-        } else if (_selectedStatus == 'REGISTERED') {
-          _items =
-              processedItems.where((item) => item.isRegisted == true).toList();
-        } else if (_selectedStatus == 'UNREGISTERED') {
-          _items =
-              processedItems.where((item) => item.isRegisted != true).toList();
-        }
-      });
-    } catch (e) {
-      print('사원 리스트 조회 실패: $e');
-    } finally {
-      // 💡 스펠링 교정 완료: 에러 상황이나 정상 상황 모두 로딩을 확실히 종료합니다.
-      setState(() => _isLoading = false);
-    }
-  }
 
   @override
   void didChangeDependencies() {
@@ -189,18 +114,18 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
   @override
   void dispose() {
-    _searchParamController.dispose(); // 메모리 누수 방지
     routeObserver.unsubscribe(this);
     super.dispose();
   }
 
   @override
   void didPopNext() {
-    _fetch();
+    _vm.fetch();
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<SearchEmployeeNumberViewModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('사용자 정보 조회')),
       drawer: const AppDrawer(),
@@ -228,7 +153,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     //     child: DropdownButtonHideUnderline(
                     //       child: DropdownButton<String>(
                     //         isExpanded: true,
-                    //         value: _selectedStatus,
+                    //         value: _vm.selectedStatus,
                     //         style: const TextStyle(
                     //             fontSize: 13, color: Colors.black),
                     //         icon: const Icon(Icons.arrow_drop_down,
@@ -236,7 +161,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     //         onChanged: (String? newValue) {
                     //           if (newValue != null) {
                     //             setState(() {
-                    //               _selectedStatus = newValue;
+                    //               _vm.selectedStatus = newValue;
                     //             });
                     //             _fetch();
                     //           }
@@ -259,7 +184,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                         height: 35, // 💡 기존과 완전히 동일한 높이 규격 유지
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: _selectedStatus,
+                          value: _vm.selectedStatus,
                           style: const TextStyle(
                               fontSize: 13, color: Colors.black),
                           icon: const Icon(Icons.arrow_drop_down,
@@ -296,10 +221,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                           ),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
-                              setState(() {
-                                _selectedStatus = newValue;
-                              });
-                              _fetch();
+                              _vm.setStatus(newValue);
                             }
                           },
                           items: const [
@@ -329,7 +251,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     //     child: DropdownButtonHideUnderline(
                     //       child: DropdownButton<String>(
                     //         isExpanded: true,
-                    //         value: _selectedTeamFilter,
+                    //         value: _vm.selectedTeamFilter,
                     //         style: const TextStyle(
                     //             fontSize: 13, color: Colors.black),
                     //         icon: const Icon(Icons.arrow_drop_down,
@@ -338,20 +260,20 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     //         onChanged: (String? newValue) {
                     //           if (newValue != null) {
                     //             setState(() {
-                    //               _selectedTeamFilter = newValue;
+                    //               _vm.selectedTeamFilter = newValue;
                     //             });
                     //             _fetch();
                     //           }
                     //         },
-                    //         items: (_filterTeamList == null ||
-                    //                 _filterTeamList.isEmpty)
+                    //         items: (_vm.filterTeamList == null ||
+                    //                 _vm.filterTeamList.isEmpty)
                     //             ? [
                     //                 const DropdownMenuItem<String>(
                     //                   value: '전체', // 💡 '전체' -> '전체'
                     //                   child: Text('전체'),
                     //                 )
                     //               ]
-                    //             : _filterTeamList.map((String team) {
+                    //             : _vm.filterTeamList.map((String team) {
                     //                 return DropdownMenuItem<String>(
                     //                   value: team,
                     //                   child: Text(team,
@@ -369,7 +291,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                         height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: _selectedTeamFilter,
+                          value: _vm.selectedTeamFilter,
                           style: const TextStyle(
                               fontSize: 13, color: Colors.black),
                           icon: const Icon(Icons.arrow_drop_down,
@@ -407,21 +329,18 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                           ),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
-                              setState(() {
-                                _selectedTeamFilter = newValue;
-                              });
-                              _fetch();
+                              _vm.setTeamFilter(newValue);
                             }
                           },
-                          items: (_filterTeamList == null ||
-                                  _filterTeamList.isEmpty)
+                          items: (_vm.filterTeamList == null ||
+                                  _vm.filterTeamList.isEmpty)
                               ? [
                                   const DropdownMenuItem<String>(
                                     value: '전체',
                                     child: Text('전체'),
                                   )
                                 ]
-                              : _filterTeamList.map((String team) {
+                              : _vm.filterTeamList.map((String team) {
                                   return DropdownMenuItem<String>(
                                     value: team,
                                     child: Text(team,
@@ -440,13 +359,13 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                       child: SizedBox(
                         height: 35,
                         child: TextField(
-                          controller: _searchParamController,
+                          controller: _vm.searchParamController,
                           textInputAction: TextInputAction.search,
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.black,
                           ),
-                          onSubmitted: (_) => _fetch(),
+                          onSubmitted: (_) => _vm.fetch(),
                           decoration: InputDecoration(
                             labelText: '사번 or 성명',
                             labelStyle: const TextStyle(
@@ -477,7 +396,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                               ),
                             ),
                             suffixIcon: InkWell(
-                              onTap: _fetch,
+                              onTap: _vm.fetch,
                               child: Container(
                                 width: 30,
                                 decoration: const BoxDecoration(
@@ -511,7 +430,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
-                        '${_items.length}건', // 💡 필터링된 실시간 개수가 실시간 표기됩니다.
+                        '${_vm.items.length}건', // 💡 필터링된 실시간 개수가 실시간 표기됩니다.
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
@@ -526,19 +445,19 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
           // 하단 전체 리스트 뷰 영역
           Expanded(
-            child: _isLoading
+            child: _vm.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : _items.isEmpty
+                : _vm.items.isEmpty
                     ? const Center(
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
                     : ListView.builder(
                         padding: const EdgeInsets.only(
                             top: 10.0, left: 20.0, right: 20.0, bottom: 20.0),
-                        itemCount: _items.length,
+                        itemCount: _vm.items.length,
                         itemBuilder: (context, index) {
-                          final item = _items[index];
+                          final item = _vm.items[index];
                           return InkWell(
                             onTap: () {
                               Navigator.push(
