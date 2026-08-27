@@ -1,5 +1,5 @@
 // AUT001_M01: 로그인 화면
-import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -109,7 +109,11 @@ class _LoginScreenState extends State<LoginScreen> {
       await _saveAccountInfoPreference();
 
       if (mounted) {
-        await context.read<PublicHolidayProvider>().fetchPublicHoliday();
+        try {
+          await PublicHolidayRepository().fetchPublicHolidays();
+        } catch (_) {
+          // 공휴일 조회 실패가 로그인 흐름을 막지 않도록 무시 (기존 provider와 동일)
+        }
       }
 
       if (mounted) {

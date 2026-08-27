@@ -2,58 +2,41 @@
 import 'package:annual_leave_frontend/app/app.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE003_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:intl/intl.dart';
 
 import 'LVE002_D01.dart';
 
-class PendingApprovalScreen extends StatefulWidget {
-  const PendingApprovalScreen({super.key});
+class PendingApprovalScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const PendingApprovalScreen({super.key, this.repository});
 
   @override
-  State<PendingApprovalScreen> createState() => _PendingApprovalScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => PendingApprovalViewModel(repository: repository)..fetch(),
+      child: const _PendingApprovalView(),
+    );
+  }
 }
 
-class _PendingApprovalScreenState extends State<PendingApprovalScreen>
-    with RouteAware {
-  List<PendingLeaveRequest> _requests = [];
-  bool _isLoading = true;
-  String? _errorMessage;
-  final Set<int> _processingIds = {};
-  final ScrollController _scrollController = ScrollController();
-
-  // 단건 선택을 위한 상태 변수 (아무것도 선택되지 않았을 때는 null)
-  int? _selectedRequestId;
+class _PendingApprovalView extends StatefulWidget {
+  const _PendingApprovalView();
 
   @override
-  void initState() {
-    super.initState();
-    _fetchPendingList();
-  }
+  State<_PendingApprovalView> createState() => _PendingApprovalViewState();
+}
 
-  Future<void> _fetchPendingList() async {
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-      _selectedRequestId = null; // 목록 새로고침 시 선택 상태 초기화
-    });
-
-    try {
-      final response =
-          await ApiClient().dio.get('/api/admin/leave-requests/pending');
-      final list = (response.data as List)
-          .map((json) => PendingLeaveRequest.fromJson(json))
-          .toList();
-      setState(() => _requests = list);
-    } catch (e) {
-      setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
+class _PendingApprovalViewState extends State<_PendingApprovalView>
+    with RouteAware {
+  final ScrollController _scrollController = ScrollController();
 
   @override
   void didChangeDependencies() {
@@ -73,20 +56,15 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
 
   @override
   void didPopNext() {
-    _fetchPendingList();
-  }
-
-  // 현재 라디오 버튼으로 선택된 객체를 찾는 헬퍼 메서드
-  PendingLeaveRequest? _getSelectedRequest() {
-    if (_selectedRequestId == null) return null;
-    return _requests.firstWhere((req) => req.requestId == _selectedRequestId);
+    context.read<PendingApprovalViewModel>().fetch();
   }
 
   // [하단 고정 버튼 전용] 단건 승인 다이얼로그
-  Future<void> _confirmApproveSingle() async {
-    final req = _getSelectedRequest();
+  Future<void> _confirmApproveSingle(PendingApprovalViewModel vm) async {
+    final req = vm.selectedRequest;
     if (req == null) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -115,30 +93,18 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     );
 
     if (confirmed == true) {
-      await _approve(req.requestId);
-    }
-  }
-
-  Future<void> _approve(int requestId) async {
-    setState(() => _processingIds.add(requestId));
-    try {
-      await ApiClient()
-          .dio
-          .post('/api/admin/leave-requests/$requestId/approve');
-      _showSnackBar('승인 처리되었습니다.');
-      await _fetchPendingList();
-    } catch (e) {
-      _showSnackBar('승인 처리에 실패했습니다.');
-    } finally {
-      setState(() => _processingIds.remove(requestId));
+      final ok = await vm.approve(req.requestId);
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? '승인 처리되었습니다.' : '승인 처리에 실패했습니다.')));
     }
   }
 
   // [하단 고정 버튼 전용] 단건 반려 사유 입력 다이얼로그
-  Future<void> _showRejectDialogSingle() async {
-    final req = _getSelectedRequest();
+  Future<void> _showRejectDialogSingle(PendingApprovalViewModel vm) async {
+    final req = vm.selectedRequest;
     if (req == null) return;
 
+    final messenger = ScaffoldMessenger.of(context);
     final controller = TextEditingController();
     final confirmed = await showDialog<bool>(
       context: context,
@@ -180,50 +146,30 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     );
 
     if (confirmed == true) {
-      await _reject(req.requestId, controller.text.trim());
-    }
-  }
-
-  Future<void> _reject(int requestId, String reason) async {
-    setState(() => _processingIds.add(requestId));
-    try {
-      await ApiClient().dio.post(
-        '/api/admin/leave-requests/$requestId/reject',
-        data: {'rejectReason': reason.isEmpty ? null : reason},
-      );
-      _showSnackBar('반려 처리되었습니다.');
-      await _fetchPendingList();
-    } catch (e) {
-      _showSnackBar('반려 처리에 실패했습니다.');
-    } finally {
-      setState(() => _processingIds.remove(requestId));
-    }
-  }
-
-  void _showSnackBar(String message) {
-    if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      final ok = await vm.reject(req.requestId, controller.text.trim());
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? '반려 처리되었습니다.' : '반려 처리에 실패했습니다.')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<PendingApprovalViewModel>();
     bool showBottomBar =
-        !_isLoading && _errorMessage == null && _requests.isNotEmpty;
+        !vm.isLoading && vm.errorMessage == null && vm.requests.isNotEmpty;
 
     return Scaffold(
       appBar: AppBar(title: const Text('결재 대기 목록')),
       drawer: const AppDrawer(),
-      body: RefreshIndicator(onRefresh: _fetchPendingList, child: _buildBody()),
-      bottomNavigationBar: showBottomBar ? _buildBottomAppBar() : null,
+      body: RefreshIndicator(onRefresh: vm.fetch, child: _buildBody(vm)),
+      bottomNavigationBar: showBottomBar ? _buildBottomAppBar(vm) : null,
     );
   }
 
   // 화면 최하단 고정 승인/반려 버튼
-  Widget _buildBottomAppBar() {
-    bool hasSelection = _selectedRequestId != null;
-    bool isProcessing = _processingIds.isNotEmpty;
+  Widget _buildBottomAppBar(PendingApprovalViewModel vm) {
+    bool hasSelection = vm.hasSelection;
+    bool isProcessing = vm.isProcessing;
     bool canPress = hasSelection && !isProcessing;
 
     return Container(
@@ -244,7 +190,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
           children: [
             Expanded(
               child: OutlinedButton(
-                onPressed: canPress ? _showRejectDialogSingle : null,
+                onPressed: canPress ? () => _showRejectDialogSingle(vm) : null,
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size(0, 44), // 스크롤 캡처와 비슷한 컴팩트한 높이
                   foregroundColor: const Color(
@@ -272,7 +218,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: canPress ? _confirmApproveSingle : null,
+                onPressed: canPress ? () => _confirmApproveSingle(vm) : null,
                 style: ElevatedButton.styleFrom(
                   minimumSize: const Size(0, 44),
                   backgroundColor: canPress
@@ -301,17 +247,17 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
+  Widget _buildBody(PendingApprovalViewModel vm) {
+    if (vm.isLoading) {
       return const Center(
           child: CircularProgressIndicator(color: AppColors.slate));
     }
-    if (_errorMessage != null) {
+    if (vm.errorMessage != null) {
       return Center(
-          child: Text(_errorMessage!,
+          child: Text(vm.errorMessage!,
               style: const TextStyle(color: AppColors.textMuted)));
     }
-    if (_requests.isEmpty) {
+    if (vm.requests.isEmpty) {
       return ListView(
         children: const [
           SizedBox(height: 100),
@@ -338,7 +284,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
           controller: _scrollController,
           padding:
               const EdgeInsets.only(left: 20, right: 20, top: 5, bottom: 100),
-          itemCount: _requests.length + 1,
+          itemCount: vm.requests.length + 1,
           itemBuilder: (context, index) {
             // 첫 번째 아이템 자리에 상단 우측 끝 "조회건수" 라벨 배치
             if (index == 0) {
@@ -347,7 +293,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    '${_requests.length}건',
+                    '${vm.requests.length}건',
                     style: const TextStyle(
                       color: Color(0xFF555555),
                       fontSize: 13,
@@ -357,8 +303,8 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
                 ),
               );
             }
-            final req = _requests[index - 1];
-            final bool isSelected = _selectedRequestId == req.requestId;
+            final req = vm.requests[index - 1];
+            final bool isSelected = vm.selectedRequestId == req.requestId;
             final leaveTypeNm = LeaveType.getLabel(req.leaveType);
 
             return Container(
@@ -374,7 +320,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
               child: InkWell(
                 borderRadius: BorderRadius.circular(18),
                 onTap: () {
-                  setState(() => _selectedRequestId = req.requestId);
+                  vm.select(req.requestId);
                 },
                 child: Padding(
                   padding: const EdgeInsets.only(

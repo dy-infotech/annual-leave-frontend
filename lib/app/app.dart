@@ -2,8 +2,6 @@ import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
-import 'package:annual_leave_frontend/providers/leave_request_list_provider.dart';
-import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
 import 'package:annual_leave_frontend/screens/ADM001_M01.dart';
 import 'package:annual_leave_frontend/screens/ADM002_M01.dart';
 import 'package:annual_leave_frontend/screens/ADM003_M01.dart';
@@ -13,10 +11,10 @@ import 'package:annual_leave_frontend/screens/AUT002_M01.dart';
 import 'package:annual_leave_frontend/screens/AUT003_M01.dart';
 import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
 import 'package:annual_leave_frontend/screens/EMP001_M01.dart';
-import 'package:annual_leave_frontend/screens/LVE001_M01.dart';
-//import 'package:annual_leave_frontend/screens/LVE002_M01.dart';
-import 'package:annual_leave_frontend/screens/LVE002_M02.dart';
-import 'package:annual_leave_frontend/screens/LVE003_M01.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
+//import 'package:annual_leave_frontend/features/leave/views/LVE002_M01.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE002_M02.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE003_M01.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
@@ -33,8 +31,6 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
-        ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
       ],
       child: MaterialApp(
         title: '연차 관리',

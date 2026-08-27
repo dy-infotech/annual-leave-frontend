@@ -1,219 +1,103 @@
 // LVE001_M01: 휴가 신청 화면
-import 'package:annual_leave_frontend/providers/public_holiday_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
-import '../providers/auth_provider.dart';
-import '../providers/leave_request_list_provider.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
-import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE001_M01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 
-class LeaveRequestScreen extends StatefulWidget {
-  const LeaveRequestScreen({super.key});
+class LeaveRequestScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+  final PublicHolidayRepository? holidayRepository;
+
+  const LeaveRequestScreen({super.key, this.repository, this.holidayRepository});
 
   @override
-  State<LeaveRequestScreen> createState() => _LeaveRequestScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => LeaveRequestViewModel(
+        authProvider: context.read<AuthProvider>(),
+        repository: repository,
+        holidayRepository: holidayRepository,
+      )..load(),
+      child: const _LeaveRequestView(),
+    );
+  }
 }
 
-class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
-  DateTime _focusedDay = DateTime.now();
-  LeaveType _selectedLeaveType = LeaveType.full;
-  DateTime? _startDate;
-  DateTime? _endDate;
-  final _useDaysController = TextEditingController(text: '0');
-  final _reasonController = TextEditingController();
-  final _scrollController = ScrollController();
-  bool _isSubmitting = false;
-  String? _errorMessage;
-
-  double get _useDays => double.tryParse(_useDaysController.text) ?? 0;
-
-  String? get _leaveReason {
-    final text = _reasonController.text.trim();
-    return text.isEmpty ? null : text;
-  }
-
-  // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
-  bool get _needsReason => ![
-        LeaveType.full,
-        LeaveType.amHalf,
-        LeaveType.pmHalf,
-      ].contains(_selectedLeaveType);
+class _LeaveRequestView extends StatefulWidget {
+  const _LeaveRequestView();
 
   @override
-  void initState() {
-    super.initState();
-    // 첫 프레임이 그려진 직후 실행되도록 addPostFrameCallback 사용
-    // (initState 시점에는 아직 위젯 트리가 완성되지 않아 context 사용이 불안정할 수 있음)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      // 캘린더에 별표를 표시하기 위해, 화면 진입 시 내 휴가 신청 목록을 한 번만 조회
-      // (구독이 아닌 단발성 호출이라 watch가 아닌 read 사용)
-      context.read<LeaveRequestListProvider>().fetchMyLeaveRequestList();
-    });
-    context.read<AuthProvider>().fetchMyInfo();
-  }
+  State<_LeaveRequestView> createState() => _LeaveRequestViewState();
+}
 
-  // 주말 + 공휴일 제외하고 계산
-  int _calculateUsableDays(PublicHolidayProvider holidayProvider) {
-    if (_startDate == null || _endDate == null) return 0;
-    int count = 0;
-    DateTime cursor = _startDate!;
-    while (!cursor.isAfter(_endDate!)) {
-      final isWeekend = cursor.weekday == DateTime.saturday ||
-          cursor.weekday == DateTime.sunday;
-      final isHoliday = holidayProvider.isHoliday(cursor);
-      if (!isWeekend && !isHoliday) count++;
-      cursor = cursor.add(const Duration(days: 1));
-    }
-    return count;
-  }
+class _LeaveRequestViewState extends State<_LeaveRequestView> {
+  final _scrollController = ScrollController();
 
   @override
   void dispose() {
-    _useDaysController.dispose();
-    _reasonController.dispose();
     _scrollController.dispose();
     super.dispose();
   }
 
-  void _onDaySelected(DateTime selectedDay, DateTime focusedDay) {
-    final holidayProvider = context.read<PublicHolidayProvider>();
-
-    bool rangeConfirmed = false;
-
-    setState(() {
-      _focusedDay = focusedDay;
-
-      // 날짜를 새로 선택하면 이전 에러 메시지 제거
-      _errorMessage = null;
-
-      final isHalfDay = _selectedLeaveType == LeaveType.amHalf ||
-          _selectedLeaveType == LeaveType.pmHalf;
-
-      if (isHalfDay) {
-        _startDate = selectedDay;
-        _endDate = selectedDay;
-        _useDaysController.text = '0.5';
-        rangeConfirmed = true;
-      } else if (_startDate == null ||
-          (_startDate != null && _endDate != null)) {
-        _startDate = selectedDay;
-        _endDate = null;
-        _useDaysController.text = '0';
-      } else if (selectedDay.isBefore(_startDate!)) {
-        _startDate = selectedDay;
-        _useDaysController.text = '0';
-      } else {
-        _endDate = selectedDay;
-        _useDaysController.text =
-            _calculateUsableDays(holidayProvider).toString();
-        rangeConfirmed = true;
-      }
-    });
+  void _onDaySelected(
+      LeaveRequestViewModel vm, DateTime selectedDay, DateTime focusedDay) {
+    final rangeConfirmed = vm.selectDay(selectedDay, focusedDay);
 
     // 종료일(또는 반차 단일일) 확정 시 신청 중복 확인 -> 일수 초과 확인
     if (rangeConfirmed) {
-      _onRangeConfirmed();
+      _onRangeConfirmed(vm);
     }
   }
 
   // 기간 확정 시 중복 확인 -> 초과 확인 순서로 안내
-  Future<void> _onRangeConfirmed() async {
+  Future<void> _onRangeConfirmed(LeaveRequestViewModel vm) async {
     // 중복이 있으면 그 안내만 띄우고 종료 (초과 안내는 생략)
-    if (await _checkOverlapAndWarn()) return;
+    if (await _checkOverlapAndWarn(vm)) return;
     // 중복이 없으면 잔여 연차 초과 여부 확인
-    await _checkRemainingAndWarn();
+    await _checkRemainingAndWarn(vm);
   }
 
-  bool _isInRange(DateTime day) {
-    if (_startDate == null) {
-      return false;
-    }
-
-    final end = _endDate ?? _startDate!;
-    return !day.isBefore(_startDate!) && !day.isAfter(end);
-  }
-
-  Future<void> _handleSubmit() async {
-    final authProvider = context.read<AuthProvider>();
-    final listProvider = context.read<LeaveRequestListProvider>();
+  Future<void> _handleSubmit(LeaveRequestViewModel vm) async {
     final messenger = ScaffoldMessenger.of(context);
 
-    if (_startDate == null || _endDate == null) {
-      setState(() => _errorMessage = '날짜를 선택해주세요.');
+    if (vm.startDate == null || vm.endDate == null) {
+      vm.setError('날짜를 선택해주세요.');
       return;
     }
 
-    if (_useDays <= 0) {
-      setState(() => _errorMessage = '사용 일수가 변경되지 않았습니다. 날짜를 다시 선택해 주세요.');
+    if (vm.useDays <= 0) {
+      vm.setError('사용 일수가 변경되지 않았습니다. 날짜를 다시 선택해 주세요.');
       return;
     }
 
     // 기존 대기/승인 신청과 기간이 겹치는지 확인
-    if (await _checkOverlapAndWarn(refresh: true)) {
+    if (await _checkOverlapAndWarn(vm, refresh: true)) {
       return; // 다이얼로그 닫히면 제출을 진행하지 않고 종료
     }
 
     // 잔여 연차 초과 여부 확인
-    if (await _checkRemainingAndWarn()) {
+    if (await _checkRemainingAndWarn(vm)) {
       return; // 초과 시 제출 중단
     }
 
     // 최종 확인 다이얼로그
-    if (!await _confirmSubmit()) {
+    if (!await _confirmSubmit(vm)) {
       return;
     }
 
-    setState(() {
-      _isSubmitting = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final request = LeaveRequestCreate(
-        leaveType: _selectedLeaveType.code,
-        startDate: _startDate!,
-        endDate: _endDate ?? _startDate!,
-        useDays: _useDays,
-        leaveReason: _leaveReason,
+    final ok = await vm.submit();
+    if (ok) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('휴가 신청이 완료되었습니다.')),
       );
-
-      await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
-    } catch (e) {
-      if (mounted) {
-        setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
-      }
-      return; // 신청 실패 시 여기서 종료 (갱신 또는 초기화 진행 안 함)
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
-    }
-
-    // 신청 성공 이후 처리
-    messenger.showSnackBar(
-      const SnackBar(content: Text('휴가 신청이 완료되었습니다.')),
-    );
-
-    // 데이터 갱신
-    try {
-      await authProvider.fetchMyInfo(); // 잔여 연차 차감 반영
-      await listProvider.fetchMyLeaveRequestList(); // 캘린더 별표 반영
-    } catch (_) {
-      // 이 시점에서 신청은 완료됐기 때문에 갱신 실패의 경우 무시
-    }
-
-    // 선택한 상태 초기화
-    if (mounted) {
-      setState(() {
-        _startDate = null;
-        _endDate = null;
-        _useDaysController.text = '0';
-        _selectedLeaveType = LeaveType.full;
-        _reasonController.clear();
-      });
     }
   }
 
@@ -343,17 +227,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   // 중복 신청 여부 확인 후, 겹치면 안내 다이얼로그를 띄우고 true 반환
-  Future<bool> _checkOverlapAndWarn({bool refresh = false}) async {
-    if (_startDate == null) return false;
-
-    final listProvider = context.read<LeaveRequestListProvider>();
-    if (refresh) {
-      await listProvider.fetchMyLeaveRequestList();
-    }
-    final effectiveEndDate = _endDate ?? _startDate!;
-
-    if (!listProvider.hasOverlap(
-        _startDate!, effectiveEndDate, _selectedLeaveType.code)) {
+  Future<bool> _checkOverlapAndWarn(LeaveRequestViewModel vm,
+      {bool refresh = false}) async {
+    if (!await vm.hasOverlapForSelection(refresh: refresh)) {
       return false;
     }
 
@@ -385,19 +261,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   // 선택한 기간의 사용 일수가 잔여 연차를 초과하는지 확인하고, 초과 시 안내 다이얼로그 표시
   // 초과하면 true 반환 (제출 흐름에서 중단용)
-  Future<bool> _checkRemainingAndWarn() async {
-    // 반차/연차 외 휴가는 연차를 차감하지 않으므로 검사 제외
-    // final deductsAnnual = _selectedLeaveType == LeaveType.full ||
-    //     _selectedLeaveType == LeaveType.amHalf ||
-    //     _selectedLeaveType == LeaveType.pmHalf;
-    //
-    // if (!deductsAnnual) return false;
-
-    final remaining =
-        context.read<AuthProvider>().employeeInfo?.remainingLeaveDays ?? 0;
-
+  Future<bool> _checkRemainingAndWarn(LeaveRequestViewModel vm) async {
     // 사용 일수가 잔여 연차 이하이면 통과
-    if (_useDays <= remaining) return false;
+    if (!vm.exceedsRemaining()) return false;
 
     if (!mounted) return true;
 
@@ -409,8 +275,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         title: const Text('잔여 연차 부족 안내',
             style: TextStyle(fontWeight: FontWeight.w800, fontSize: 18)),
         content: Text(
-          '선택한 기간의 사용 일수(${_useDays}일)가 '
-          '잔여 연차(${remaining}일)를 초과합니다.\n기간을 다시 확인해 주세요.',
+          '선택한 기간의 사용 일수(${vm.useDays}일)가 '
+          '잔여 연차(${vm.remainingLeaveDays}일)를 초과합니다.\n기간을 다시 확인해 주세요.',
           style: const TextStyle(fontSize: 14, height: 1.5),
         ),
         actions: [
@@ -427,7 +293,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   }
 
   // 신청 전 최종 확인 다이얼로그
-  Future<bool> _confirmSubmit() async {
+  Future<bool> _confirmSubmit(LeaveRequestViewModel vm) async {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -442,16 +308,16 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             const Text('아래 내용으로 신청하시겠습니까?',
                 style: TextStyle(fontSize: 14, height: 1.5)),
             const SizedBox(height: 14),
-            _confirmRow('휴가 종류', _selectedLeaveType.label),
+            _confirmRow('휴가 종류', vm.selectedLeaveType.label),
             const SizedBox(height: 6),
             _confirmRow(
               '기간',
-              _endDate == null || _startDate == _endDate
-                  ? _formatDate(_startDate!)
-                  : '${_formatDate(_startDate!)} ~ ${_formatDate(_endDate!)}',
+              vm.endDate == null || vm.startDate == vm.endDate
+                  ? _formatDate(vm.startDate!)
+                  : '${_formatDate(vm.startDate!)} ~ ${_formatDate(vm.endDate!)}',
             ),
             const SizedBox(height: 6),
-            _confirmRow('사용 연차', '${_useDaysController.text}일'),
+            _confirmRow('사용 연차', '${vm.useDaysText}일'),
           ],
         ),
         actions: [
@@ -498,9 +364,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<LeaveRequestViewModel>();
     final authProvider = context.watch<AuthProvider>().employeeInfo;
-    final holidayProvider = context.watch<PublicHolidayProvider>();
-    final leaveReqProvider = context.watch<LeaveRequestListProvider>();
 
     return Scaffold(
       appBar: AppBar(title: const Text('휴가 신청')),
@@ -670,11 +535,11 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
                 // Expanded를 조건문 바깥으로 빼서 날짜가 없어도 항상 공간을 차지
                 Expanded(
-                  child: _startDate != null
+                  child: vm.startDate != null
                       ? Text(
-                          _endDate == null
-                              ? '${_formatDate(_startDate!)} 선택됨 · 종료일을 눌러주세요'
-                              : '${_formatDate(_startDate!)} — ${_formatDate(_endDate!)}',
+                          vm.endDate == null
+                              ? '${_formatDate(vm.startDate!)} 선택됨 · 종료일을 눌러주세요'
+                              : '${_formatDate(vm.startDate!)} — ${_formatDate(vm.endDate!)}',
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 13,
@@ -709,7 +574,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 daysOfWeekHeight: 22,
                 firstDay: DateTime(DateTime.now().year - 1, 1, 1),
                 lastDay: DateTime(DateTime.now().year, 12, 31),
-                focusedDay: _focusedDay,
+                focusedDay: vm.focusedDay,
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
@@ -753,21 +618,21 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                   ),
                 ),
                 selectedDayPredicate: (day) =>
-                    _startDate != null && isSameDay(day, _startDate) ||
-                    _endDate != null && isSameDay(day, _endDate),
+                    vm.startDate != null && isSameDay(day, vm.startDate) ||
+                    vm.endDate != null && isSameDay(day, vm.endDate),
                 calendarBuilders: CalendarBuilders(
                   defaultBuilder: (context, day, focusedDay) {
-                    final isHoliday = holidayProvider.isHoliday(day);
+                    final isHoliday = vm.isHoliday(day);
                     final isWeekend = day.weekday == DateTime.saturday ||
                         day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
                     // 오전/오후 휴가 상태 조회
                     final half = (isGrayed == false)
-                        ? leaveReqProvider.halfDayStatus(day)
+                        ? vm.halfDayStatus(day)
                         : (amStatus: null, pmStatus: null);
 
-                    if (_isInRange(day)) {
+                    if (vm.isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
                         backgroundColor: isGrayed
@@ -796,18 +661,18 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     return null;
                   },
                   todayBuilder: (context, day, focusedDay) {
-                    final isHoliday = holidayProvider.isHoliday(day);
+                    final isHoliday = vm.isHoliday(day);
                     final isWeekend = day.weekday == DateTime.saturday ||
                         day.weekday == DateTime.sunday;
                     final isGrayed = isWeekend || isHoliday;
 
                     // 오전/오후 휴가 상태 조회
                     final half = (isGrayed == false)
-                        ? leaveReqProvider.halfDayStatus(day)
+                        ? vm.halfDayStatus(day)
                         : (amStatus: null, pmStatus: null);
 
                     // 선택된 범위 안의 오늘: 슬레이트 배경 유지 + 빨간 밑줄
-                    if (_isInRange(day)) {
+                    if (vm.isInRange(day)) {
                       return _buildDayCell(
                         day: day.day,
                         backgroundColor: isGrayed
@@ -833,8 +698,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                     );
                   },
                 ),
-                onDaySelected: _onDaySelected,
-                onPageChanged: (focusedDay) => _focusedDay = focusedDay,
+                onDaySelected: (selectedDay, focusedDay) =>
+                    _onDaySelected(vm, selectedDay, focusedDay),
+                onPageChanged: (focusedDay) => vm.focusedDay = focusedDay,
               ),
             ),
 
@@ -863,7 +729,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                         ),
                         child: DropdownButtonHideUnderline(
                           child: DropdownButton<LeaveType>(
-                            value: _selectedLeaveType,
+                            value: vm.selectedLeaveType,
                             isExpanded: true,
                             icon: const Icon(Icons.keyboard_arrow_down,
                                 color: AppColors.textMuted),
@@ -880,51 +746,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                             }).toList(),
                             onChanged: (value) {
                               if (value != null) {
-                                final wasHalfDay =
-                                    _selectedLeaveType == LeaveType.amHalf ||
-                                        _selectedLeaveType == LeaveType.pmHalf;
-                                final isHalfDay = value == LeaveType.amHalf ||
-                                    value == LeaveType.pmHalf;
-                                final willShowReason = ![
-                                  LeaveType.full,
-                                  LeaveType.amHalf,
-                                  LeaveType.pmHalf,
-                                ].contains(value);
-
-                                setState(() {
-                                  _selectedLeaveType = value;
-
-                                  if (isHalfDay) {
-                                    // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
-                                    if (_startDate != null &&
-                                        _endDate != null &&
-                                        _startDate != _endDate) {
-                                      _startDate = null;
-                                      _endDate = null;
-                                      _useDaysController.text = '0';
-                                    }
-                                    // 정확히 하루만 선택되어 있었다면 반차(0.5일) 기간으로 동기화
-                                    else if (_startDate != null) {
-                                      _endDate = _startDate; // 시작일과 종료일을 같게 설정
-                                      _useDaysController.text = '0.5';
-                                    }
-                                    // 날짜가 아예 선택되지 않은 상태라면 사용일수만 0.5로 설정
-                                    else {
-                                      _useDaysController.text = '0.5';
-                                    }
-                                  } else if (wasHalfDay) {
-                                    // 반차에서 일반 휴가로 바꿀 때, 기존에 선택된 날짜가 있다면 사용일수 재계산
-                                    if (_startDate != null) {
-                                      // 이미 하루 이상 선택되어 있다면 종료일 확인 후 재계산 (holidayProvider 필요)
-                                      _useDaysController
-                                          .text = _calculateUsableDays(context
-                                              .read<PublicHolidayProvider>())
-                                          .toString();
-                                    } else {
-                                      _useDaysController.text = '0';
-                                    }
-                                  }
-                                });
+                                final willShowReason = vm.setLeaveType(value);
 
                                 if (willShowReason) {
                                   WidgetsBinding.instance
@@ -969,7 +791,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                           border: Border.all(color: AppColors.divider),
                         ),
                         child: Text(
-                          '${_useDaysController.text} 일',
+                          '${vm.useDaysText} 일',
                           textAlign: TextAlign.right,
                           style: const TextStyle(
                               fontSize: 16,
@@ -984,12 +806,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             ),
 
             // 사유 입력란 (연차/반차 외 항목 선택 시에만 표시)
-            if (_needsReason) ...[
+            if (vm.needsReason) ...[
               const Text('사유',
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
               const SizedBox(height: 10),
               TextField(
-                controller: _reasonController,
+                controller: vm.reasonController,
                 maxLines: 3,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
@@ -1005,10 +827,10 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               ),
             ],
 
-            if (_errorMessage != null) ...[
+            if (vm.errorMessage != null) ...[
               const SizedBox(height: 16),
               Text(
-                _errorMessage!,
+                vm.errorMessage!,
                 style: const TextStyle(color: AppColors.coral, fontSize: 13),
               ),
             ],
@@ -1018,8 +840,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _isSubmitting ? null : _handleSubmit,
-                child: _isSubmitting
+                onPressed: vm.isSubmitting ? null : () => _handleSubmit(vm),
+                child: vm.isSubmitting
                     ? const SizedBox(
                         width: 18,
                         height: 18,
