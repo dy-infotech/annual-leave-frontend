@@ -55,6 +55,15 @@ class FakeLeaveRepository implements LeaveRepository {
     return allLeaveRequestsToReturn;
   }
 
+  Object? submitErrorToThrow;
+  final List<LeaveRequestCreate> submittedRequests = [];
+
+  @override
+  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
+    submittedRequests.add(request);
+    if (submitErrorToThrow != null) throw submitErrorToThrow!;
+  }
+
   List<LeaveRequestListItem> adminSearchResultsToReturn = [];
   final List<Map<String, String?>> adminSearchQueries = [];
 
