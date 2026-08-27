@@ -7,6 +7,13 @@ class FakeAuthProvider extends AuthProvider {
 
   final Employee? _fakeEmployeeInfo;
 
+  int fetchMyInfoCount = 0;
+
   @override
   Employee? get employeeInfo => _fakeEmployeeInfo;
+
+  @override
+  Future<void> fetchMyInfo() async {
+    fetchMyInfoCount++;
+  }
 }
