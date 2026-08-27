@@ -3,13 +3,19 @@ import 'package:annual_leave_frontend/app/app.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'ADM004_D01.dart';
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/registe_status_badge.dart';
 
 class SearchEmployeeNumberScreen extends StatefulWidget {
-  const SearchEmployeeNumberScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AdminEmployeeRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const SearchEmployeeNumberScreen(
+      {super.key, this.repository, this.commonCodeRepository});
 
   @override
   State<SearchEmployeeNumberScreen> createState() =>
@@ -18,6 +24,10 @@ class SearchEmployeeNumberScreen extends StatefulWidget {
 
 class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
     with RouteAware {
+  late final AdminEmployeeRepository _repository =
+      widget.repository ?? AdminEmployeeRepository();
+  late final CommonCodeRepository _commonCodeRepository =
+      widget.commonCodeRepository ?? CommonCodeRepository();
   List<Employee> _items = [];
   bool _isLoading = true;
   final TextEditingController _searchParamController = TextEditingController();
@@ -31,8 +41,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 
   Future<void> _fetchCommonTeams() async {
     try {
-      final response = await ApiClient().dio.get('/api/admin/auth/common');
-      final data = response.data as Map<String, dynamic>;
+      final data = await _commonCodeRepository.fetchCommonCodes();
       final List<String> fetchedTeams =
           List<String>.from(data['accessibleTeam'] ?? data['team'] ?? []);
 
@@ -116,23 +125,10 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final Map<String, dynamic> queryParams = {};
-
-      // 1️⃣ 텍스트 검색창에 글자가 있을 때만 백엔드로 파라미터를 보냅니다.
-      if (_searchParamController.text.trim().isNotEmpty) {
-        queryParams['searchParam'] = _searchParamController.text.trim();
-      }
-
-      // 서버로 사원 정보 요청 발송
-      final response = await ApiClient().dio.get(
-            '/api/admin/employees/all',
-            queryParameters: queryParams.isEmpty ? null : queryParams,
-          );
-
-      // 백엔드가 내려준 사원 리스트 수집
-      final List<Employee> allFetchedItems = (response.data as List)
-          .map((json) => Employee.fromJson(json))
-          .toList();
+      // 서버로 사원 정보 요청 발송 (검색창에 글자가 있을 때만 파라미터 전달)
+      final List<Employee> allFetchedItems = await _repository.fetchEmployees(
+        searchParam: _searchParamController.text.trim(),
+      );
 
       setState(() {
         // 검색 조건이 없을 때(최초 로드 시), 전체 사원 데이터에서 전사 팀 리스트를 동적으로 추출하여 드롭다운을 채웁니다.
