@@ -1,39 +1,44 @@
 // ADM001_M01: 관리자별 관리팀 설정 화면
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
-import 'package:annual_leave_frontend/features/admin/models/employee.dart'; // 기존 Employee 모델 경로 확인
+import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
+import 'package:annual_leave_frontend/features/admin/view_models/ADM001_M01_view_model.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 
-class AdminSettingsScreen extends StatefulWidget {
-  const AdminSettingsScreen({super.key});
+class AdminSettingsScreen extends StatelessWidget {
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final AdminEmployeeRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const AdminSettingsScreen(
+      {super.key, this.repository, this.commonCodeRepository});
 
   @override
-  State<AdminSettingsScreen> createState() => _AdminSettingsScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AdminSettingsViewModel(
+        repository: repository,
+        commonCodeRepository: commonCodeRepository,
+      )..fetchEmployees(),
+      child: const _AdminSettingsView(),
+    );
+  }
 }
 
-class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
-  List<Employee> _employees = [];
-  Employee? _selectedEmployee;
+class _AdminSettingsView extends StatefulWidget {
+  const _AdminSettingsView();
 
-  List<String> _generalTeams = []; // 중앙: 일반 팀 목록
-  List<String> _managedTeams = []; // 우측: 관리자 팀 목록
-  Set<String> _changedTeams = {}; // 변경된 팀 목록 추적
+  @override
+  State<_AdminSettingsView> createState() => _AdminSettingsViewState();
+}
 
-  String? _selectedGeneralTeam; // 선택된 일반 팀
-  String? _selectedManagedTeam; // 선택된 관리자 팀
-  bool _isLoading = false;
-
-  final TextEditingController _employeeInfoController =
-      TextEditingController(); //사용자 이름
+class _AdminSettingsViewState extends State<_AdminSettingsView> {
   final ScrollController _employeeScrollController =
       ScrollController(); //스크롤 컨트롤러
 
-  @override
-  void initState() {
-    super.initState();
-    _fetchEmployees();
-  }
+  AdminSettingsViewModel get _vm => context.read<AdminSettingsViewModel>();
 
   @override
   void dispose() {
@@ -42,251 +47,22 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     super.dispose();
   }
 
-  // 1️⃣ 사원 전체 목록 로드 (왼쪽 컬럼용)
-  Future<void> _fetchEmployees() async {
-    setState(() => _isLoading = true);
-    try {
-      final response = await ApiClient().dio.get('/api/admin/employees/all');
-      final List<Employee> fetched = (response.data as List)
-          .map((json) => Employee.fromJson(json))
-          .toList();
-      setState(() {
-        _employees = fetched;
-        if (_employees.isNotEmpty) {
-          _selectedEmployee = _employees.first; // 기본 첫 사원 자동 선택
-          _fetchEmployeeTeams();
-        }
-      });
-    } catch (e) {
-      print('사원 로드 실패: $e');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드
-  Future<void> _fetchEmployeeTeams() async {
-    if (_selectedEmployee == null) return;
-    try {
-      // 공통 기초 데이터에서 시스템 전체의 모든 팀 목록 확보
-      final commonResponse =
-          await ApiClient().dio.get('/api/admin/auth/common');
-
-      List<String> rawAllTeams = [];
-      if (commonResponse.data != null &&
-          commonResponse.data is Map<String, dynamic>) {
-        final commonData = commonResponse.data as Map<String, dynamic>;
-        final rawTeams =
-            commonData['accessibleTeam'] ?? commonData['team'] ?? [];
-        if (rawTeams is List) {
-          rawAllTeams = rawTeams.map((e) => e.toString()).toList();
-        }
-      }
-
-      // 🎯 [핵심] DB 중복 이름 방어: 동일한 이름이 있으면 "대표이사 (1)", "대표이사 (2)" 형태로 유니크하게 변환
-      final List<String> uniqueAllTeams = [];
-      final Map<String, int> nameCounter = {};
-
-      for (var originalName in rawAllTeams) {
-        if (nameCounter.containsKey(originalName)) {
-          nameCounter[originalName] = nameCounter[originalName]! + 1;
-          uniqueAllTeams.add('$originalName (${nameCounter[originalName]})');
-        } else {
-          nameCounter[originalName] = 1;
-          // 첫 번째는 깔끔하게 원본 이름 유지 (또는 일괄적으로 '팀명 (1)' 형식을 맞춰도 됨)
-          uniqueAllTeams.add(originalName);
-        }
-      }
-
-      // 🎯 1. 사용자의 권한 역할(Role) 파싱
-      final String currentRole = (_selectedEmployee!.role ?? '').toUpperCase();
-      final bool isAdmin = currentRole == 'ADMIN' || currentRole == 'MANAGER';
-
-      final List<String> currentManaged = [];
-
-      // 🎯 2. 관리자('ADMIN')인 경우 사원의 teamList 매핑 구성
-      if (isAdmin) {
-        // 사원 정보에 들어있는 원본 팀명 목록들
-        final List<String> empTeams = [];
-        if (_selectedEmployee!.teamList != null) {
-          empTeams.addAll(_selectedEmployee!.teamList!);
-        }
-
-        // 사원이 가진 원본 이름을 위에서 만든 고유 변환 이름 목록(uniqueAllTeams)과 매핑하여 순서대로 할당
-        // 이를 통해 DB에 중복 저장된 이름 개수만큼 순서대로 관리팀에 채워 넣습니다.
-        for (var empTeamName in empTeams) {
-          // uniqueAllTeams 중에서 해당 원본 이름으로 시작하는 유니크 이름을 찾아서 추가
-          final matchedUniqueTeams = uniqueAllTeams
-              .where((uTeam) =>
-                  uTeam == empTeamName || uTeam.startsWith('$empTeamName ('))
-              .toList();
-
-          for (var matched in matchedUniqueTeams) {
-            if (!currentManaged.contains(matched)) {
-              currentManaged.add(matched);
-            }
-          }
-        }
-      }
-
-      if (!mounted) return;
-
-      setState(() {
-        // 🎯 3. 최종 할당 및 중복 없는 필터링
-        _managedTeams = isAdmin ? List<String>.from(currentManaged) : [];
-
-        // 고유 문자열 구조이므로 이제 명확하게 걸러집니다.
-        _generalTeams =
-            uniqueAllTeams.where((t) => !_managedTeams.contains(t)).toList();
-
-        // 선택 상태 초기화
-        _selectedGeneralTeam = null;
-        _selectedManagedTeam = null;
-      });
-
-      print('--- [DB 중복 방어 분리 완료] ---');
-      print('전체 고유 팀 목록: $uniqueAllTeams');
-      print('일반 팀 목록: $_generalTeams');
-      print('관리 팀 목록: $_managedTeams');
-    } catch (e) {
-      print('팀 분리 매핑 로드 실패: $e');
-    }
-  }
-
-  // 3️⃣ 💡 [스위칭 API 연동] 일반 -> 관리자로 격상 전송
-  /* Future<void> _promoteToAdmin() async {
-    if (_selectedEmployee == null || _selectedGeneralTeam == null) return;
-    try {
-      await ApiClient().dio.put(
-        '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
-        data: {
-          'name': _selectedEmployee!.name,
-          'email': _selectedEmployee!.email ?? '',
-          'department': _selectedEmployee!.department,
-          'team': _selectedEmployee!.team,
-          'position': _selectedEmployee!.position,
-          'hireDate': _selectedEmployee!.hireDate,
-          'role': 'ADMIN', // 관리자 권한 부여 명시
-          'targetTeamsForRoleSwap': _changedTeams, // 🎯 타겟 팀명 강제 바인딩
-        },
-      );
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('관리자 팀 임명이 반영되었습니다.')));
-      _fetchEmployees(); // 전체 목록 리프레시를 통해 동기화
-    } catch (e) {
-      print('격상 에러: $e');
-    }
-  }
-
-// 4️⃣ [스위칭 API 연동] 관리자 -> 일반으로 강등 전송 
-  Future<void> _demoteToGeneral() async {
-    if (_selectedEmployee == null || _selectedManagedTeam == null) return;
-    try {
-      await ApiClient().dio.put(
-        '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
-        data: {
-          'name': _selectedEmployee!.name,
-          'email': _selectedEmployee!.email ?? '',
-          'department': _selectedEmployee!.department,
-          'team': _selectedEmployee!.team,
-          'position': _selectedEmployee!.position,
-          'hireDate': _selectedEmployee!.hireDate,
-          'role': 'EMPLOYEE', // 일반 멤버 권한으로 변경 명시
-          'targetTeamsForRoleSwap': _changedTeams, // 해제할 팀명 바인딩
-        },
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('관리자 팀 매핑이 제거되었습니다.')),
-      );
-      _fetchEmployees(); // 전체 목록 및 상태 새로고침
-    } catch (e) {
-      print('강등 에러: $e');
-    }
-  } */
-
-  void toggleChangedTeam(String team) {
-    setState(() {
-      if (!_changedTeams.remove(team)) {
-        _changedTeams.add(team);
-      }
-    });
-  }
-
-  // 3️⃣ [로컬 상태 변경] 일반 -> 관리자로 이동 ( > 버튼 )
-  void _moveToAdmin() {
-    if (_selectedGeneralTeam == null) return;
-    setState(() {
-      final team = _selectedGeneralTeam!;
-      _generalTeams.remove(team);
-
-      // 중복 방지를 위해 확인 후 추가
-      if (!_managedTeams.contains(team)) {
-        _managedTeams.add(team);
-      }
-      _selectedGeneralTeam = null;
-      toggleChangedTeam(team);
-    });
-  }
-
-  // 4️⃣ [로컬 상태 변경] 관리자 -> 일반으로 이동 ( < 버튼 )
-  void _moveToGeneral() {
-    if (_selectedManagedTeam == null) return;
-    setState(() {
-      final team = _selectedManagedTeam!;
-      _managedTeams.remove(team);
-
-      // 중복 방지를 위해 확인 후 추가
-      if (!_generalTeams.contains(team)) {
-        _generalTeams.add(team);
-      }
-      _selectedManagedTeam = null;
-      toggleChangedTeam(team);
-    });
-  }
-
-  // 5️⃣ [서버 전송] 최하단 저장 버튼을 누를 때 한 번에 백엔드로 전송하는 함수
+  // 서버 전송: 저장 결과에 따라 오류 안내만 처리하고 나머지는 ViewModel에 위임
   Future<void> _saveChanges() async {
-    if (_selectedEmployee == null) return;
-    setState(() => _isLoading = true);
-
-    try {
-      final saveResponse = await ApiClient().dio.put(
-        '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
-        data: {
-          'name': _selectedEmployee!.name,
-          'email': _selectedEmployee!.email ?? '',
-          'department': _selectedEmployee!.department,
-          'team': _selectedEmployee!.team,
-          'position': _selectedEmployee!.position,
-          'hireDate': _selectedEmployee!.hireDate,
-          'targetTeamsForRoleSwap': _changedTeams.toList(),
-        },
-      );
-
-      if (saveResponse.statusCode == 200 || saveResponse.statusCode == 204) {
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
-        ); */
-
-        _fetchEmployees(); // 완료 후 리스트 리프레시
-      }
-    } catch (e) {
-      print('권한 설정 저장 실패: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('저장 중 오류가 발생했습니다.')),
-      );
-    } finally {
-      _changedTeams = {};
-      setState(() => _isLoading = false);
+    final messenger = ScaffoldMessenger.of(context);
+    final error = await _vm.saveChanges();
+    if (error != null && mounted) {
+      messenger.showSnackBar(SnackBar(content: Text(error)));
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AdminSettingsViewModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('관리자별 관리팀 설정')),
       drawer: const AppDrawer(),
-      body: _isLoading
+      body: _vm.isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.slate))
           : Padding(
@@ -304,11 +80,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             title: '사용자 선택',
                             child: ListView.builder(
                               controller: _employeeScrollController,
-                              itemCount: _employees.length,
+                              itemCount: _vm.employees.length,
                               itemBuilder: (context, index) {
-                                final emp = _employees[index];
+                                final emp = _vm.employees[index];
                                 final isSelected =
-                                    _selectedEmployee?.employeeNumber ==
+                                    _vm.selectedEmployee?.employeeNumber ==
                                         emp.employeeNumber;
 
                                 return Container(
@@ -370,14 +146,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         ),
                                       ],
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedEmployee = emp;
-                                        _employeeInfoController.text =
-                                            '${emp.name} ${emp.position} ${emp.employeeNumber}';
-                                      });
-                                      _fetchEmployeeTeams();
-                                    },
+                                    onTap: () => _vm.selectEmployee(emp),
                                   ),
                                 );
                               },
@@ -392,20 +161,15 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           child: _buildPanel(
                             title: '팀 목록',
                             child: ListView.builder(
-                              itemCount: _generalTeams.length,
+                              itemCount: _vm.generalTeams.length,
                               itemBuilder: (context, index) {
-                                final team = _generalTeams[index];
-                                final isSelected = _selectedGeneralTeam == team;
+                                final team = _vm.generalTeams[index];
+                                final isSelected = _vm.selectedGeneralTeam == team;
 
                                 return GestureDetector(
                                   onDoubleTap: () {
-                                    setState(() {
-                                      _selectedGeneralTeam = team;
-                                      _selectedManagedTeam = null;
-                                    });
-                                    if (_selectedGeneralTeam != null) {
-                                      _moveToAdmin();
-                                    }
+                                    _vm.selectGeneralTeam(team);
+                                    _vm.moveToAdmin();
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(
@@ -439,12 +203,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                               : Colors.black87,
                                         ),
                                       ),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedGeneralTeam = team;
-                                          _selectedManagedTeam = null;
-                                        });
-                                      },
+                                      onTap: () =>
+                                          _vm.selectGeneralTeam(team),
                                     ),
                                   ),
                                 );
@@ -461,8 +221,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               ElevatedButton(
-                                onPressed: _selectedGeneralTeam != null
-                                    ? _moveToAdmin
+                                onPressed: _vm.selectedGeneralTeam != null
+                                    ? _vm.moveToAdmin
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                     minimumSize: const Size(36, 36), // 버튼 크기
@@ -474,8 +234,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                               ),
                               const SizedBox(width: 8),
                               ElevatedButton(
-                                onPressed: _selectedManagedTeam != null
-                                    ? _moveToGeneral
+                                onPressed: _vm.selectedManagedTeam != null
+                                    ? _vm.moveToGeneral
                                     : null,
                                 style: ElevatedButton.styleFrom(
                                     minimumSize: const Size(36, 36), // 버튼 크
@@ -496,20 +256,14 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                           child: _buildPanel(
                             title: '관리팀',
                             child: ListView.builder(
-                              itemCount: _managedTeams.length,
+                              itemCount: _vm.managedTeams.length,
                               itemBuilder: (context, index) {
-                                final team = _managedTeams[index];
-                                final isSelected = _selectedManagedTeam == team;
+                                final team = _vm.managedTeams[index];
+                                final isSelected = _vm.selectedManagedTeam == team;
                                 return GestureDetector(
                                   onDoubleTap: () {
-                                    setState(() {
-                                      _selectedManagedTeam = team;
-                                      _selectedGeneralTeam = null;
-                                    });
-                                    // 두 번 탭 이벤트 처리
-                                    if (_selectedManagedTeam != null) {
-                                      _moveToGeneral();
-                                    }
+                                    _vm.selectManagedTeam(team);
+                                    _vm.moveToGeneral();
                                   },
                                   child: Container(
                                     margin: const EdgeInsets.symmetric(
@@ -537,12 +291,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
                                               color: Colors.green)),
-                                      onTap: () {
-                                        setState(() {
-                                          _selectedManagedTeam = team;
-                                          _selectedGeneralTeam = null;
-                                        });
-                                      },
+                                      onTap: () =>
+                                          _vm.selectManagedTeam(team),
                                     ),
                                   ),
                                 );
@@ -561,7 +311,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                     children: [
                       ElevatedButton.icon(
                         onPressed:
-                            _selectedEmployee != null ? _saveChanges : null,
+                            _vm.selectedEmployee != null ? _saveChanges : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F3A5F),
                           padding: const EdgeInsets.symmetric(
@@ -628,7 +378,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                       child: SizedBox(
                         height: 28,
                         child: TextField(
-                          controller: _employeeInfoController,
+                          controller: _vm.employeeInfoController,
                           textAlign: TextAlign.end,
                           style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
@@ -659,19 +409,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   void _selectEmployeeByName(String value) {
-    final keyword = value.trim();
-
-    final index = _employees.indexWhere(
-      (e) => e.name == keyword,
-    );
+    final index = _vm.selectEmployeeByName(value);
 
     if (index == -1) return;
-
-    setState(() {
-      _selectedEmployee = _employees[index];
-    });
-
-    _fetchEmployeeTeams();
 
     _scrollToEmployee(index);
   }

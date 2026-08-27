@@ -1,8 +1,8 @@
 import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
-import 'package:annual_leave_frontend/screens/ADM003_M01.dart';
-import 'package:annual_leave_frontend/services/department_team_api.dart';
+import 'package:annual_leave_frontend/features/admin/views/ADM003_M01.dart';
+import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -11,18 +11,13 @@ import 'package:provider/provider.dart';
 
 /// 부서 및 팀 관리 화면 테스트.
 ///
-/// DepartmentTeamApi.instance 를 인메모리 페이크로 교체해 서버 없이
+/// DepartmentTeamRepository 를 인메모리 페이크로 주입해 서버 없이
 /// 조회·추가·수정·삭제 흐름과 보호 규칙(대표이사 부서, 루트 팀)을 검증한다.
 void main() {
   late _FakeDepartmentTeamApi fake;
 
   setUp(() {
     fake = _FakeDepartmentTeamApi();
-    DepartmentTeamApi.instance = fake;
-  });
-
-  tearDown(() {
-    DepartmentTeamApi.instance = DepartmentTeamApi();
   });
 
   Future<void> pumpScreen(WidgetTester tester) async {
@@ -31,7 +26,7 @@ void main() {
         providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
         child: MaterialApp(
           theme: AppTheme.theme,
-          home: const DepartmentTeamManageScreen(),
+          home: DepartmentTeamManageScreen(repository: fake),
         ),
       ),
     );
@@ -270,7 +265,7 @@ void main() {
 // ------------------------------------------------------------------ 페이크 API
 
 /// 인메모리 페이크. 백엔드 시드 데이터(sql/data.sql)와 제약을 흉내 낸다.
-class _FakeDepartmentTeamApi extends DepartmentTeamApi {
+class _FakeDepartmentTeamApi extends DepartmentTeamRepository {
   final List<Department> departments = [];
   final List<Team> teams = [];
   final List<Employee> employees = [];
