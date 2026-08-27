@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/signup_manage_repository.dart';
 import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
@@ -51,12 +52,10 @@ class SignupManageViewModel extends ChangeNotifier {
   String? get emailError => _emailError;
   String? get hireDateError => _hireDateError;
 
-  /// 관리자 역할 부여 가능 여부. 사장이면서 관리자인 접속자만 부여할 수 있다.
-  static bool canAssignAdminRole({
-    required String currentUserPosition,
-    required String currentUserRole,
-  }) {
-    return currentUserPosition == "사장" && currentUserRole == "ADMIN";
+  /// 관리자 역할 부여 가능 여부.
+  /// 대표(사장/대표이사 직급)이면서 관리자인 접속자만 부여할 수 있다.
+  static bool canAssignAdminRole({Employee? currentUser}) {
+    return (currentUser?.isCeo ?? false) && currentUser?.role == 'ADMIN';
   }
 
   Future<void> fetch() async {

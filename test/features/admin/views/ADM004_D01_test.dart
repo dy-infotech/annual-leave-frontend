@@ -112,4 +112,13 @@ void main() {
 
     expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(3));
   });
+
+  testWidgets('대표이사 직급 계정 - 사장과 동일하게 드롭다운이 노출된다', (tester) async {
+    await pumpDetailScreen(tester, login: loginUser(position: '대표이사'));
+
+    await tester.tap(find.text('수정'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(DropdownButtonFormField<String>), findsNWidgets(3));
+  });
 }

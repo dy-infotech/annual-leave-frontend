@@ -96,6 +96,16 @@ void main() {
     expect(find.text(RoleType.admin.label), findsOneWidget);
   });
 
+  testWidgets('역할 필터 - 대표이사 직급 관리자도 관리자 항목이 보인다', (tester) async {
+    await pumpSignupScreen(tester,
+        login: loginUser(position: '대표이사', role: 'ADMIN'));
+
+    await tester.tap(find.text(RoleType.employee.label).last);
+    await tester.pumpAndSettle();
+
+    expect(find.text(RoleType.admin.label), findsOneWidget);
+  });
+
   testWidgets('등록 성공 - 입력값이 요청으로 전송되고 완료 안내가 표시된다', (tester) async {
     await pumpSignupScreen(tester, login: loginUser());
 

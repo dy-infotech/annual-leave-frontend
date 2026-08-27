@@ -88,10 +88,8 @@ class _SignupManageViewState extends State<_SignupManageView> {
     context.watch<SignupManageViewModel>();
     final auth = context.watch<AuthSession>();
     final info = auth.employeeInfo;
-    // 1. [상태 변수 선언부] 현재 로그인한 사용자의 실제 데이터 정보가 담겨있다고 가정합니다.
-    final String currentUserPosition =
-        info != null ? info.position.toString() : ''; //"사장"; // 현재 접속자의 직급
-    final String currentUserRole = info != null ? info.role.toString() : '';
+    // 현재 접속자가 대표(사장/대표이사 직급)인지 여부
+    final bool isCurrentUserCeo = info?.isCeo ?? false;
 
     //final RoleType currentUserRole = RoleType.admin; // 현재 접속자의 역할 (관리자)
 
@@ -173,8 +171,8 @@ class _SignupManageViewState extends State<_SignupManageView> {
                   // 🌟 변경 포인트: 사장이 아닐 경우, 전체 부서 목록 중 본인의 소속 부서(auth.employeeInfo.department) 하나만 노출되도록 필터링합니다.
                   items: _vm.departmentList
                       .where((dept) {
-                        if (currentUserPosition == '사장') {
-                          return true; // 사장 계정은 전사 모든 부서 표시 및 선택 가능
+                        if (isCurrentUserCeo) {
+                          return true; // 대표 계정은 전사 모든 부서 표시 및 선택 가능
                         }
                         // 일반 중간 관리자는 오직 본인의 실제 소속 부서 명칭만 리스트에 남김
                         return dept ==
@@ -266,14 +264,12 @@ class _SignupManageViewState extends State<_SignupManageView> {
                     // 1. 리스트 아이템 중 검사 중인 항목이 관리자(admin)인지 확인
                     final bool isManagerItem = role == RoleType.admin;
 
-                    // 2. 현재 접속자가 사장이면서 동시에 관리자인지 권한 확인
+                    // 2. 현재 접속자가 대표이면서 동시에 관리자인지 권한 확인
                     final bool isCurrentUserCeoAndAdmin =
                         SignupManageViewModel.canAssignAdminRole(
-                      currentUserPosition: currentUserPosition,
-                      currentUserRole: currentUserRole,
-                    );
+                            currentUser: info);
 
-                    // 3. 만약 관리자 아이템인데, 현재 접속자가 [사장 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
+                    // 3. 만약 관리자 아이템인데, 현재 접속자가 [대표 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
                     if (isManagerItem && !isCurrentUserCeoAndAdmin) {
                       return false;
                     }
