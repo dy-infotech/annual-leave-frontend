@@ -1,16 +1,17 @@
 // LVE002_M03: 관리자 휴가 검색 화면
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE002_D01.dart';
 import 'package:flutter/material.dart';
-import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
-import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE002_M03_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:annual_leave_frontend/app/app.dart';
 import 'package:intl/intl.dart';
 
-class AdminSearchLeaveRequestsScreen extends StatefulWidget {
+class AdminSearchLeaveRequestsScreen extends StatelessWidget {
   final String? status;
   final String? filter;
 
@@ -26,81 +27,30 @@ class AdminSearchLeaveRequestsScreen extends StatefulWidget {
       this.commonCodeRepository});
 
   @override
-  State<AdminSearchLeaveRequestsScreen> createState() => _AdminSearchLeaveRequestsScreen();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AdminSearchLeaveRequestsViewModel(
+        initialFilter: filter,
+        repository: repository,
+        commonCodeRepository: commonCodeRepository,
+      )..load(),
+      child: const _AdminSearchLeaveRequestsView(),
+    );
+  }
 }
 
-class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScreen> with RouteAware{
-  late final LeaveRepository _repository =
-      widget.repository ?? LeaveRepository();
-  late final CommonCodeRepository _commonCodeRepository =
-      widget.commonCodeRepository ?? CommonCodeRepository();
-  List<LeaveRequestListItem> _items = [];
-  String? _errorMessage;
-  bool _isLoading = true;
-  String? _status;          // 진행 상태 (null = 전체)
-  String? _selectedTeam = '전체';    // 선택된 팀 (null = 전체)
-  final ScrollController _scrollController = ScrollController();
-  final TextEditingController _searchEmployeeController = TextEditingController();
-  final List<String> _teamList = [];       //팀 
+class _AdminSearchLeaveRequestsView extends StatefulWidget {
+  const _AdminSearchLeaveRequestsView();
 
   @override
-  void initState() {
-    super.initState();
+  State<_AdminSearchLeaveRequestsView> createState() =>
+      _AdminSearchLeaveRequestsViewState();
+}
 
-    if (widget.filter != null) {
-      _setFilter(widget.filter);
-    }
+class _AdminSearchLeaveRequestsViewState
+    extends State<_AdminSearchLeaveRequestsView> with RouteAware {
+  final ScrollController _scrollController = ScrollController();
 
-    _getComData();
-      
-    _fetch();
-  }
-
-  Future<void> _getComData() async{
-    //기초데이터 조회: 팀목록
-    final data = await _commonCodeRepository.fetchCommonCodes();
-    setState(() {
-
-      if (data.length >= 3) {
-        _teamList.clear();
-        _teamList.add('전체');  //전체 item 추가
-        _teamList.addAll(List<String>.from(data['accessibleTeam']));
-        
-      } else {
-        // 데이터가 이상할 때 대비한 예외처리
-        setState(() => _errorMessage = '기초데이터 조회에 실패했습니다.');
-        return;
-      }
-    });
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      
-      final items = await _repository.searchAdminLeaveRequests(
-        status: _status,
-        team: _selectedTeam == '전체' ? null : _selectedTeam,
-        employeeParam: _searchEmployeeController.text.isNotEmpty
-            ? _searchEmployeeController.text
-            : null,
-      );
-      setState(() {
-        _items = items;
-      });
-    } catch (e) {
-      setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
-  void _setFilter(String? status) {
-    _status = widget.filter! == 'admin_approved' ? "approved" : "rejected";
-
-    _fetch();
-  }
-  
   @override
   void dispose() {
     _scrollController.dispose();
@@ -110,7 +60,8 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
 
   @override
   Widget build(BuildContext context) {
-    final statusName = _status == 'approved' ? "승인": "반려";
+    final vm = context.watch<AdminSearchLeaveRequestsViewModel>();
+    final statusName = vm.statusName;
 
     //로그인 사용자 직급 "사장"여부 확인
     /* final auth = context.watch<AuthProvider>();
@@ -119,9 +70,6 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
     if(auth.isAdmin && info?.position == "사장"){
       isCeo = true;
     } */
-    
-    //LeaveType leaveType = ;
-    
 
     return Scaffold(
       appBar: AppBar(title: Text('$statusName 목록')),
@@ -145,7 +93,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                         height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
                         child: DropdownButtonFormField<String>(
                           isExpanded: true,
-                          value: _selectedTeam,
+                          value: vm.selectedTeam,
                           style: const TextStyle(
                               fontSize: 13, color: Colors.black),
                           icon: const Icon(Icons.arrow_drop_down,
@@ -183,20 +131,17 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                           ),
                           onChanged: (String? newValue) {
                             if (newValue != null) {
-                              setState(() {
-                                _selectedTeam = newValue;
-                              });
-                              _fetch();
+                              vm.selectTeam(newValue);
                             }
                           },
-                          items: (_teamList.isEmpty)
+                          items: (vm.teamList.isEmpty)
                               ? [
                                   const DropdownMenuItem<String>(
                                     value: '전체',
                                     child: Text('전체'),
                                   )
                                 ]
-                              : _teamList.map((String team) {
+                              : vm.teamList.map((String team) {
                                   return DropdownMenuItem<String>(
                                     value: team,
                                     child: Text(team,
@@ -213,13 +158,13 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                       child: SizedBox(
                         height: 35,
                         child: TextField(
-                          controller: _searchEmployeeController,
+                          controller: vm.searchEmployeeController,
                           textInputAction: TextInputAction.search,
                           style: const TextStyle(
                             fontSize: 13,
                             color: Colors.black,
                           ),
-                          onSubmitted: (_) => _fetch(),
+                          onSubmitted: (_) => vm.fetch(),
                           decoration: InputDecoration(
                             labelText: '사번 or 성명',
                             labelStyle: const TextStyle(
@@ -253,7 +198,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                             ),
 
                             suffixIcon: InkWell(
-                              onTap: _fetch,
+                              onTap: vm.fetch,
                               child: Container(
                                 width: 36,
                                 decoration: const BoxDecoration(
@@ -286,10 +231,10 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
               // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // 💡 실제 리스트 데이터인 _items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
+                // 💡 실제 리스트 데이터인 items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
 
                 Text(
-                  '${_items.length}건',
+                  '${vm.items.length}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
@@ -300,10 +245,10 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
             ),
           ),
           Expanded(
-            child: _isLoading
+            child: vm.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : _items.isEmpty
+                : vm.items.isEmpty
                     ? const Center(
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
@@ -323,9 +268,9 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                           child: ListView.builder(
                             controller: _scrollController, // 추가
                             padding: const EdgeInsets.fromLTRB(20,5,20,20),
-                            itemCount: _items.length,
+                            itemCount: vm.items.length,
                             itemBuilder: (context, index) {
-                              final item = _items[index];
+                              final item = vm.items[index];
                               final leaveTypeNm = LeaveType.getLabel(item.leaveType);
                               return InkWell(
                                 borderRadius: BorderRadius.circular(16),
@@ -362,7 +307,7 @@ class _AdminSearchLeaveRequestsScreen extends State<AdminSearchLeaveRequestsScre
                                                   fontSize: 14.5)),
                                           // 2. 이름과 부서 사이의 좁은 가로 간격
                                           const SizedBox(width: 8),
-                                          // 3. 부서명 
+                                          // 3. 부서명
                                           Text(
                                             item.department,
                                             style: const TextStyle(
