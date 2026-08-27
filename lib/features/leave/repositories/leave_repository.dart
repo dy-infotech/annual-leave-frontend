@@ -39,6 +39,26 @@ class LeaveRepository {
         .toList();
   }
 
+  /// 전직원 휴가 신청 목록 조회. GET /api/leave-requests/all
+  Future<List<LeaveRequestListItem>> fetchAllLeaveRequests({
+    String? status,
+    String? startDate,
+    String? endDate,
+  }) async {
+    final queryParams = <String, dynamic>{
+      if (status != null) 'status': status,
+      if (startDate != null) 'startDate': startDate,
+      if (endDate != null) 'endDate': endDate,
+    };
+    final response = await _dio.get(
+      '/api/leave-requests/all',
+      queryParameters: queryParams.isEmpty ? null : queryParams,
+    );
+    return (response.data as List)
+        .map((json) => LeaveRequestListItem.fromJson(json))
+        .toList();
+  }
+
   /// 휴가 신청 취소. DELETE /api/leave-requests/{requestId}
   Future<void> cancelLeaveRequest(int requestId) async {
     await _dio.delete('/api/leave-requests/$requestId');

@@ -3,8 +3,8 @@ import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/leave_status_badge.dart';
@@ -18,7 +18,11 @@ class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;
   final String? filter;
 
-  const AllLeaveRequestsScreen({super.key, this.status, this.filter});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const AllLeaveRequestsScreen(
+      {super.key, this.status, this.filter, this.repository});
 
   @override
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
@@ -26,6 +30,8 @@ class AllLeaveRequestsScreen extends StatefulWidget {
 
 class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
     with RouteAware {
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
@@ -55,11 +61,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   Future<void> _fetch() async {
     setState(() => _isLoading = true);
     try {
-      final queryParams = <String, dynamic>{};
-      if (_statusFilter != null) {
-        queryParams['status'] = _statusFilter;
-      }
-
       // 기본 당해년도 조회 날짜 세팅
       // 오늘 날짜가 속한 연도 구하기
       int year = _today.year;
@@ -68,24 +69,21 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       DateTime firstDayOfYear = DateTime(year, 1, 1);
       DateTime lastDayOfYear = DateTime(year, 12, 31);
 
-      queryParams['startDate'] = _formatDate(firstDayOfYear);
-      queryParams['endDate'] = _formatDate(lastDayOfYear);
+      String startDate = _formatDate(firstDayOfYear);
+      String endDate = _formatDate(lastDayOfYear);
 
       if (_dateRange != null) {
-        queryParams['startDate'] = _formatDate(_dateRange!.start);
-        queryParams['endDate'] = _formatDate(_dateRange!.end);
+        startDate = _formatDate(_dateRange!.start);
+        endDate = _formatDate(_dateRange!.end);
       }
 
-      final response = await ApiClient().dio.get(
-            _buttonLabel == "내 신청"
-                ? '/api/leave-requests/my'
-                : '/api/leave-requests/all',
-            queryParameters: queryParams.isEmpty ? null : queryParams,
-          );
+      final items = _buttonLabel == "내 신청"
+          ? await _repository.fetchMyLeaveRequests(
+              status: _statusFilter, startDate: startDate, endDate: endDate)
+          : await _repository.fetchAllLeaveRequests(
+              status: _statusFilter, startDate: startDate, endDate: endDate);
       setState(() {
-        _items = (response.data as List)
-            .map((json) => LeaveRequestListItem.fromJson(json))
-            .toList();
+        _items = items;
       });
     } finally {
       setState(() => _isLoading = false);
@@ -169,7 +167,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   Future<void> _cancel(int requestId) async {
     setState(() => _processingIds.add(requestId));
     try {
-      await ApiClient().dio.delete('/api/leave-requests/$requestId');
+      await _repository.cancelLeaveRequest(requestId);
       if (mounted) {
         ScaffoldMessenger.of(context)
             .showSnackBar(const SnackBar(content: Text('신청이 취소되었습니다.')));

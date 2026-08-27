@@ -40,6 +40,21 @@ class FakeLeaveRepository implements LeaveRepository {
     if (cancelErrorToThrow != null) throw cancelErrorToThrow!;
   }
 
+  List<LeaveRequestListItem> allLeaveRequestsToReturn = [];
+  final List<Map<String, String?>> allLeaveRequestQueries = [];
+
+  @override
+  Future<List<LeaveRequestListItem>> fetchAllLeaveRequests({
+    String? status,
+    String? startDate,
+    String? endDate,
+  }) async {
+    allLeaveRequestQueries
+        .add({'status': status, 'startDate': startDate, 'endDate': endDate});
+    if (errorToThrow != null) throw errorToThrow!;
+    return allLeaveRequestsToReturn;
+  }
+
   List<PendingLeaveRequest> pendingRequestsToReturn = [];
   Object? approveErrorToThrow;
   Object? rejectErrorToThrow;
