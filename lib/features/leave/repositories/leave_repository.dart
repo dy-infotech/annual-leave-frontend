@@ -64,6 +64,11 @@ class LeaveRepository {
     await _dio.delete('/api/leave-requests/$requestId');
   }
 
+  /// 휴가 신청 제출. POST /api/leave-requests
+  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
+    await _dio.post('/api/leave-requests', data: request.toJson());
+  }
+
   /// 관리자 휴가 검색. GET /api/admin/leave-requests/{status}
   ///
   /// 기존 화면과 동일하게 status는 경로와 쿼리에 모두 실리고,

@@ -7,19 +7,24 @@ import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dar
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/providers/auth_provider.dart';
 import 'package:annual_leave_frontend/providers/leave_request_list_provider.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
-  const LeaveRequestScreen({super.key});
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+
+  const LeaveRequestScreen({super.key, this.repository});
 
   @override
   State<LeaveRequestScreen> createState() => _LeaveRequestScreenState();
 }
 
 class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
+  late final LeaveRepository _repository =
+      widget.repository ?? LeaveRepository();
   DateTime _focusedDay = DateTime.now();
   LeaveType _selectedLeaveType = LeaveType.full;
   DateTime? _startDate;
@@ -182,7 +187,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         leaveReason: _leaveReason,
       );
 
-      await ApiClient().dio.post('/api/leave-requests', data: request.toJson());
+      await _repository.submitLeaveRequest(request);
     } catch (e) {
       if (mounted) {
         setState(() => _errorMessage = '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.');
