@@ -1,12 +1,14 @@
 // LVE002_D01: 휴가 신청 상세 화면 (LVE002_M02/M03, LVE003_M01에서 진입)
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE002_D01_view_model.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import '../widgets/leave_status_badge.dart';
 
-class LeaveRequestDetailScreen extends StatefulWidget {
+class LeaveRequestDetailScreen extends StatelessWidget {
   final int requestId;
 
   /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
@@ -16,16 +18,19 @@ class LeaveRequestDetailScreen extends StatefulWidget {
       {super.key, required this.requestId, this.repository});
 
   @override
-  State<LeaveRequestDetailScreen> createState() =>
-      _LeaveRequestDetailScreenState();
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => LeaveRequestDetailViewModel(
+        requestId: requestId,
+        repository: repository,
+      )..load(),
+      child: const _LeaveRequestDetailView(),
+    );
+  }
 }
 
-class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
-  late final LeaveRepository _repository =
-      widget.repository ?? LeaveRepository();
-  LeaveRequestDetail? _detail;
-  bool _isLoading = true;
-  String? _errorMessage;
+class _LeaveRequestDetailView extends StatelessWidget {
+  const _LeaveRequestDetailView();
 
   static const Map<String, String> _leaveTypeMap = {
     'FULL': '연차',
@@ -37,27 +42,6 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
     'OTHER': '기타',
   };
 
-  @override
-  void initState() {
-    super.initState();
-    _fetch();
-  }
-
-  Future<void> _fetch() async {
-    setState(() => _isLoading = true);
-    try {
-      final detail =
-          await _repository.fetchLeaveRequestDetail(widget.requestId);
-      setState(() {
-        _detail = detail;
-      });
-    } catch (e) {
-      setState(() => _errorMessage = '상세 정보를 불러오지 못했습니다.');
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
-
   String _formatDate(String raw) {
     if (raw.isEmpty) return '-';
     return DateFormat('yyyy.MM.dd').format(DateTime.parse(raw));
@@ -65,21 +49,21 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final vm = context.watch<LeaveRequestDetailViewModel>();
     return Scaffold(
       appBar: AppBar(title: const Text('휴가 신청 상세 정보')),
-      body: _isLoading
+      body: vm.isLoading
           ? const Center(
               child: CircularProgressIndicator(color: AppColors.slate))
-          : _errorMessage != null
+          : vm.errorMessage != null
               ? Center(
-                  child: Text(_errorMessage!,
+                  child: Text(vm.errorMessage!,
                       style: const TextStyle(color: AppColors.coral)))
-              : _buildContent(),
+              : _buildContent(vm.detail!),
     );
   }
 
-  Widget _buildContent() {
-    final d = _detail!;
+  Widget _buildContent(LeaveRequestDetail d) {
     final leaveTypeNm = _leaveTypeMap[d.leaveType] ?? d.leaveType;
     final hasApprover = d.approverName != null;
 
