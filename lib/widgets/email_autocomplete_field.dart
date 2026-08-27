@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 class EmailAutocompleteField extends StatefulWidget {
   final TextEditingController controller;

@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/auth_models.dart';
 import '../models/employee.dart';
-import '../services/api_client.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiClient _apiClient = ApiClient();

@@ -1,4 +1,4 @@
-import 'package:annual_leave_frontend/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';

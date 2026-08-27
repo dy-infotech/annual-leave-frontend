@@ -1,9 +1,9 @@
 // ADM002_M01: 사용자 등록 관리 화면
 import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:annual_leave_frontend/screens/DSH001_M01.dart';
-import 'package:annual_leave_frontend/services/api_client.dart';
-import 'package:annual_leave_frontend/theme/app_theme.dart';
-import 'package:annual_leave_frontend/widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
