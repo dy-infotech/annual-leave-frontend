@@ -10,6 +10,9 @@ class FakeAuthProvider extends AuthProvider {
   int fetchMyInfoCount = 0;
   final List<String> updatedEmails = [];
 
+  Object? loginErrorToThrow;
+  final List<Map<String, String>> loginCalls = [];
+
   @override
   Employee? get employeeInfo => _fakeEmployeeInfo;
 
@@ -21,5 +24,39 @@ class FakeAuthProvider extends AuthProvider {
   @override
   Future<void> updateEmail(newEmail) async {
     updatedEmails.add(newEmail as String);
+  }
+
+  @override
+  Future<void> login(String employeeNumber, String password) async {
+    loginCalls.add({'employeeNumber': employeeNumber, 'password': password});
+    if (loginErrorToThrow != null) throw loginErrorToThrow!;
+  }
+
+  Object? signUpErrorToThrow;
+  final List<Map<String, String>> signUpCalls = [];
+
+  @override
+  Future<void> signUp(String employeeNumber, String password) async {
+    signUpCalls.add({'employeeNumber': employeeNumber, 'password': password});
+    if (signUpErrorToThrow != null) throw signUpErrorToThrow!;
+  }
+
+  Object? resetErrorToThrow;
+  final List<Map<String, String>> resetCalls = [];
+
+  @override
+  Future<void> sendPasswordResetEmail(
+      String employeeNumber, String email) async {
+    resetCalls.add({'employeeNumber': employeeNumber, 'email': email});
+    if (resetErrorToThrow != null) throw resetErrorToThrow!;
+  }
+
+  Object? findIdErrorToThrow;
+  final List<Map<String, String>> findIdCalls = [];
+
+  @override
+  Future<void> findId(String name, String email) async {
+    findIdCalls.add({'name': name, 'email': email});
+    if (findIdErrorToThrow != null) throw findIdErrorToThrow!;
   }
 }
