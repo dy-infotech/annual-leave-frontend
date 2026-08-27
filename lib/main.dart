@@ -1,32 +1,11 @@
-import 'package:annual_leave_frontend/screens/ADM004_M01.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:intl/date_symbol_data_local.dart';
-import 'package:annual_leave_frontend/theme/app_theme.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart'
     show RemoteMessage, FirebaseMessaging;
-import 'firebase_options.dart';
-import 'providers/auth_provider.dart';
-import 'providers/dashboard_provider.dart';
-import 'providers/leave_request_list_provider.dart';
-import 'providers/public_holiday_provider.dart';
-import 'screens/AUT001_M01.dart';
-import 'screens/AUT002_M01.dart';
-import 'screens/AUT003_M01.dart';
-import 'screens/DSH001_M01.dart';
-import 'screens/LVE001_M01.dart';
-//import 'screens/LVE002_M01.dart';
-import 'screens/LVE002_M02.dart';
-import 'screens/LVE003_M01.dart';
-import 'screens/EMP001_M01.dart';
-import 'screens/ADM002_M01.dart';
-import 'screens/ADM001_M01.dart';
-import 'screens/ADM003_M01.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
-final RouteObserver<PageRoute<dynamic>> routeObserver =
-    RouteObserver<PageRoute<dynamic>>();
+import 'firebase_options.dart';
 
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(
@@ -42,102 +21,4 @@ void main() async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-        ChangeNotifierProvider(create: (_) => PublicHolidayProvider()),
-        ChangeNotifierProvider(create: (_) => LeaveRequestListProvider()),
-      ],
-      child: MaterialApp(
-        title: '연차 관리',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.theme,
-        locale: const Locale('ko', 'KR'),
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: const [Locale('ko', 'KR')],
-        home: const SplashScreen(),
-        navigatorObservers: [routeObserver],
-        routes: {
-          // 로그인 화면
-          '/login': (context) => const LoginScreen(),
-          // 사용 등록 화면
-          '/signup': (context) => const SignupScreen(),
-          // 비번찾기 화면
-          '/forgot-password': (context) => const FindAccountScreen(),
-          // 대시보드 화면
-          '/dashboard': (context) => const DashboardScreen(),
-          // 휴가 신청 화면
-          '/leave-request': (context) => const LeaveRequestScreen(),
-          // 내 휴가 신청 목록 화면
-          //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
-          // 전직원 휴가 신청 목록 화면
-          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
-          // 결재 대기 목록 화면
-          '/pending-approval': (context) => const PendingApprovalScreen(),
-          //사용자 등록 관리 화면
-          '/signup_manage_screen': (context) => const SignupManageScreen(),
-          //사용자 사번 조회 화면
-          '/search_employee_number_screen': (context) =>
-              const SearchEmployeeNumberScreen(),
-          //관리자별 관리팀 설정 화면
-          '/admin-settings': (context) => const AdminSettingsScreen(),
-          //부서 및 팀 관리 화면
-          '/department-team-manage': (context) =>
-              const DepartmentTeamManageScreen(),
-
-          // 내 정보 화면
-          '/my-info': (context) => const MyInfoScreen(),
-        },
-      ),
-    );
-  }
-}
-
-class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
-
-  @override
-  State<SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    _checkLoginStatus();
-  }
-
-  Future<void> _checkLoginStatus() async {
-    final auth = context.read<AuthProvider>();
-    await auth.tryAutoLogin();
-
-    if (!mounted) return;
-
-    // 자동 로그인 성공 시, 공휴일 정보 조회
-    if (auth.isLoggedIn) {
-      await context.read<PublicHolidayProvider>().fetchPublicHoliday();
-    }
-
-    Navigator.pushReplacementNamed(
-      context,
-      auth.isLoggedIn ? '/dashboard' : '/login',
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return const Scaffold(body: Center(child: CircularProgressIndicator()));
-  }
 }

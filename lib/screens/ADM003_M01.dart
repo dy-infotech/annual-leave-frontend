@@ -5,8 +5,8 @@ import 'package:flutter/material.dart';
 import '../models/department_team_models.dart';
 import '../models/employee.dart';
 import '../services/department_team_api.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/employee_picker_dialog.dart';
 
 // 부서 및 팀 관리 화면. (대표이사 전용)

@@ -2,11 +2,11 @@
 import 'package:annual_leave_frontend/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/screens/LVE002_D01.dart';
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 import '../models/leave_request_models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
-import 'package:annual_leave_frontend/main.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/app/app.dart';
 import 'package:intl/intl.dart';
 
 class AdminSearchLeaveRequestsScreen extends StatefulWidget {

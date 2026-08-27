@@ -2,10 +2,10 @@
 import 'package:annual_leave_frontend/screens/LVE002_M03.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../main.dart' show routeObserver;
+import 'package:annual_leave_frontend/app/app.dart' show routeObserver;
 import '../providers/dashboard_provider.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../screens/LVE002_M02.dart';
 import '../screens/LVE003_M01.dart';
 

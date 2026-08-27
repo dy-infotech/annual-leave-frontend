@@ -2,9 +2,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
-import '../services/api_client.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 import '../widgets/email_autocomplete_field.dart';
 
 class MyInfoScreen extends StatefulWidget {

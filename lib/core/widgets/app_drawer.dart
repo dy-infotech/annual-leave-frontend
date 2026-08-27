@@ -1,8 +1,8 @@
 import 'package:annual_leave_frontend/providers/dashboard_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/auth_provider.dart';
-import '../theme/app_theme.dart';
+import 'package:annual_leave_frontend/providers/auth_provider.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});

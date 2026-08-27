@@ -7,10 +7,10 @@ import '../models/enums/LeaveState.dart';
 import '../models/enums/LeaveType.dart';
 import '../providers/auth_provider.dart';
 import '../providers/leave_request_list_provider.dart';
-import '../services/api_client.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 import '../models/leave_request_models.dart';
-import '../theme/app_theme.dart';
-import '../widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
 
 class LeaveRequestScreen extends StatefulWidget {
   const LeaveRequestScreen({super.key});
