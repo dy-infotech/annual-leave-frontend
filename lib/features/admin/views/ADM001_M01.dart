@@ -101,52 +101,55 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                             width: 2.0)
                                         : null,
                                   ),
-                                  child: ListTile(
-                                    selected: isSelected,
-                                    selectedTileColor: Colors.transparent,
-                                    dense: true, // 🔥 높이 축소
-                                    visualDensity: const VisualDensity(
-                                      vertical: -4, // 🔥 세로 간격 축소
+                                  child: Material(
+                                    type: MaterialType.transparency,
+                                    child: ListTile(
+                                      selected: isSelected,
+                                      selectedTileColor: Colors.transparent,
+                                      dense: true, // 🔥 높이 축소
+                                      visualDensity: const VisualDensity(
+                                        vertical: -4, // 🔥 세로 간격 축소
+                                      ),
+                                      title: Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.baseline,
+                                        textBaseline: TextBaseline.alphabetic,
+                                        children: [
+                                          Text(
+                                            emp.name,
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                              color: isSelected
+                                                  ? const Color(0xFFE97451)
+                                                  : Colors.black87,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            emp.position,
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w500,
+                                              color: isSelected
+                                                  ? const Color(0xFFF4A460)
+                                                  : Colors.black54,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          Text(
+                                            emp.employeeNumber,
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: isSelected
+                                                  ? const Color(0xFFF4A460)
+                                                  : Colors.black45,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      onTap: () => _vm.selectEmployee(emp),
                                     ),
-                                    title: Row(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.baseline,
-                                      textBaseline: TextBaseline.alphabetic,
-                                      children: [
-                                        Text(
-                                          emp.name,
-                                          style: TextStyle(
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 14,
-                                            color: isSelected
-                                                ? const Color(0xFFE97451)
-                                                : Colors.black87,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          emp.position,
-                                          style: TextStyle(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w500,
-                                            color: isSelected
-                                                ? const Color(0xFFF4A460)
-                                                : Colors.black54,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          emp.employeeNumber,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: isSelected
-                                                ? const Color(0xFFF4A460)
-                                                : Colors.black45,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    onTap: () => _vm.selectEmployee(emp),
                                   ),
                                 );
                               },
@@ -164,7 +167,8 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                               itemCount: _vm.generalTeams.length,
                               itemBuilder: (context, index) {
                                 final team = _vm.generalTeams[index];
-                                final isSelected = _vm.selectedGeneralTeam == team;
+                                final isSelected =
+                                    _vm.selectedGeneralTeam == team;
 
                                 return GestureDetector(
                                   onDoubleTap: () {
@@ -186,25 +190,29 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                             )
                                           : null,
                                     ),
-                                    child: ListTile(
-                                      dense: true,
-                                      visualDensity: const VisualDensity(
-                                        vertical: -4,
-                                      ),
-                                      selected: isSelected,
-                                      selectedTileColor: Colors.orange.shade50,
-                                      title: Text(
-                                        team,
-                                        style: TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                          color: isSelected
-                                              ? const Color(0xFFE97451)
-                                              : Colors.black87,
+                                    child: Material(
+                                      type: MaterialType.transparency,
+                                      child: ListTile(
+                                        dense: true,
+                                        visualDensity: const VisualDensity(
+                                          vertical: -4,
                                         ),
+                                        selected: isSelected,
+                                        selectedTileColor:
+                                            Colors.orange.shade50,
+                                        title: Text(
+                                          team,
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                            color: isSelected
+                                                ? const Color(0xFFE97451)
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                        onTap: () =>
+                                            _vm.selectGeneralTeam(team),
                                       ),
-                                      onTap: () =>
-                                          _vm.selectGeneralTeam(team),
                                     ),
                                   ),
                                 );
@@ -259,7 +267,8 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                               itemCount: _vm.managedTeams.length,
                               itemBuilder: (context, index) {
                                 final team = _vm.managedTeams[index];
-                                final isSelected = _vm.selectedManagedTeam == team;
+                                final isSelected =
+                                    _vm.selectedManagedTeam == team;
                                 return GestureDetector(
                                   onDoubleTap: () {
                                     _vm.selectManagedTeam(team);
@@ -279,20 +288,23 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                               width: 2.0)
                                           : null,
                                     ),
-                                    child: ListTile(
-                                      dense: true, // 🔥 높이 축소
-                                      visualDensity: const VisualDensity(
-                                        vertical: -4, // 🔥 세로 간격 축소
+                                    child: Material(
+                                      type: MaterialType.transparency,
+                                      child: ListTile(
+                                        dense: true, // 🔥 높이 축소
+                                        visualDensity: const VisualDensity(
+                                          vertical: -4, // 🔥 세로 간격 축소
+                                        ),
+                                        selected: isSelected,
+                                        selectedTileColor: Colors.green.shade50,
+                                        title: Text(team,
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.green)),
+                                        onTap: () =>
+                                            _vm.selectManagedTeam(team),
                                       ),
-                                      selected: isSelected,
-                                      selectedTileColor: Colors.green.shade50,
-                                      title: Text(team,
-                                          style: const TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w600,
-                                              color: Colors.green)),
-                                      onTap: () =>
-                                          _vm.selectManagedTeam(team),
                                     ),
                                   ),
                                 );
