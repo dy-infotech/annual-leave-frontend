@@ -2,6 +2,7 @@ import 'package:annual_leave_frontend/main.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
 import 'employee_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart'; // 🎯 DateFormat을 쓰기 위해 반드시 필요합니다!
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
@@ -217,45 +218,6 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    //  1️⃣ 왼쪽: 등록/미등록 상태 선택 Dropdown
-                    // Expanded(
-                    //   flex: 1,
-                    //   child: Container(
-                    //     height: 35,
-                    //     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.white,
-                    //       border: Border.all(color: Colors.grey.shade400),
-                    //       borderRadius: BorderRadius.circular(8),
-                    //     ),
-                    //     child: DropdownButtonHideUnderline(
-                    //       child: DropdownButton<String>(
-                    //         isExpanded: true,
-                    //         value: _selectedStatus,
-                    //         style: const TextStyle(
-                    //             fontSize: 13, color: Colors.black),
-                    //         icon: const Icon(Icons.arrow_drop_down,
-                    //             color: Colors.grey),
-                    //         onChanged: (String? newValue) {
-                    //           if (newValue != null) {
-                    //             setState(() {
-                    //               _selectedStatus = newValue;
-                    //             });
-                    //             _fetch();
-                    //           }
-                    //         },
-                    //         items: const [
-                    //           DropdownMenuItem(
-                    //               value: 'ALL', child: Text('전체상태')),
-                    //           DropdownMenuItem(
-                    //               value: 'REGISTERED', child: Text('등록')),
-                    //           DropdownMenuItem(
-                    //               value: 'UNREGISTERED', child: Text('미등록')),
-                    //         ],
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
                     Expanded(
                       flex: 1, // 💡 앞서 매칭해 둔 가로 분할 비율(10) 유지
                       child: SizedBox(
@@ -317,54 +279,6 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                     ),
 
                     const SizedBox(width: 6), // 간격 보정
-
-                    // 2️⃣ 🔥 [중앙 추가] 팀별 소속 선택 Dropdown 위젯 신설
-                    // Expanded(
-                    //   flex: 2,
-                    //   child: Container(
-                    //     height: 35,
-                    //     padding: const EdgeInsets.symmetric(horizontal: 6),
-                    //     decoration: BoxDecoration(
-                    //       color: Colors.white,
-                    //       border: Border.all(color: Colors.grey.shade400),
-                    //       borderRadius: BorderRadius.circular(8),
-                    //     ),
-                    //     child: DropdownButtonHideUnderline(
-                    //       child: DropdownButton<String>(
-                    //         isExpanded: true,
-                    //         value: _selectedTeamFilter,
-                    //         style: const TextStyle(
-                    //             fontSize: 13, color: Colors.black),
-                    //         icon: const Icon(Icons.arrow_drop_down,
-                    //             color: Colors.grey),
-                    //         // 📄 4페이지 DropdownButtonFormField 내부 items 매핑 영역 수정
-                    //         onChanged: (String? newValue) {
-                    //           if (newValue != null) {
-                    //             setState(() {
-                    //               _selectedTeamFilter = newValue;
-                    //             });
-                    //             _fetch();
-                    //           }
-                    //         },
-                    //         items: (_filterTeamList == null ||
-                    //                 _filterTeamList.isEmpty)
-                    //             ? [
-                    //                 const DropdownMenuItem<String>(
-                    //                   value: '전체', // 💡 '전체' -> '전체'
-                    //                   child: Text('전체'),
-                    //                 )
-                    //               ]
-                    //             : _filterTeamList.map((String team) {
-                    //                 return DropdownMenuItem<String>(
-                    //                   value: team,
-                    //                   child: Text(team,
-                    //                       overflow: TextOverflow.ellipsis),
-                    //                 );
-                    //               }).toList(),
-                    //       ),
-                    //     ),
-                    //   ),
-                    // ),
 
                     Expanded(
                       flex: 1, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
@@ -588,7 +502,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          item.email ?? '',
+                                          '입사일: ${item.hireDate != null && item.hireDate.toString().isNotEmpty ? DateFormat('yyyy.MM.dd').format(DateTime.parse(item.hireDate.toString())) : "-"}  |  연차: [올해 ${item.currTotalLeaveDays ?? "-"}일 / 잔여 ${item.remainingLeaveDays ?? "-"}일]',
                                           style: const TextStyle(
                                               color: AppColors.textMuted,
                                               fontSize: 12),
