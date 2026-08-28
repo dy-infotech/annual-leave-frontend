@@ -100,6 +100,32 @@ void main() {
       expect(vm.isProcessing(11), isFalse);
     });
 
+    test('조회 실패 - 예외를 잡지 않고 그대로 전파한다', () async {
+      // 현재 _fetch에는 catch가 없어 오류 메시지를 남기지 못하고 예외가 올라온다.
+      // 화면에 실패를 알릴 수단이 없는 상태를 기록해 둔다.
+      fake.errorToThrow = Exception('network');
+      final vm = MyLeaveRequestsViewModel(repository: fake);
+
+      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      expect(vm.items, isEmpty);
+      expect(vm.isLoading, isFalse); // finally로 로딩 상태는 해제된다
+    });
+
+    test('조회 실패 후 다시 조회에 성공하면 목록이 채워진다', () async {
+      fake.errorToThrow = Exception('network');
+      final vm = MyLeaveRequestsViewModel(repository: fake);
+      await expectLater(vm.load(), throwsA(isA<Exception>()));
+
+      fake.errorToThrow = null;
+      fake.myLeaveRequestsToReturn = [
+        LeaveRequestListItem.fromJson(
+            fixtureJson('leave/leave_request_list_item.json')),
+      ];
+      await vm.load();
+
+      expect(vm.items, hasLength(1));
+    });
+
     test('isCancelable - 대기 상태만 취소할 수 있다', () {
       LeaveRequestListItem withStatus(String status) =>
           LeaveRequestListItem.fromJson(

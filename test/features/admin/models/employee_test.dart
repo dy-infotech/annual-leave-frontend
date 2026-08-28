@@ -59,5 +59,58 @@ void main() {
       expect(updated.remainingLeaveDays, emp.remainingLeaveDays);
       expect(updated.approverName, emp.approverName);
     });
+
+    // 발견한 문제: copyWith 가 결재자 4개 필드와 isRegisted 를 파라미터로 받지만
+    // 본문에서 인자를 무시하고 this 값을 그대로 쓴다. 아래는 현재 동작 기록이다.
+    test('copyWith - 결재자 필드와 isRegisted 인자는 무시된다 (현재 동작)', () {
+      final emp = Employee.fromJson(fixtureJson('admin/employee.json'));
+
+      final updated = emp.copyWith(
+        approverNumber: 'B0009',
+        approverName: '박결재',
+        approverPosition: '이사',
+        approverDepartment: '기술본부',
+        isRegisted: false,
+      );
+
+      expect(updated.approverNumber, 'A0002');
+      expect(updated.approverName, '김결재');
+      expect(updated.approverPosition, '부장');
+      expect(updated.approverDepartment, '경영지원부');
+      expect(updated.isRegisted, isTrue);
+    });
+
+    test('copyWith - 나머지 필드는 인자를 정상 반영한다', () {
+      final emp = Employee.fromJson(fixtureJson('admin/employee.json'));
+
+      final updated = emp.copyWith(
+        employeeNumber: 'A0099',
+        name: '김철수',
+        position: '부장',
+        department: '기술본부',
+        team: 'BI사업팀',
+        hireDate: '2021-03-02',
+        fireDate: '2026-01-31',
+        role: 'ADMIN',
+        currTotalLeaveDays: 20,
+        remainingLeaveDays: 3.5,
+        createdAt: '2026-02-02',
+      );
+
+      expect(updated.employeeNumber, 'A0099');
+      expect(updated.name, '김철수');
+      expect(updated.position, '부장');
+      expect(updated.department, '기술본부');
+      expect(updated.team, 'BI사업팀');
+      expect(updated.hireDate, '2021-03-02');
+      expect(updated.fireDate, '2026-01-31');
+      expect(updated.role, 'ADMIN');
+      expect(updated.currTotalLeaveDays, 20.0);
+      expect(updated.remainingLeaveDays, 3.5);
+      expect(updated.createdAt, '2026-02-02');
+      // 파라미터가 없는 필드는 원본을 유지한다.
+      expect(updated.employeeId, emp.employeeId);
+      expect(updated.teamList, emp.teamList);
+    });
   });
 }
