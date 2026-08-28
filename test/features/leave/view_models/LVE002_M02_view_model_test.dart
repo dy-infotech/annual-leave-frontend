@@ -126,5 +126,27 @@ void main() {
             ..['status'] = 'APPROVED');
       expect(AllLeaveRequestsViewModel.isCancelable(approved, 'A0001'), isFalse);
     });
+
+    test('조회 실패 - 예외를 잡지 않고 그대로 전파한다', () async {
+      // fetch에는 catch가 없어 오류 메시지를 남기지 못하고 예외가 올라온다.
+      // 화면에 실패를 알릴 수단이 없는 상태를 기록해 둔다.
+      fake.errorToThrow = Exception('network');
+      final vm = AllLeaveRequestsViewModel(repository: fake);
+
+      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      expect(vm.items, isEmpty);
+      expect(vm.isLoading, isFalse); // finally로 로딩 상태는 해제된다
+    });
+
+    test('조회 실패 후 다시 조회에 성공하면 목록이 채워진다', () async {
+      fake.errorToThrow = Exception('network');
+      final vm = AllLeaveRequestsViewModel(repository: fake);
+      await expectLater(vm.load(), throwsA(isA<Exception>()));
+
+      fake.errorToThrow = null;
+      await vm.fetch();
+
+      expect(vm.items, isNotEmpty);
+    });
   });
 }
