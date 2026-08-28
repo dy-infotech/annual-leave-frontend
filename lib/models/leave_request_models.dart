@@ -97,6 +97,7 @@ class LeaveRequestDetail {
   final String? createdAt;
   final double? prevTotalLeaveDays;
   final double? currTotalLeaveDays;
+  final double? employeeCurrTotalLeaveDays;
 
   // 결재자 (미배정 시 null)
   final String? approverNumber;
@@ -120,6 +121,7 @@ class LeaveRequestDetail {
     this.createdAt,
     this.prevTotalLeaveDays,
     this.currTotalLeaveDays,
+    this.employeeCurrTotalLeaveDays,
     this.approverNumber,
     this.approverName,
     this.approverPosition,
@@ -141,6 +143,7 @@ class LeaveRequestDetail {
       status: json['status'] ?? '',
       leaveReason: json['leaveReason'],
       createdAt: json['createdAt'],
+      employeeCurrTotalLeaveDays: json['employeeCurrTotalLeaveDays'],
       prevTotalLeaveDays: json['prevTotalLeaveDays'],
       currTotalLeaveDays: json['currTotalLeaveDays'],
       // prevTotalLeaveDays: (json['prev_total_leave_days'] as num?)?.toDouble(),

@@ -118,7 +118,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   : '-'),
           _row(
             '잔여 연차',
-            '올해: ${authProvider?.currTotalLeaveDays.toString() ?? "-"}일 /  '
+            '올해: ${d.employeeCurrTotalLeaveDays ?? "-"}일 /  '
                 '승인전: ${d.prevTotalLeaveDays ?? "-"}일  /  '
                 '신청후: ${d.currTotalLeaveDays ?? "-"}일',
           ),
