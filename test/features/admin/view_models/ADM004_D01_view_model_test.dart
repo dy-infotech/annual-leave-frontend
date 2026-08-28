@@ -1,6 +1,5 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM004_D01_view_model.dart';
-import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fixture_reader.dart';
@@ -82,12 +81,6 @@ void main() {
 
     test('날짜 형식이 아닌 문자열도 생성자에서 예외가 터진다 (현재 동작)', () {
       expect(() => build(emp(hireDate: '알수없음')), throwsFormatException);
-    });
-
-    test('selectedRole - ADMIN이면 관리자, 그 외에는 멤버로 시작한다', () {
-      expect(build(emp(role: 'ADMIN')).selectedRole, '관리자');
-      expect(build(emp(role: 'EMPLOYEE')).selectedRole, '멤버');
-      expect(build(emp(role: 'admin')).selectedRole, '멤버');
     });
 
     test('생성자는 사원 정보를 그대로 입력 상태에 옮겨 담는다', () {
@@ -234,8 +227,11 @@ void main() {
       expect(data['firedDate'], isNull);
     });
 
-    test('멤버 저장 - 역할 코드와 권한 이관 팀이 비어 있다', () async {
-      final vm = build(emp(role: 'EMPLOYEE'));
+    test('저장 요청에 역할 관련 값을 담지 않는다', () async {
+      // 이 화면에는 역할을 바꾸는 입력이 없다. 역할 지정은 ADM001_M01에서만 한다.
+      // 서버의 targetTeamsForRoleSwap은 받은 팀을 토글하므로, 이 화면이 현재 팀을
+      // 계속 보내면 저장할 때마다 관리자 등록과 해제가 번갈아 일어난다.
+      final vm = build(emp(role: 'ADMIN'));
       vm.nameController.text = '  홍길동  ';
       vm.emailController.text = '  hong@example.com  ';
 
@@ -245,32 +241,22 @@ void main() {
       expect(update.employeeNumber, 'A0001');
       expect(update.data['name'], '홍길동');
       expect(update.data['email'], 'hong@example.com');
-      expect(update.data['password'], isNull);
-      expect(update.data['role'], 'EMPLOYEE');
       expect(update.data['team'], 'SI사업팀');
       expect(update.data['currTotalLeaveDays'], 15.0);
-      expect(update.data['targetTeamForRoleSwap'], '');
+      expect(update.data.containsKey('role'), isFalse);
+      expect(update.data.containsKey('targetTeamForRoleSwap'), isFalse);
+      expect(update.data.containsKey('targetTeamsForRoleSwap'), isFalse);
     });
 
-    test('관리자 저장 - 역할 코드와 권한 이관 팀을 채운다', () async {
-      final vm = build(emp(role: 'ADMIN'));
-
-      expect(await vm.saveChanges(), isTrue);
-
-      final data = repository.updates.single.data;
-      expect(data['role'], 'ADMIN');
-      expect(data['targetTeamForRoleSwap'], 'SI사업팀');
-    });
-
-    test('selectedManagerYn이 관리자면 멤버 역할이어도 권한 이관 팀을 채운다', () async {
+    test('멤버인 사원을 저장해도 역할 관련 값이 없다', () async {
       final vm = build(emp(role: 'EMPLOYEE'));
-      vm.selectedManagerYn = RoleType.admin;
 
       expect(await vm.saveChanges(), isTrue);
 
       final data = repository.updates.single.data;
-      expect(data['role'], 'EMPLOYEE');
-      expect(data['targetTeamForRoleSwap'], 'SI사업팀');
+      expect(data.containsKey('role'), isFalse);
+      expect(data.containsKey('targetTeamForRoleSwap'), isFalse);
+      expect(data.containsKey('targetTeamsForRoleSwap'), isFalse);
     });
 
     test('비밀번호를 입력했을 때만 password 필드를 채운다', () async {
