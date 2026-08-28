@@ -1,7 +1,6 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
-import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -41,7 +40,6 @@ class EmployeeDetailViewModel extends ChangeNotifier {
     selectedDepartment = employee.department;
     selectedPosition = employee.position;
     selectedTeam = employee.team;
-    selectedRole = (employee.role == 'ADMIN') ? '관리자' : '멤버';
 
     // 기존 입사일 파싱 양식 유지
     if (employee.hireDate != null) {
@@ -90,12 +88,9 @@ class EmployeeDetailViewModel extends ChangeNotifier {
   String? selectedDepartment;
   String? selectedTeam;
   String? selectedPosition;
-  String? selectedRole; // 권한 타입 (관리자 / 멤버)
 
   DateTime? selectedHireDate; // 입사일 전용
   DateTime? selectedFireDate; // 퇴사일 전용
-
-  RoleType? selectedManagerYn = RoleType.employee; //선택된 관리자여부
 
   bool get isEditing => _isEditing;
   bool get isSaving => _isSaving;
@@ -180,7 +175,6 @@ class EmployeeDetailViewModel extends ChangeNotifier {
     _isSaving = true;
     notifyListeners();
     try {
-      String roleCode = (selectedRole == '관리자') ? 'ADMIN' : 'EMPLOYEE';
       String finalTeam = selectedTeam ?? '';
 
       String formattedHireDate =
@@ -202,7 +196,6 @@ class EmployeeDetailViewModel extends ChangeNotifier {
           'department': selectedDepartment,
           'team': finalTeam,
           'position': selectedPosition,
-          'role': roleCode,
 
           'hireDate':
               formattedHireDate.isNotEmpty && formattedHireDate.length == 10
@@ -219,10 +212,8 @@ class EmployeeDetailViewModel extends ChangeNotifier {
                   : null,
 
           'currTotalLeaveDays': employee.currTotalLeaveDays,
-          'targetTeamForRoleSwap':
-              (selectedRole == '관리자' || selectedManagerYn == RoleType.admin)
-                  ? (selectedTeam ?? '')
-                  : '',
+          // 관리자 역할 지정은 관리자별 관리팀 설정 화면(ADM001_M01)에서만 한다.
+          // 이 화면에는 역할을 바꾸는 입력이 없으므로 역할 관련 값을 보내지 않는다.
         },
       );
 

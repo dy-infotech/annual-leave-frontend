@@ -86,7 +86,9 @@ void main() {
     expect(fake.updates.single.employeeNumber, 'A0001');
     final data = fake.updates.single.data;
     expect(data['email'], 'new@example.com');
-    expect(data['role'], 'EMPLOYEE');
+    // 역할 지정은 이 화면에서 하지 않으므로 역할 관련 값을 보내지 않는다.
+    expect(data.containsKey('role'), isFalse);
+    expect(data.containsKey('targetTeamForRoleSwap'), isFalse);
     expect(data['hireDate'], '2020-01-01');
     expect(data['fireDate'], isNull);
     expect(data['password'], isNull);
