@@ -95,6 +95,8 @@ class LeaveRequestDetail {
   final String status;
   final String? leaveReason; // 권한 없으면 null
   final String? createdAt;
+  final double? prevTotalLeaveDays;
+  final double? currTotalLeaveDays;
 
   // 결재자 (미배정 시 null)
   final String? approverNumber;
@@ -116,6 +118,8 @@ class LeaveRequestDetail {
     required this.status,
     this.leaveReason,
     this.createdAt,
+    this.prevTotalLeaveDays,
+    this.currTotalLeaveDays,
     this.approverNumber,
     this.approverName,
     this.approverPosition,
@@ -137,6 +141,10 @@ class LeaveRequestDetail {
       status: json['status'] ?? '',
       leaveReason: json['leaveReason'],
       createdAt: json['createdAt'],
+      prevTotalLeaveDays: json['prevTotalLeaveDays'],
+      currTotalLeaveDays: json['currTotalLeaveDays'],
+      // prevTotalLeaveDays: (json['prev_total_leave_days'] as num?)?.toDouble(),
+      // currTotalLeaveDays: (json['curr_total_leave_days'] as num?)?.toDouble(),
       approverNumber: json['approverNumber'],
       approverName: json['approverName'],
       approverPosition: json['approverPosition'],

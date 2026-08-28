@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_client.dart';
+
+import 'package:provider/provider.dart';
+import '../providers/auth_provider.dart';
 import '../models/leave_request_models.dart';
 import '../theme/app_theme.dart';
 import '../widgets/leave_status_badge.dart';
@@ -58,6 +61,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.read<AuthProvider>().employeeInfo;
     return Scaffold(
       appBar: AppBar(title: const Text('휴가 신청 상세 정보')),
       body: _isLoading
@@ -67,11 +71,12 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
               ? Center(
                   child: Text(_errorMessage!,
                       style: const TextStyle(color: AppColors.coral)))
-              : _buildContent(),
+              : _buildContent(authProvider),
     );
   }
 
-  Widget _buildContent() {
+  // 🎯 2. 메서드 선언부 괄호 안에 (BuildContext context) 그릇을 정확하게 정의합니다.
+  Widget _buildContent(authProvider) {
     final d = _detail!;
     final leaveTypeNm = _leaveTypeMap[d.leaveType] ?? d.leaveType;
     final hasApprover = d.approverName != null;
@@ -111,7 +116,13 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   ? DateFormat('yyyy.MM.dd')
                       .format(DateTime.parse(d.createdAt.toString()))
                   : '-'),
-          // 상태는 배지로
+          _row(
+            '잔여 연차',
+            '올해: ${authProvider?.currTotalLeaveDays.toString() ?? "-"}일 /  '
+                '승인전: ${d.prevTotalLeaveDays ?? "-"}일  /  '
+                '신청후: ${d.currTotalLeaveDays ?? "-"}일',
+          ),
+          // 상태는 배지로S
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Row(
