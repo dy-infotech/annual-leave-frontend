@@ -502,7 +502,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
                                     children: [
                                       Expanded(
                                         child: Text(
-                                          '입사일: ${item.hireDate != null && item.hireDate.toString().isNotEmpty ? DateFormat('yyyy.MM.dd').format(DateTime.parse(item.hireDate.toString())) : "-"}  |  연차: [올해 ${item.currTotalLeaveDays ?? "-"}일 / 잔여 ${item.remainingLeaveDays ?? "-"}일]',
+                                          '입사일: ${item.hireDate != null && item.hireDate.toString().isNotEmpty ? DateFormat('yyyy.MM.dd').format(DateTime.parse(item.hireDate.toString())) : "-"}  |  연차: [할당 ${item.currTotalLeaveDays ?? "-"}일 / 잔여 ${item.remainingLeaveDays ?? "-"}일]',
                                           style: const TextStyle(
                                               color: AppColors.textMuted,
                                               fontSize: 12),

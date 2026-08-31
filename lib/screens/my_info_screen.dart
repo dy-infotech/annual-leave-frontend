@@ -160,7 +160,7 @@ class _MyInfoScreenState extends State<MyInfoScreen> {
                   _InfoRow(
                     label: '연차정보',
                     value: Text(
-                      '올해 : ${info?.currTotalLeaveDays}일 / 잔여 : ${info?.remainingLeaveDays}일',
+                      '할당 : ${info?.currTotalLeaveDays}일 / 잔여 : ${info?.remainingLeaveDays}일',
                     ),
                   ),
                   const _InfoDivider(),

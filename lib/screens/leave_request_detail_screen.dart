@@ -81,6 +81,13 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
     final leaveTypeNm = _leaveTypeMap[d.leaveType] ?? d.leaveType;
     final hasApprover = d.approverName != null;
 
+    final int leaveDifference =
+        ((d.employeeCurrTotalLeaveDays ?? 0.0) - (d.prevTotalLeaveDays ?? 0.0))
+            .toInt();
+    final String diffSign =
+        leaveDifference >= 0 ? '+$leaveDifference' : '$leaveDifference';
+
+    // 💡 앞자리가 잘렸던 int 선언부와 Null 방어 코드 교정
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
       children: [
@@ -118,9 +125,8 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   : '-'),
           _row(
             '잔여 연차',
-            '올해: ${d.employeeCurrTotalLeaveDays ?? "-"}일 /  '
-                '승인전: ${d.prevTotalLeaveDays ?? "-"}일  /  '
-                '신청후: ${d.currTotalLeaveDays ?? "-"}일',
+            '사용:  $leaveDifference  일 /  할당:  ${d.employeeCurrTotalLeaveDays ?? "-"} 일 '
+                ' ( 잔여: ${d.currTotalLeaveDays ?? "-"}일 )',
           ),
           // 상태는 배지로S
           Padding(

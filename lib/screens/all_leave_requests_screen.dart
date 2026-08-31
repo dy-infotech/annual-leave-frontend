@@ -34,6 +34,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   // 오늘 날짜 구하기
   final DateTime _today = DateTime.now();
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchParamController = TextEditingController();
 
   @override
   void initState() {
@@ -43,7 +44,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       _statusFilter = widget.status;
 
       if (widget.filter != null) {
-        _buttonLabel = widget.filter! == 'my' ? "내 신청" : "전체";
+        _buttonLabel = widget.filter! == 'my' ? "본인" : "전체";
       }
       _setFilter(widget.status);
     }
@@ -70,13 +71,14 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       queryParams['startDate'] = _formatDate(firstDayOfYear);
       queryParams['endDate'] = _formatDate(lastDayOfYear);
 
-      if (_dateRange != null) {
-        queryParams['startDate'] = _formatDate(_dateRange!.start);
-        queryParams['endDate'] = _formatDate(_dateRange!.end);
+      // 사용자가 입력한 검색창 텍스트를 'searchEmployeeParam'이라는 이름으로 백엔드에 전송합니다.
+      if (_searchParamController.text.trim().isNotEmpty) {
+        queryParams['searchEmployeeParam'] = _searchParamController.text.trim();
       }
 
+      // TO-BE (변경 후)
       final response = await ApiClient().dio.get(
-            _buttonLabel == "내 신청"
+            _buttonLabel == "본인"
                 ? '/api/leave-requests/my'
                 : '/api/leave-requests/all',
             queryParameters: queryParams.isEmpty ? null : queryParams,
@@ -229,7 +231,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   Widget build(BuildContext context) {
     final userEmployeeNumber =
         context.watch<AuthProvider>().employeeInfo?.employeeNumber;
-    //final userEmployeeNumber = AuthProvider().employeeInfo?.employeeNumber;
+
     final List<Map<String, String?>> statusOptions = [
       {'label': '전체', 'value': null},
       {'label': '대기', 'value': 'PENDING'},
@@ -237,10 +239,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       {'label': '반려', 'value': 'REJECTED'},
       {'label': '취소', 'value': 'CANCELLED'}
     ];
-    final List<Map<String, String?>> searchFilterList = [
-      {'label': '전체', 'value': '전체'},
-      {'label': '내 신청', 'value': '내 신청'},
+
+    final List<Map<String, String>> scopeOptions = [
+      {'value': '전체', 'label': '전체'},
+      {'value': '본인', 'label': '본인'},
     ];
+
     return Scaffold(
       appBar: AppBar(title: const Text('신청 목록')),
       drawer: const AppDrawer(),
@@ -254,9 +258,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 mainAxisAlignment: MainAxisAlignment.start,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // 1. 상태 드롭다운 박스
                   SizedBox(
                     width: MediaQuery.of(context).size.width * 0.23,
-                    //height: 40, // 원하는 높이로 조절
                     child: Container(
                       decoration: const BoxDecoration(
                         color: Colors.white,
@@ -269,20 +273,13 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                         icon: const Icon(Icons.arrow_drop_down,
                             color: Colors.grey),
                         alignment: Alignment.centerLeft,
-
-                        // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
                         decoration: InputDecoration(
                           labelText: '상태',
                           labelStyle:
                               const TextStyle(fontSize: 12, color: Colors.grey),
                           isDense: true,
-
-                          // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
-                          // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
                           contentPadding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 9.5),
-
-                          // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -311,75 +308,147 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                       ),
                     ),
                   ),
-                  //const SizedBox(width: 5),
-                  const Spacer(), // 드롭다운과 버튼 그룹 사이 넓은 공간 확보
-                  Row(
-                    children: [
-                      // 라디오 버튼 목록
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
-                        children: searchFilterList.map((item) {
-                          final label = item['label']!;
-                          return Padding(
-                            // '전체' 글자와 '내 신청' 아이콘이 붙지 않도록 오른쪽에만 여백을 줍니다.
-                            padding: const EdgeInsets.only(right: 8.0),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Transform.scale(
-                                  scale: 0.8, // 라디오 원 크기 축소
-                                  child: Radio<String>(
-                                    value: label,
-                                    groupValue: _buttonLabel,
-                                    // 1. 아이콘 주변의 불필요한 기본 시각적 여백을 완전히 제거합니다.
 
-                                    visualDensity: const VisualDensity(
-                                      horizontal: VisualDensity.minimumDensity,
-                                      vertical: VisualDensity.minimumDensity,
-                                    ),
-                                    // 2. 터치 영역 제한(48x48)을 풀어 글자와 완전히 밀착시킵니다.
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    onChanged: (value) {
-                                      setState(() {
-                                        _buttonLabel = value!;
-                                        _setFilter(_statusFilter);
-                                      });
-                                    },
-                                  ),
-                                ),
-                                // 3. 기본 여백이 사라졌으므로, 원하는 만큼만 미세하게 간격을 지정합니다.
-                                const SizedBox(width: 1),
-                                Text(label),
-                              ],
+                  const SizedBox(width: 5),
+
+                  // 2. 전체/본인 드롭다운 박스
+                  // 2. 전체/본인 드롭다운 박스 수정본
+                  SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.23,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                      ),
+                      child: DropdownButtonFormField<String>(
+                        isExpanded: true,
+                        value: _buttonLabel, // '전체' 또는 '본인'
+                        style:
+                            const TextStyle(fontSize: 13, color: Colors.black),
+                        icon: const Icon(Icons.arrow_drop_down,
+                            color: Colors.grey),
+                        alignment: Alignment.centerLeft,
+                        decoration: InputDecoration(
+                          labelText: '조회 대상',
+                          labelStyle:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 9.5),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                        ),
+                        // 💡 정정된 onChanged 이벤트 처리
+                        onChanged: (String? newValue) {
+                          if (newValue != null) {
+                            setState(() {
+                              _buttonLabel = newValue;
+                            });
+                            _fetch(); // 필터가 변경되었으므로 데이터를 다시 서버에서 가져옵니다.
+                          }
+                        },
+                        // 💡 상태(Status) 옵션 대신 범위(Scope) 옵션으로 바르게 매핑
+                        items: scopeOptions.map((option) {
+                          return DropdownMenuItem<String>(
+                            value: option['value'], // '전체' 또는 '본인'이 정상 공급됨
+                            child: Text(
+                              option['label']!,
+                              style: const TextStyle(fontSize: 13),
                             ),
                           );
                         }).toList(),
                       ),
+                    ),
+                  ),
 
-                      const SizedBox(width: 5), // 두 버튼 간격
+                  const SizedBox(width: 5),
 
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _pickDateRange();
-                        },
-                        icon: const Icon(Icons.calendar_today, size: 16),
-                        label: const Text(
-                          '기간',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 10, vertical: 8),
-                          minimumSize: const Size(75, 40),
+                  // 3. 사번/성명 검색 입력창
+                  Expanded(
+                    flex: 1,
+                    child: SizedBox(
+                      height: 35,
+                      child: TextField(
+                        controller: _searchParamController,
+                        textInputAction: TextInputAction.search,
+                        style:
+                            const TextStyle(fontSize: 13, color: Colors.black),
+                        onSubmitted: (_) => _fetch(),
+                        decoration: InputDecoration(
+                          labelText: '사번 or 성명',
+                          labelStyle:
+                              const TextStyle(fontSize: 12, color: Colors.grey),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 6, vertical: 9.5),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                            borderSide: BorderSide(color: Colors.grey.shade400),
+                          ),
+                          suffixIcon: InkWell(
+                            onTap: _fetch,
+                            child: Container(
+                              width: 30,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF1F3A5F),
+                                borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(8),
+                                  bottomRight: Radius.circular(8),
+                                ),
+                              ),
+                              child: const Icon(Icons.search,
+                                  color: Colors.white, size: 16),
+                            ),
+                          ),
+                          suffixIconConstraints: const BoxConstraints(
+                            minWidth: 30,
+                            minHeight: 35,
+                          ),
                         ),
                       ),
-                    ],
+                    ),
+                  ),
+                  // 💡 중요: 기존의 Spacer()와 라디오 버튼 Row를 통째로 지우고 미세한 간격만 남깁니다.
+                  const SizedBox(width: 10),
+
+                  // 2. 기간 선택 버튼
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      _pickDateRange();
+                    },
+                    icon: const Icon(Icons.calendar_today, size: 16),
+                    label: const Text(
+                      '기간',
+                      style: TextStyle(fontSize: 14),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 8),
+                      minimumSize: const Size(75, 40),
+                    ),
                   ),
                 ],
-              ),
-            ),
-          ),
+              ), // Row 끝
+            ), // Padding 끝
+          ), // SizedBox 끝
+
           if (_dateRange != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),

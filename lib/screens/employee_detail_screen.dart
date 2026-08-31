@@ -384,7 +384,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
                               '연차 정보',
                               TextFormField(
                                 initialValue:
-                                    '올해 : ${widget.employee.currTotalLeaveDays}일 / 잔여 : ${widget.employee.remainingLeaveDays}일',
+                                    '할당 : ${widget.employee.currTotalLeaveDays}일 / 잔여 : ${widget.employee.remainingLeaveDays}일',
                                 readOnly: true,
                                 style: const TextStyle(
                                     fontSize: 14, color: Colors.black),
