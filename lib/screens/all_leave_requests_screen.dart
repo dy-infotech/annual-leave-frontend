@@ -427,21 +427,22 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                   ),
                   // 💡 중요: 기존의 Spacer()와 라디오 버튼 Row를 통째로 지우고 미세한 간격만 남깁니다.
                   const SizedBox(width: 10),
-
-                  // 2. 기간 선택 버튼
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      _pickDateRange();
-                    },
-                    icon: const Icon(Icons.calendar_today, size: 16),
-                    label: const Text(
-                      '기간',
-                      style: TextStyle(fontSize: 14),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                      minimumSize: const Size(75, 40),
+                  Container(
+                    alignment: Alignment.center, // 세로축 가운데 정렬 보장
+                    height: 40, // 주변 드롭다운/검색창 높이와 동일하게 지정
+                    child: ElevatedButton(
+                      onPressed: () {
+                        _pickDateRange();
+                      },
+                      style: ElevatedButton.styleFrom(
+                        padding: EdgeInsets.zero, // 빈 문자열로 인한 치우침 방지
+                        minimumSize: const Size(40, 40), // 정사각형 구조 유지
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(8), // 주변 필드와 라운딩 일치
+                        ),
+                      ),
+                      child: const Icon(Icons.calendar_today, size: 18),
                     ),
                   ),
                 ],
