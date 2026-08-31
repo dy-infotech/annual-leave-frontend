@@ -383,12 +383,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                             const TextStyle(fontSize: 13, color: Colors.black),
                         onSubmitted: (_) => _fetch(),
                         decoration: InputDecoration(
-                          labelText: '사번 or 성명',
+                          labelText: '검색',
                           labelStyle:
                               const TextStyle(fontSize: 12, color: Colors.grey),
+                          hintText: '사번 or 성명',
+                          hintStyle:
+                              const TextStyle(fontSize: 13, color: Colors.grey),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 9.5),
+                              horizontal: 8, vertical: 9.5),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: Colors.grey.shade400),
