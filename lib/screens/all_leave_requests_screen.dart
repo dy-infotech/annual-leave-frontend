@@ -376,7 +376,6 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                   Expanded(
                     flex: 1,
                     child: SizedBox(
-                      height: 35,
                       child: TextField(
                         controller: _searchParamController,
                         textInputAction: TextInputAction.search,
