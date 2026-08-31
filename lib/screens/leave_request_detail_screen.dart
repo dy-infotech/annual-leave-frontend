@@ -80,13 +80,20 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
     final d = _detail!;
     final leaveTypeNm = _leaveTypeMap[d.leaveType] ?? d.leaveType;
     final hasApprover = d.approverName != null;
+    // 💡 1. 조건 분석 변수 선언 (Null이 아니고 0보다 클 때만 true)
+    final bool isPrevLeaveValid =
+        d.prevTotalLeaveDays != null && d.prevTotalLeaveDays! > 0;
 
-    final int leaveDifference =
-        ((d.employeeCurrTotalLeaveDays ?? 0.0) - (d.prevTotalLeaveDays ?? 0.0))
-            .toInt();
-    final String diffSign =
-        leaveDifference >= 0 ? '+$leaveDifference' : '$leaveDifference';
+    // 💡 2. 변동치(diffSign) 가공 로직 분기
+    String diffSign = '-'; // 기본값은 대시(-)로 지정
 
+    if (isPrevLeaveValid) {
+      // 0보다 클 때만 실제 double 연산 후 정수형(.toInt()) 변환 및 기호 추가
+      final int leaveDifference =
+          ((d.employeeCurrTotalLeaveDays ?? 0.0) - d.prevTotalLeaveDays!)
+              .toInt();
+      diffSign = leaveDifference >= 0 ? '$leaveDifference' : '$leaveDifference';
+    }
     // 💡 앞자리가 잘렸던 int 선언부와 Null 방어 코드 교정
     return ListView(
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
@@ -125,7 +132,7 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
                   : '-'),
           _row(
             '잔여 연차',
-            '사용:  $leaveDifference  일 /  할당:  ${d.employeeCurrTotalLeaveDays ?? "-"} 일 '
+            '사용:  $diffSign 일 /  할당:  ${d.employeeCurrTotalLeaveDays ?? "-"} 일 '
                 ' ( 잔여: ${d.currTotalLeaveDays ?? "-"}일 )',
           ),
           // 상태는 배지로S
