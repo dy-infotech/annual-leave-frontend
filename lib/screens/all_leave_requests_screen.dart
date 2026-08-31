@@ -376,6 +376,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                   Expanded(
                     flex: 1,
                     child: SizedBox(
+                      height: 40,
                       child: TextField(
                         controller: _searchParamController,
                         textInputAction: TextInputAction.search,
@@ -383,15 +384,12 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                             const TextStyle(fontSize: 13, color: Colors.black),
                         onSubmitted: (_) => _fetch(),
                         decoration: InputDecoration(
-                          labelText: '검색',
+                          labelText: '사번 or 성명',
                           labelStyle:
                               const TextStyle(fontSize: 12, color: Colors.grey),
-                          hintText: '사번 or 성명',
-                          hintStyle:
-                              const TextStyle(fontSize: 13, color: Colors.grey),
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 9.5),
+                              horizontal: 6, vertical: 9.5),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(8),
                             borderSide: BorderSide(color: Colors.grey.shade400),
@@ -421,7 +419,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                           ),
                           suffixIconConstraints: const BoxConstraints(
                             minWidth: 30,
-                            minHeight: 35,
+                            minHeight: 38,
                           ),
                         ),
                       ),
@@ -429,6 +427,8 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                   ),
                   // 💡 중요: 기존의 Spacer()와 라디오 버튼 Row를 통째로 지우고 미세한 간격만 남깁니다.
                   const SizedBox(width: 10),
+
+                  // 2. 기간 선택 버튼 (가운데 정렬 교정본)
                   Container(
                     alignment: Alignment.center, // 세로축 가운데 정렬 보장
                     height: 40, // 주변 드롭다운/검색창 높이와 동일하게 지정
