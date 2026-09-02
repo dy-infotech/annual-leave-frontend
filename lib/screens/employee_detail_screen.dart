@@ -691,74 +691,94 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
                           // 12. 퇴사일 영역 (컨트롤러 매핑 완료 및 조회 공백 버그 원천 해결)
                           _buildRow(
-                              '퇴사일',
-                              (_isEditing &&
-                                      authProvider.employeeInfo?.position ==
-                                          '사장' &&
-                                      widget.employee.position != '사장')
-                                  ? TextFormField(
-                                      controller:
-                                          _fireDateController, // ⭕ 수정 모드 매핑
-                                      readOnly: true,
-                                      onTap: () => _selectDateForController(
-                                        controller: _fireDateController,
-                                        initialDate:
-                                            _selectedFireDate ?? DateTime.now(),
-                                        onDateSelected: (picked) {
-                                          setState(() {
-                                            _selectedFireDate = picked;
-                                            _fireDateController.text =
-                                                DateFormat('yyyy.MM.dd')
-                                                    .format(picked);
-                                          });
-                                        },
-                                      ),
-                                      style: const TextStyle(
-                                          fontSize: 14, color: Colors.black),
-                                      decoration: InputDecoration(
-                                        isDense: true,
-                                        border: const OutlineInputBorder(),
-                                        contentPadding:
-                                            const EdgeInsets.symmetric(
-                                                horizontal: 12, vertical: 12),
-                                        suffixIcon: IconButton(
-                                          icon: const Icon(Icons.calendar_month,
-                                              size: 18),
-                                          onPressed: () =>
-                                              _selectDateForController(
-                                            controller: _fireDateController,
-                                            initialDate: _selectedFireDate ??
-                                                DateTime.now(),
-                                            onDateSelected: (picked) {
-                                              setState(() {
-                                                _selectedFireDate = picked;
-                                                _fireDateController.text =
-                                                    DateFormat('yyyy.MM.dd')
-                                                        .format(picked);
-                                              });
-                                            },
+                            '퇴사일',
+                            (_isEditing &&
+                                    authProvider.employeeInfo?.position ==
+                                        '사장' &&
+                                    widget.employee.position != '사장')
+                                ? TextFormField(
+                                    controller: _fireDateController,
+                                    readOnly: true,
+                                    onTap: () => _selectDateForController(
+                                      controller: _fireDateController,
+                                      initialDate:
+                                          _selectedFireDate ?? DateTime.now(),
+                                      onDateSelected: (picked) {
+                                        setState(() {
+                                          _selectedFireDate = picked;
+                                          _fireDateController.text =
+                                              DateFormat('yyyy.MM.dd')
+                                                  .format(picked);
+                                        });
+                                      },
+                                    ),
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      border: const OutlineInputBorder(),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 12),
+                                      // 🎯 날짜가 선택되어 있으면 'X' (초기화) 버튼 표시, 없으면 null
+                                      suffixIcon: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          if (_selectedFireDate != null)
+                                            IconButton(
+                                              icon: const Icon(Icons.clear,
+                                                  size: 18, color: Colors.grey),
+                                              onPressed: () {
+                                                setState(() {
+                                                  _selectedFireDate =
+                                                      null; // 날짜 객체 초기화
+                                                  _fireDateController
+                                                      .clear(); // 텍스트 필드 초기화
+                                                });
+                                              },
+                                            ),
+                                          IconButton(
+                                            icon: const Icon(
+                                                Icons.calendar_month,
+                                                size: 18),
+                                            onPressed: () =>
+                                                _selectDateForController(
+                                              controller: _fireDateController,
+                                              initialDate: _selectedFireDate ??
+                                                  DateTime.now(),
+                                              onDateSelected: (picked) {
+                                                setState(() {
+                                                  _selectedFireDate = picked;
+                                                  _fireDateController.text =
+                                                      DateFormat('yyyy.MM.dd')
+                                                          .format(picked);
+                                                });
+                                              },
+                                            ),
                                           ),
-                                        ),
+                                        ],
                                       ),
-                                    )
-                                  : TextFormField(
-                                      controller:
-                                          _fireDateController, // 🎯 [핵심] 읽기 모드에도 컨트롤러를 명확히 선언해 주어 화면 고정 조회를 연동합니다.
-                                      readOnly: true,
-                                      style: const TextStyle(
-                                          fontSize: 14, color: Colors.black),
-                                      decoration: InputDecoration(
-                                          isDense: true,
-                                          filled: true,
-                                          fillColor: Colors.grey.shade50,
-                                          border: const OutlineInputBorder(
-                                              borderSide: BorderSide(
-                                                  color: Colors.transparent)),
-                                          contentPadding:
-                                              const EdgeInsets.symmetric(
-                                                  horizontal: 12,
-                                                  vertical: 12)),
-                                    )),
+                                    ),
+                                  )
+                                : TextFormField(
+                                    controller: _fireDateController,
+                                    readOnly: true,
+                                    style: const TextStyle(
+                                        fontSize: 14, color: Colors.black),
+                                    decoration: InputDecoration(
+                                      isDense: true,
+                                      filled: true,
+                                      fillColor: Colors.grey.shade50,
+                                      border: const OutlineInputBorder(
+                                        borderSide: BorderSide(
+                                            color: Colors.transparent),
+                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                              horizontal: 12, vertical: 12),
+                                    ),
+                                  ),
+                          )
                         ],
                       ),
                     ),
