@@ -217,6 +217,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
     if (_dateRange == null && _buttonLabel == "본인") {
       await _loadMyLeavePeriod();
     }
+    if (!mounted) return;
     final initial = _displayRange;
 
     final picked = await showDialog<DateTimeRange>(
