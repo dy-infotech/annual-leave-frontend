@@ -70,25 +70,23 @@ class DashboardProvider extends ChangeNotifier {
 
           final prefs = await SharedPreferences.getInstance();
           final registeredToken = prefs.getString(fcmTokenKey);
-          if (registeredToken == token) {
-            return;
+          if (registeredToken != token) {
+            final deviceOs = kIsWeb
+                ? "Web"
+                : Platform.isAndroid
+                    ? "Android"
+                    : Platform.isIOS
+                        ? "iOS"
+                        : "Unknown";
+            await _apiClient.dio.post(
+              '/api/admin/auth/sync-fcm-token',
+              data: SyncFcmTokenRequest(
+                fcmToken: token,
+                deviceOs: deviceOs,
+              ).toJson(),
+            );
+            await prefs.setString(fcmTokenKey, token);
           }
-
-          final deviceOs = kIsWeb
-              ? "Web"
-              : Platform.isAndroid
-                  ? "Android"
-                  : Platform.isIOS
-                      ? "iOS"
-                      : "Unknown";
-          await _apiClient.dio.post(
-            '/api/admin/auth/sync-fcm-token',
-            data: SyncFcmTokenRequest(
-              fcmToken: token,
-              deviceOs: deviceOs,
-            ).toJson(),
-          );
-          await prefs.setString(fcmTokenKey, token);
         } on PlatformException catch (e) {
           // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
           if (e.code == 'permission-blocked' ||
