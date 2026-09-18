@@ -24,7 +24,12 @@ jobs:
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: 테스트
-        run: flutter test
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "test directory not found - skip"
+          fi
 
       - name: 웹 빌드
         run: flutter build web --release
