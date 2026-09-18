@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import '../models/auth_models.dart';
 import '../models/employee.dart';
@@ -33,8 +34,14 @@ class AuthProvider extends ChangeNotifier {
     try {
       _isLoggedIn = true;
       await fetchMyInfo();
+    } on DioException catch (e) {
+      // 저장된 JWT가 만료됐거나 권한이 없는 경우에만 JWT를 지운다.
+      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+        await _apiClient.clearToken();
+      }
+      _isLoggedIn = false;
+      notifyListeners();
     } catch (e) {
-      // 저장된 JWT가 만료됐거나 서버 응답 실패 시, JWT를 지우고 로그인 안 된 상태로 되돌려서 다시 로그인하도록 유도
       await _apiClient.clearToken();
       _isLoggedIn = false;
       notifyListeners();

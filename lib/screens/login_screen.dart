@@ -53,15 +53,21 @@ class _LoginScreenState extends State<LoginScreen> {
   // 💾 로컬 저장소에서 계정 정보(사번 + 비밀번호) 불러오기
   Future<void> _loadSavedAccountInfo() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() async {
-      _isRememberMe = prefs.getBool('isRememberMe') ?? false;
+    final isRememberMe = prefs.getBool('isRememberMe') ?? false;
+    String savedPassword = '';
+    if (isRememberMe) {
+      // 암호화 공간에서 비밀번호 꺼내오기
+      savedPassword = await _secureStorage.read(key: 'savedPassword') ?? '';
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isRememberMe = isRememberMe;
       if (_isRememberMe) {
         // 일반 설정에서 사번 로드
         _employeeNumberController.text =
             prefs.getString('savedEmployeeNumber') ?? '';
-        // 암호화 공간에서 비밀번호 꺼내오기
-        final savedPassword =
-            await _secureStorage.read(key: 'savedPassword') ?? '';
         _passwordController.text = savedPassword;
       }
     });
