@@ -16,8 +16,14 @@ import 'leave_request_detail_screen.dart';
 class AllLeaveRequestsScreen extends StatefulWidget {
   final String? status;
   final String? filter;
+  final DateTimeRange? initialDateRange;
 
-  const AllLeaveRequestsScreen({super.key, this.status, this.filter});
+  const AllLeaveRequestsScreen({
+    super.key,
+    this.status,
+    this.filter,
+    this.initialDateRange,
+  });
 
   @override
   State<AllLeaveRequestsScreen> createState() => _AllLeaveRequestsScreenState();
@@ -29,6 +35,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   bool _isLoading = true;
   String? _statusFilter; // null = 전체
   DateTimeRange? _dateRange;
+  DateTimeRange? _myLeavePeriod;
   String _buttonLabel = '전체'; //로드 시 기본 버튼 라벨
   final Set<int> _processingIds = {};
   // 오늘 날짜 구하기
@@ -40,16 +47,36 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   void initState() {
     super.initState();
 
-    if (widget.status != null) {
-      _statusFilter = widget.status;
-
-      if (widget.filter != null) {
-        _buttonLabel = widget.filter! == 'my' ? "본인" : "전체";
-      }
-      _setFilter(widget.status);
+    _statusFilter = widget.status;
+    if (widget.filter != null) {
+      _buttonLabel = widget.filter! == 'my' ? "본인" : "전체";
     }
+    _myLeavePeriod = widget.initialDateRange;
 
     _fetch();
+  }
+
+  DateTimeRange _calendarYearRange() {
+    final year = _today.year;
+    return DateTimeRange(
+      start: DateTime(year, 1, 1),
+      end: DateTime(year, 12, 31),
+    );
+  }
+
+  DateTimeRange get _displayRange =>
+      _dateRange ??
+      (_buttonLabel == "본인" ? _myLeavePeriod : null) ??
+      _calendarYearRange();
+
+  Future<void> _loadMyLeavePeriod() async {
+    if (_myLeavePeriod != null) return;
+
+    final response = await ApiClient().dio.get('/api/leave-requests/my/period');
+    _myLeavePeriod = DateTimeRange(
+      start: DateTime.parse(response.data['startDate']),
+      end: DateTime.parse(response.data['endDate']),
+    );
   }
 
   Future<void> _fetch() async {
@@ -60,16 +87,13 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
         queryParams['status'] = _statusFilter;
       }
 
-      // 기본 당해년도 조회 날짜 세팅
-      // 오늘 날짜가 속한 연도 구하기
-      int year = _today.year;
+      if (_dateRange == null && _buttonLabel == "본인") {
+        await _loadMyLeavePeriod();
+      }
+      final effectiveRange = _displayRange;
 
-      // 그 연도의 1월 1일 날짜 만들기
-      DateTime firstDayOfYear = DateTime(year, 1, 1);
-      DateTime lastDayOfYear = DateTime(year, 12, 31);
-
-      queryParams['startDate'] = _formatDate(firstDayOfYear);
-      queryParams['endDate'] = _formatDate(lastDayOfYear);
+      queryParams['startDate'] = _formatDate(effectiveRange.start);
+      queryParams['endDate'] = _formatDate(effectiveRange.end);
 
       // 사용자가 입력한 검색창 텍스트를 'searchEmployeeParam'이라는 이름으로 백엔드에 전송합니다.
       if (_searchParamController.text.trim().isNotEmpty) {
@@ -190,12 +214,10 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
 
   Future<void> _pickDateRange() async {
-    final year = _today.year;
-    final initial = _dateRange ??
-        DateTimeRange(
-          start: DateTime(year, 1, 1),
-          end: DateTime(year, 12, 31),
-        );
+    if (_dateRange == null && _buttonLabel == "본인") {
+      await _loadMyLeavePeriod();
+    }
+    final initial = _displayRange;
 
     final picked = await showDialog<DateTimeRange>(
       context: context,
@@ -450,15 +472,15 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             ), // Padding 끝
           ), // SizedBox 끝
 
-          if (_dateRange != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                      '${_formatDate(_dateRange!.start)} - ${_formatDate(_dateRange!.end)}',
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textMuted)),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Row(
+              children: [
+                Text(
+                    '${_formatDate(_displayRange.start)} - ${_formatDate(_displayRange.end)}',
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textMuted)),
+                if (_dateRange != null) ...[
                   const SizedBox(width: 6),
                   InkWell(
                     onTap: () {
@@ -472,8 +494,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                             fontWeight: FontWeight.w600)),
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
           Padding(
             padding:
                 const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
