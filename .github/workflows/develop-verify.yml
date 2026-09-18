@@ -1,0 +1,17 @@
+name: Develop Verify
+
+on:
+  push:
+    branches: [develop_v1.0]
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter build web --release
