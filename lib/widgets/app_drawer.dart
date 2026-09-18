@@ -143,6 +143,7 @@ class AppDrawer extends StatelessWidget {
                 final dashboardProvider = context.read<DashboardProvider>();
                 final authProvider = context.read<AuthProvider>();
 
+                await dashboardProvider.unregisterFcmToken();
                 await dashboardProvider.closeSubscription();
                 await authProvider.logout();
 

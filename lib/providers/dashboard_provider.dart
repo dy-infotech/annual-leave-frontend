@@ -138,8 +138,35 @@ class DashboardProvider extends ChangeNotifier {
           //   );
           // }
         }
+      } else {
+        await unregisterFcmToken();
       }
     }
+  }
+
+  Future<void> unregisterFcmToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final registeredToken = prefs.getString(fcmTokenKey);
+    if (registeredToken == null || registeredToken.isEmpty) {
+      return;
+    }
+
+    try {
+      await _apiClient.dio.post(
+        '/api/auth/logout',
+        data: {'fcmToken': registeredToken},
+      );
+    } catch (e) {
+      debugPrint('FCM 서버 토큰 정리 실패: $e');
+    }
+
+    try {
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (e) {
+      debugPrint('FCM 클라이언트 토큰 폐기 실패: $e');
+    }
+
+    await prefs.remove(fcmTokenKey);
   }
 
   Future<void> closeSubscription() async {
