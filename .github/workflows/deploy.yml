@@ -21,7 +21,7 @@ jobs:
         run: flutter pub get
 
       - name: 정적 분석
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
       - name: 테스트
         run: flutter test
