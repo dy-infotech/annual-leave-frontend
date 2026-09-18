@@ -116,7 +116,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 context,
                 MaterialPageRoute(
                     builder: (context) => AllLeaveRequestsScreen(
-                        status: 'PENDING', filter: 'my')),
+                        status: 'PENDING', filter: 'my', initialDateRange: DateTimeRange(start: data.myLeavePeriod.startDate, end: data.myLeavePeriod.endDate))),
               );
             },
           ),
@@ -130,7 +130,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 context,
                 MaterialPageRoute(
                     builder: (context) => AllLeaveRequestsScreen(
-                        status: 'APPROVED', filter: 'my')),
+                        status: 'APPROVED', filter: 'my', initialDateRange: DateTimeRange(start: data.myLeavePeriod.startDate, end: data.myLeavePeriod.endDate))),
               );
             },
           ),
@@ -144,7 +144,7 @@ class _DashboardScreenState extends State<DashboardScreen> with RouteAware {
                 context,
                 MaterialPageRoute(
                     builder: (context) => AllLeaveRequestsScreen(
-                        status: 'REJECTED', filter: 'my')),
+                        status: 'REJECTED', filter: 'my', initialDateRange: DateTimeRange(start: data.myLeavePeriod.startDate, end: data.myLeavePeriod.endDate))),
               );
             },
           ),
