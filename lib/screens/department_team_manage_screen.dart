@@ -184,6 +184,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (saved != true) return;
     _showSnackBar(department == null ? '부서가 등록되었습니다.' : '부서 이름이 변경되었습니다.');
+    // 부서 이름은 팀 카드에도 표시되므로 두 목록을 함께 갱신한다.
     // 실제 목록/내 정보 갱신은 저장 성공 직후 부모 mutation에서 처리한다.
   }
 
