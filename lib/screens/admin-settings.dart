@@ -349,7 +349,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   }
 
   Map<String, dynamic> _roleSwapBody(
-      Employee employee, Set<String> changedTeams) {
+      Employee employee, List<String> managedTeams) {
     return {
       'name': employee.name,
       'email': employee.email ?? '',
@@ -358,7 +358,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       'position': employee.position,
       'hireDate': employee.hireDate,
       'fireDate': employee.fireDate,
-      'targetTeamsForRoleSwap': changedTeams.toList(),
+      // 변경 목록(toggle)이 아니라 현재 화면의 최종 관리팀 상태를 전송한다.
+      // 동일 요청이 재전송되어도 Backend desired-state PUT이 같은 결과로 수렴한다.
+      'managedTeams': managedTeams,
     };
   }
 
@@ -372,13 +374,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       return;
     }
 
-    final changedTeams = Set<String>.from(_changedTeams);
+    final managedTeams = List<String>.from(_managedTeams);
     setState(() => _isLoading = true);
 
     try {
       await ApiClient().dio.put(
         '/api/admin/employees/${employee.employeeNumber}',
-        data: _roleSwapBody(employee, changedTeams),
+        data: _roleSwapBody(employee, managedTeams),
       );
 
       /* ScaffoldMessenger.of(context).showSnackBar(
