@@ -341,6 +341,13 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     });
   }
 
+  bool _isAmbiguousWriteFailure(DioException error) {
+    final statusCode = error.response?.statusCode;
+    return error.response == null ||
+        statusCode == 408 ||
+        (statusCode != null && statusCode >= 500);
+  }
+
   Map<String, dynamic> _roleSwapBody(
       Employee employee, Set<String> changedTeams) {
     return {
@@ -391,7 +398,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       }
     } on DioException catch (e) {
       if (!mounted) return;
-      final resultUnknown = e.response == null;
+      final resultUnknown = _isAmbiguousWriteFailure(e);
       if (resultUnknown) {
         setState(() => _needsReconcile = true);
       }
