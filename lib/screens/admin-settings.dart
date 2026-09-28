@@ -58,6 +58,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       final previousNumber = _selectedEmployee?.employeeNumber;
       Employee? selected;
       if (fetched.isNotEmpty) {
+        // 기본 첫 사원 자동 선택
         selected = previousNumber == null
             ? fetched.first
             : fetched.firstWhere(
@@ -107,7 +108,9 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         }
       }
 
-      // v2에서는 팀명이 UNIQUE이므로 표시용 가짜 이름을 만들지 않고 원본 이름을 그대로 사용한다.
+      // 🎯 [핵심] DB 중복 이름 방어: 동일한 이름이 있으면 "대표이사 (1)", "대표이사 (2)" 형태로 유니크하게 변환
+      // 첫 번째는 깔끔하게 원본 이름 유지 (또는 일괄적으로 '팀명 (1)' 형식을 맞춰도 됨)
+      // v2에서는 팀명이 UNIQUE이므로 위 legacy 표시 변환을 적용하지 않고 원본 이름을 그대로 사용한다.
       final List<String> allTeams = rawAllTeams.toSet().toList();
 
       // 🎯 1. 사용자의 권한 역할(Role) 파싱
@@ -115,6 +118,10 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
       final bool isAdmin = currentRole == 'ADMIN' || currentRole == 'MANAGER';
 
       // 🎯 2. 관리자('ADMIN')인 경우 사원의 teamList 매핑 구성
+      // 사원 정보에 들어있는 원본 팀명 목록들
+      // 사원이 가진 원본 이름을 위에서 만든 고유 변환 이름 목록(uniqueAllTeams)과 매핑하여 순서대로 할당
+      // 이를 통해 DB에 중복 저장된 이름 개수만큼 순서대로 관리팀에 채워 넣습니다.
+      // uniqueAllTeams 중에서 해당 원본 이름으로 시작하는 유니크 이름을 찾아서 추가
       final managedTeamNames =
           isAdmin ? (selected.teamList ?? const <String>[]).toSet() : <String>{};
 
@@ -128,6 +135,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         // 🎯 3. 최종 할당 및 중복 없는 필터링
         _managedTeams =
             allTeams.where((team) => managedTeamNames.contains(team)).toList();
+
+        // 고유 문자열 구조이므로 이제 명확하게 걸러집니다.
         _generalTeams =
             allTeams.where((team) => !managedTeamNames.contains(team)).toList();
 
@@ -365,6 +374,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         data: _roleSwapBody(employee, changedTeams),
       );
 
+      /* ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
+      ); */
+      // 기존에는 _fetchEmployees(); // 완료 후 리스트 리프레시를 통해 동기화
+      // 를 호출했지만 현재는 선택 직원을 유지한 채 서버 상태를 재조회한다.
       final reloaded =
           await _reloadSelectedFromServer(employee.employeeNumber);
       if (!reloaded && mounted) {
