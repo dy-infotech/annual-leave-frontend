@@ -939,20 +939,6 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
     super.dispose();
   }
 
-  String _newCreateIdempotencyKey() {
-    final random = Random.secure();
-    return List<int>.generate(32, (_) => random.nextInt(256))
-        .map((value) => value.toRadixString(16).padLeft(2, '0'))
-        .join();
-  }
-
-  String _createSignature(_TeamFormData data) {
-    return '${data.teamName.length}:${data.teamName}'
-        '|${data.departmentId}'
-        '|${data.parentTeamId}'
-        '|${data.managerId}';
-  }
-
   Future<void> _submit() async {
     if (_isSaving) return;
     final name = _controller.text.trim();
@@ -1066,6 +1052,20 @@ class _TeamFormSheet extends StatefulWidget {
 }
 
 class _TeamFormSheetState extends State<_TeamFormSheet> {
+  String _newCreateIdempotencyKey() {
+    final random = Random.secure();
+    return List<int>.generate(32, (_) => random.nextInt(256))
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  String _createSignature(_TeamFormData data) {
+    return '${data.teamName.length}:${data.teamName}'
+        '|${data.departmentId}'
+        '|${data.parentTeamId}'
+        '|${data.managerId}';
+  }
+
   /// '상위 팀 미지정(대표이사 팀 직속)'을 나타내는 드롭다운 값.
   static const int _kNoParent = -1;
 
