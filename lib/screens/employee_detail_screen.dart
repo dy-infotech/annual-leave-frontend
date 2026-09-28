@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
 import 'package:annual_leave_frontend/models/auth_models.dart';
@@ -53,6 +54,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   String? _formatDate;
 
   RoleType? _selectedManagerYn = RoleType.employee; //선택된 관리자여부
+  late Map<String, dynamic> _expectedEmployeeState;
+
   @override
   void initState() {
     super.initState();
@@ -89,6 +92,7 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     _selectedPosition = widget.employee.position;
     _selectedTeam = widget.employee.team;
     _selectedRole = (widget.employee.role == 'ADMIN') ? '관리자' : '멤버';
+    _expectedEmployeeState = _employeeStateFromModel(widget.employee);
 
     // 🎯 기존 입사일 파싱 양식 및 변수명 원본 유지
     if (widget.employee.hireDate != null) {
@@ -128,6 +132,69 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     _passwordController.dispose();
     _otherTeamController.dispose();
     super.dispose();
+  }
+
+  String? _normalizeApiDate(String? raw) {
+    if (raw == null || raw.trim().isEmpty) return null;
+    final value = raw.trim();
+    return value.contains('T') ? value.split('T')[0] : value;
+  }
+
+  Map<String, dynamic> _employeeStateFromModel(Employee employee) {
+    return {
+      'name': employee.name,
+      'email': employee.email,
+      'department': employee.department,
+      'team': employee.team,
+      'position': employee.position,
+      'hireDate': _normalizeApiDate(employee.hireDate),
+      'fireDate': _normalizeApiDate(employee.fireDate),
+    };
+  }
+
+  void _applyServerEmployee(Employee employee) {
+    final hireDate = _normalizeApiDate(employee.hireDate);
+    final fireDate = _normalizeApiDate(employee.fireDate);
+
+    _nameController.text = employee.name;
+    _emailController.text = employee.email ?? '';
+    _hireDateController.text = hireDate == null
+        ? ''
+        : DateFormat('yyyy.MM.dd').format(DateTime.parse(hireDate));
+    _fireDateController.text = fireDate == null
+        ? ''
+        : DateFormat('yyyy.MM.dd').format(DateTime.parse(fireDate));
+    _selectedDepartment = employee.department;
+    _selectedTeam = employee.team;
+    _selectedPosition = employee.position;
+    _selectedRole = (employee.role == 'ADMIN') ? '관리자' : '멤버';
+    _selectedHireDate = hireDate == null ? null : DateTime.parse(hireDate);
+    _selectedFireDate = fireDate == null ? null : DateTime.parse(fireDate);
+    _expectedEmployeeState = _employeeStateFromModel(employee);
+  }
+
+  Future<bool> _reloadEmployeeFromServer() async {
+    try {
+      final response = await ApiClient().dio.get(
+        '/api/admin/employees/all',
+        queryParameters: {'searchParam': widget.employee.employeeNumber},
+      );
+      final employees = (response.data as List)
+          .map((json) => Employee.fromJson(json))
+          .where((employee) =>
+              employee.employeeNumber == widget.employee.employeeNumber)
+          .toList();
+      if (employees.isEmpty || !mounted) return false;
+
+      setState(() {
+        _applyServerEmployee(employees.first);
+        _isEditing = false;
+      });
+      return true;
+    } catch (e) {
+      debugPrint('❌ [사원 최신 상태 재조회 실패]: $e');
+      return false;
+    }
   }
 
   Future<void> _fetchCommonData() async {
@@ -224,31 +291,36 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
       print(
           '🚀 [API 전송 시작] hireDate: "$formattedHireDate", fireDate: "$formattedFireDate"');
 
+      final desiredState = {
+        'name': _nameController.text.trim(),
+        'email': _emailController.text.trim(),
+        'department': _selectedDepartment,
+        'team': finalTeam,
+        'position': _selectedPosition,
+        'hireDate':
+            formattedHireDate.isNotEmpty && formattedHireDate.length == 10
+                ? formattedHireDate
+                : null,
+        'fireDate':
+            formattedFireDate.isNotEmpty && formattedFireDate.length == 10
+                ? formattedFireDate
+                : null,
+      };
+
       final response = // 💾 _saveChanges() 함수 내부의 API 전송 객체 영역 최종 방어벽 구축
           // 💾 _saveChanges() 함수 내부의 API 전송 객체 영역 최종 덮어쓰기
           await ApiClient().dio.put(
         '/api/admin/employees/${widget.employee.employeeNumber}',
         data: {
-          'name': _nameController.text.trim(),
-          'email': _emailController.text.trim(),
+          'expected': _expectedEmployeeState,
+          ...desiredState,
           'password': _passwordController.text.trim().isEmpty
               ? null
               : _passwordController.text.trim(),
-          'department': _selectedDepartment,
-          'team': finalTeam,
-          'position': _selectedPosition,
           'role': roleCode,
 
-          'hireDate':
-              formattedHireDate.isNotEmpty && formattedHireDate.length == 10
-                  ? formattedHireDate
-                  : null,
-
 // TO-BE (수정 후)
-          'fireDate':
-              formattedFireDate.isNotEmpty && formattedFireDate.length == 10
-                  ? formattedFireDate
-                  : null, // 👈 백엔드로 null을 정직하게 보냅니다.
+          // hireDate/fireDate는 desiredState에 포함해 전송합니다.
           'firedDate':
               formattedFireDate.isNotEmpty && formattedFireDate.length == 10
                   ? formattedFireDate
@@ -270,6 +342,8 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           );
 
           setState(() {
+            _expectedEmployeeState =
+                Map<String, dynamic>.from(desiredState);
             _isEditing = false; // 읽기 전용 폼 잠금 활성화
             _passwordController.clear();
 
@@ -284,6 +358,30 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
             _selectedTeam = _selectedTeam;
             _selectedPosition = _selectedPosition;
           });
+        }
+      }
+    } on DioException catch (e) {
+      print('❌ [API 호출 에러]: $e');
+      if (!mounted) return;
+
+      final statusCode = e.response?.statusCode;
+      final staleConflict = statusCode == 409;
+      final ambiguous = e.response == null ||
+          statusCode == 408 ||
+          (statusCode != null && statusCode >= 500);
+
+      if (staleConflict || ambiguous) {
+        final reloaded = await _reloadEmployeeFromServer();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(reloaded
+                  ? (staleConflict
+                      ? '다른 변경이 먼저 반영되어 최신 사원 정보를 다시 불러왔습니다.'
+                      : '저장 결과가 불명확해 서버의 현재 사원 정보를 다시 불러왔습니다.')
+                  : '최신 사원 정보를 다시 불러오지 못했습니다. 화면을 다시 열어 주세요.'),
+            ),
+          );
         }
       }
     } catch (e) {
