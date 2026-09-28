@@ -18,6 +18,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   List<String> _generalTeams = []; // 중앙: 일반 팀 목록
   List<String> _managedTeams = []; // 우측: 관리자 팀 목록
+  Set<String> _expectedManagedTeams = {}; // 마지막 서버 조회 시점의 관리 팀 상태
   Set<String> _changedTeams = {}; // 변경된 팀 목록 추적
 
   String? _selectedGeneralTeam; // 선택된 일반 팀
@@ -135,6 +136,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         // 🎯 3. 최종 할당 및 중복 없는 필터링
         _managedTeams =
             allTeams.where((team) => managedTeamNames.contains(team)).toList();
+        _expectedManagedTeams = Set<String>.from(_managedTeams);
 
         // 고유 문자열 구조이므로 이제 명확하게 걸러집니다.
         _generalTeams =
@@ -177,6 +179,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     setState(() {
       _selectedEmployee = next;
       _changedTeams.clear();
+      _expectedManagedTeams.clear();
       _generalTeams = [];
       _managedTeams = [];
       _selectedGeneralTeam = null;
@@ -348,18 +351,11 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         (statusCode != null && statusCode >= 500);
   }
 
-  Map<String, dynamic> _roleSwapBody(
-      Employee employee, List<String> managedTeams) {
+  Map<String, dynamic> _managedTeamsBody(List<String> managedTeams) {
     return {
-      'name': employee.name,
-      'email': employee.email ?? '',
-      'department': employee.department,
-      'team': employee.team,
-      'position': employee.position,
-      'hireDate': employee.hireDate,
-      'fireDate': employee.fireDate,
-      // 변경 목록(toggle)이 아니라 현재 화면의 최종 관리팀 상태를 전송한다.
-      // 동일 요청이 재전송되어도 Backend desired-state PUT이 같은 결과로 수렴한다.
+      // 화면이 마지막으로 읽은 상태와 현재 원하는 최종 상태를 함께 보내
+      // Backend가 stale 동시 편집을 409로 차단하고 동일 재요청은 no-op 성공시킨다.
+      'expectedManagedTeams': _expectedManagedTeams.toList(),
       'managedTeams': managedTeams,
     };
   }
@@ -379,8 +375,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
     try {
       await ApiClient().dio.put(
-        '/api/admin/employees/${employee.employeeNumber}',
-        data: _roleSwapBody(employee, managedTeams),
+        '/api/admin/employees/${employee.employeeNumber}/managed-teams',
+        data: _managedTeamsBody(managedTeams),
       );
 
       /* ScaffoldMessenger.of(context).showSnackBar(
@@ -401,14 +397,17 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     } on DioException catch (e) {
       if (!mounted) return;
       final resultUnknown = _isAmbiguousWriteFailure(e);
-      if (resultUnknown) {
+      final staleConflict = e.response?.statusCode == 409;
+      if (resultUnknown || staleConflict) {
         setState(() => _needsReconcile = true);
       }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(resultUnknown
-              ? '저장 결과를 확인하지 못했습니다. 서버 상태를 재조회한 뒤 다시 편집해 주세요.'
-              : (e.message ?? '저장 중 오류가 발생했습니다.')),
+          content: Text(staleConflict
+              ? '다른 변경이 먼저 반영되었습니다. 서버 상태를 다시 조회한 뒤 편집해 주세요.'
+              : resultUnknown
+                  ? '저장 결과를 확인하지 못했습니다. 서버 상태를 재조회한 뒤 다시 편집해 주세요.'
+                  : (e.message ?? '저장 중 오류가 발생했습니다.')),
         ),
       );
     } catch (e) {
