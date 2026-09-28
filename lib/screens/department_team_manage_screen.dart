@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/department_team_models.dart';
 import '../models/employee.dart';
+import '../providers/auth_provider.dart';
 import '../services/department_team_api.dart';
 import '../theme/app_theme.dart';
 import '../widgets/app_drawer.dart';
@@ -42,6 +44,8 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   bool _isTeamLoading = false;
   String? _deptError;
   String? _teamError;
+  int _deptRequestSeq = 0;
+  int _teamRequestSeq = 0;
 
   /// 팀 탭의 부서 필터. null 이면 전체.
   int? _teamFilterDeptId;
@@ -75,6 +79,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   // 1. 부서 목록 조회
   Future<void> _fetchDepartments() async {
     if (!mounted) return;
+    final seq = ++_deptRequestSeq;
     setState(() {
       _isDeptLoading = true;
       _deptError = null;
@@ -82,20 +87,23 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
     try {
       final fetched = await _api.fetchDepartments();
-      if (!mounted) return;
+      if (!mounted || seq != _deptRequestSeq) return;
       setState(() => _departments = fetched);
     } catch (e) {
       debugPrint('부서 목록 조회 실패: $e');
-      if (!mounted) return;
+      if (!mounted || seq != _deptRequestSeq) return;
       setState(() => _deptError = _messageOf(e, '부서 목록을 불러오지 못했습니다.'));
     } finally {
-      if (mounted) setState(() => _isDeptLoading = false);
+      if (mounted && seq == _deptRequestSeq) {
+        setState(() => _isDeptLoading = false);
+      }
     }
   }
 
   // 2. 팀 목록 조회
   Future<void> _fetchTeams() async {
     if (!mounted) return;
+    final seq = ++_teamRequestSeq;
     setState(() {
       _isTeamLoading = true;
       _teamError = null;
@@ -103,7 +111,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
     try {
       final fetched = await _api.fetchTeams();
-      if (!mounted) return;
+      if (!mounted || seq != _teamRequestSeq) return;
       setState(() {
         _teams = fetched;
         // 필터로 걸어둔 부서가 사라졌으면 전체로 되돌린다.
@@ -114,10 +122,12 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
       });
     } catch (e) {
       debugPrint('팀 목록 조회 실패: $e');
-      if (!mounted) return;
+      if (!mounted || seq != _teamRequestSeq) return;
       setState(() => _teamError = _messageOf(e, '팀 목록을 불러오지 못했습니다.'));
     } finally {
-      if (mounted) setState(() => _isTeamLoading = false);
+      if (mounted && seq == _teamRequestSeq) {
+        setState(() => _isTeamLoading = false);
+      }
     }
   }
 
@@ -134,16 +144,28 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   List<Team> _teamsOfDepartment(int departmentId) =>
       _teams.where((t) => t.departmentId == departmentId).toList();
 
+  Future<void> _refreshAfterOrganizationWrite(AuthProvider authProvider) async {
+    await _refreshAll();
+    try {
+      await authProvider.fetchMyInfo();
+    } catch (e) {
+      debugPrint('조직 변경 후 내 정보 갱신 실패: $e');
+      _showSnackBar('변경은 저장됐지만 내 정보 갱신에 실패했습니다. 다시 조회해 주세요.');
+    }
+  }
+
   // ---------------------------------------------------------------- 부서 저장/삭제
 
   /// 부서 등록/이름 변경. 성공 시 null, 실패 시 시트에 보여줄 메시지를 반환한다.
   Future<String?> _submitDepartment(Department? origin, String name) async {
+    final authProvider = context.read<AuthProvider>();
     try {
       if (origin == null) {
         await _api.createDepartment(name);
       } else {
         await _api.updateDepartment(origin.departmentId, name);
       }
+      await _refreshAfterOrganizationWrite(authProvider);
       return null;
     } catch (e) {
       debugPrint('부서 저장 실패: $e');
@@ -162,8 +184,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (saved != true) return;
     _showSnackBar(department == null ? '부서가 등록되었습니다.' : '부서 이름이 변경되었습니다.');
-    // 부서 이름은 팀 카드에도 표시되므로 두 목록을 함께 갱신한다.
-    await _refreshAll();
+    // 실제 목록/내 정보 갱신은 저장 성공 직후 부모 mutation에서 처리한다.
   }
 
   // 4. 부서 삭제
@@ -178,10 +199,11 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (!confirmed) return;
 
+    final authProvider = context.read<AuthProvider>();
     try {
       await _api.deleteDepartment(dept.departmentId);
+      await _refreshAfterOrganizationWrite(authProvider);
       _showSnackBar('부서가 삭제되었습니다.');
-      await _refreshAll();
     } catch (e) {
       debugPrint('부서 삭제 실패: $e');
       _showSnackBar(_messageOf(e, '부서 삭제에 실패했습니다.'));
@@ -192,6 +214,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
 
   /// 팀 등록. 성공 시 null, 실패 시 시트에 보여줄 메시지를 반환한다.
   Future<String?> _submitTeamCreate(_TeamFormData data) async {
+    final authProvider = context.read<AuthProvider>();
     try {
       await _api.createTeam(TeamCreateRequest(
         teamName: data.teamName,
@@ -199,6 +222,7 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
         departmentId: data.departmentId!,
         parentTeamId: data.parentTeamId,
       ));
+      await _refreshAfterOrganizationWrite(authProvider);
       return null;
     } catch (e) {
       debugPrint('팀 등록 실패: $e');
@@ -220,8 +244,10 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (request.isEmpty) return null;
 
+    final authProvider = context.read<AuthProvider>();
     try {
       await _api.updateTeam(origin.teamId, request);
+      await _refreshAfterOrganizationWrite(authProvider);
       return null;
     } catch (e) {
       debugPrint('팀 수정 실패: $e');
@@ -248,7 +274,6 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (saved != true) return;
     _showSnackBar(team == null ? '팀이 등록되었습니다.' : '팀이 수정되었습니다.');
-    await _refreshAll();
   }
 
   // 6. 팀 삭제
@@ -260,10 +285,11 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     );
     if (!confirmed) return;
 
+    final authProvider = context.read<AuthProvider>();
     try {
       await _api.deleteTeam(team.teamId);
+      await _refreshAfterOrganizationWrite(authProvider);
       _showSnackBar('팀이 삭제되었습니다.');
-      await _refreshAll();
     } catch (e) {
       debugPrint('팀 삭제 실패: $e');
       _showSnackBar(_messageOf(e, '팀 삭제에 실패했습니다.'));
@@ -276,6 +302,8 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
     return showModalBottomSheet<T>(
       context: context,
       isScrollControlled: true,
+      isDismissible: false,
+      enableDrag: false,
       backgroundColor: AppColors.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -943,7 +971,10 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SheetHeader(title: _isEdit ? '부서 이름 변경' : '부서 추가'),
+            _SheetHeader(
+              title: _isEdit ? '부서 이름 변경' : '부서 추가',
+              isSaving: _isSaving,
+            ),
             const SizedBox(height: 12),
             TextField(
               controller: _controller,
@@ -1033,11 +1064,17 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
   bool get _isRootEdit => widget.team?.isRoot ?? false;
 
   /// 상위 팀 후보. 수정 시 자기 자신과 하위 팀 전체를 제외한다(서버 제약과 동일).
+  /// 담당자가 전혀 없는 팀도 결재선 상위 팀으로 사용할 수 없으므로 제외한다.
   List<Team> get _parentCandidates {
     final origin = widget.team;
-    if (origin == null) return widget.teams;
-    final excluded = _descendantIds(origin)..add(origin.teamId);
-    return widget.teams.where((t) => !excluded.contains(t.teamId)).toList();
+    final excluded =
+        origin == null ? <int>{} : (_descendantIds(origin)..add(origin.teamId));
+    return widget.teams
+        .where((team) =>
+            team.enabled &&
+            team.managers.isNotEmpty &&
+            !excluded.contains(team.teamId))
+        .toList();
   }
 
   Set<int> _descendantIds(Team root) {
@@ -1066,6 +1103,7 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     return _nameController.text.trim() != origin.teamName ||
         _departmentId != origin.departmentId ||
         (!_isRootEdit &&
+            _parentTeamId != null &&
             _parentTeamId != _kNoParent &&
             _parentTeamId != origin.parentTeamId) ||
         _pickedManager != null;
@@ -1100,6 +1138,19 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     super.dispose();
   }
 
+  bool _canSelectAsManager(Employee employee, DateTime now) {
+    if (employee.employeeId == null) return false;
+    final rawFireDate = employee.fireDate;
+    if (rawFireDate == null || rawFireDate.isEmpty) return true;
+
+    final fireDate = DateTime.tryParse(rawFireDate);
+    if (fireDate == null) return false;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final fireDay = DateTime(fireDate.year, fireDate.month, fireDate.day);
+    return !fireDay.isBefore(today);
+  }
+
   Future<void> _pickManager() async {
     final picked = await showDialog<Employee>(
       context: context,
@@ -1108,6 +1159,14 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
         excludeEmployeeNumbers: [
           if (_pickedManager != null) _pickedManager!.employeeNumber,
         ],
+        searchFn: (keyword) async {
+          final employees =
+              await DepartmentTeamApi.instance.searchEmployees(keyword);
+          final now = DateTime.now();
+          return employees
+              .where((employee) => _canSelectAsManager(employee, now))
+              .toList();
+        },
       ),
     );
     if (picked == null || !mounted) return;
@@ -1137,6 +1196,18 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     if (_pickedManager != null && _pickedManager!.employeeId == null) {
       // 사원 목록 API 가 employeeId 를 내려주지 않으면 담당자를 지정할 수 없다.
       _managerError = '사원 정보에 employeeId가 없어 담당자로 지정할 수 없습니다.';
+      hasError = true;
+    }
+    if (_pickedManager != null &&
+        !_canSelectAsManager(_pickedManager!, DateTime.now())) {
+      _managerError = '퇴사 처리된 사원은 팀 담당자로 지정할 수 없습니다.';
+      hasError = true;
+    }
+    if (_isEdit &&
+        widget.team!.managers.isEmpty &&
+        _pickedManager != null &&
+        (_parentTeamId == null || _parentTeamId == _kNoParent)) {
+      _serverError = '첫 담당자를 지정하려면 상위 팀도 선택해 주세요.';
       hasError = true;
     }
     if (hasError) {
@@ -1180,7 +1251,10 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _SheetHeader(title: _isEdit ? '팀 수정' : '팀 추가'),
+              _SheetHeader(
+                title: _isEdit ? '팀 수정' : '팀 추가',
+                isSaving: _isSaving,
+              ),
               if (_serverError != null) ...[
                 const SizedBox(height: 4),
                 _buildServerErrorBanner(),
@@ -1431,8 +1505,12 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
 /// 바텀시트 상단의 드래그 핸들 + 제목 + 닫기 버튼.
 class _SheetHeader extends StatelessWidget {
   final String title;
+  final bool isSaving;
 
-  const _SheetHeader({required this.title});
+  const _SheetHeader({
+    required this.title,
+    this.isSaving = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1461,7 +1539,7 @@ class _SheetHeader extends StatelessWidget {
             ),
             IconButton(
               tooltip: '닫기',
-              onPressed: () => Navigator.pop(context),
+              onPressed: isSaving ? null : () => Navigator.pop(context),
               icon: const Icon(Icons.close,
                   size: 20, color: AppColors.textMuted),
             ),
