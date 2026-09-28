@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import '../models/department_team_models.dart';
 import '../models/employee.dart';
 import 'api_client.dart';
@@ -50,8 +51,17 @@ class DepartmentTeamApi {
         .toList();
   }
 
-  Future<void> createTeam(TeamCreateRequest request) async {
-    await ApiClient().dio.post('/api/admin/teams', data: request.toJson());
+  Future<void> createTeam(
+    TeamCreateRequest request, {
+    String? idempotencyKey,
+  }) async {
+    await ApiClient().dio.post(
+      '/api/admin/teams',
+      data: request.toJson(),
+      options: idempotencyKey == null
+          ? null
+          : Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
   }
 
   Future<void> updateTeam(int teamId, TeamUpdateRequest request) async {
