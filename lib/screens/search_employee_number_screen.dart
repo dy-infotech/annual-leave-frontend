@@ -32,6 +32,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
   Future<void> _fetchCommonTeams() async {
     try {
       final response = await ApiClient().dio.get('/api/admin/auth/common');
+      if (!mounted) return;
       final data = response.data as Map<String, dynamic>;
       final List<String> fetchedTeams =
           List<String>.from(data['accessibleTeam'] ?? data['team'] ?? []);
@@ -114,6 +115,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
 //   }
 
   Future<void> _fetch() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final Map<String, dynamic> queryParams = {};
@@ -128,6 +130,7 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
             '/api/admin/employees/all',
             queryParameters: queryParams.isEmpty ? null : queryParams,
           );
+      if (!mounted) return;
 
       // 백엔드가 내려준 사원 리스트 수집
       final List<Employee> allFetchedItems = (response.data as List)
@@ -178,7 +181,9 @@ class _SearchEmployeeNumberScreenState extends State<SearchEmployeeNumberScreen>
       print('사원 리스트 조회 실패: $e');
     } finally {
       // 💡 스펠링 교정 완료: 에러 상황이나 정상 상황 모두 로딩을 확실히 종료합니다.
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

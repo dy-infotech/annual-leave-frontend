@@ -62,11 +62,13 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
   }
 
   Future<void> _fetch() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiClient().dio.get(
             '/api/admin/auth/common',
           );
+      if (!mounted) return;
       setState(() {
         final data = response.data as Map<String, dynamic>;
 
@@ -94,7 +96,9 @@ class _SignupManageScreenState extends State<SignupManageScreen> {
         }
       });
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

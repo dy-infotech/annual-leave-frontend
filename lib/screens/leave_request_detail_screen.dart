@@ -40,17 +40,22 @@ class _LeaveRequestDetailScreenState extends State<LeaveRequestDetailScreen> {
   }
 
   Future<void> _fetch() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response =
           await ApiClient().dio.get('/api/leave-requests/${widget.requestId}');
+      if (!mounted) return;
       setState(() {
         _detail = LeaveRequestDetail.fromJson(response.data);
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() => _errorMessage = '상세 정보를 불러오지 못했습니다.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

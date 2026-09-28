@@ -34,6 +34,7 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
   }
 
   Future<void> _fetchPendingList() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _errorMessage = null;
@@ -46,11 +47,15 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
       final list = (response.data as List)
           .map((json) => PendingLeaveRequest.fromJson(json))
           .toList();
+      if (!mounted) return;
       setState(() => _requests = list);
     } catch (e) {
+      if (!mounted) return;
       setState(() => _errorMessage = '목록을 불러오지 못했습니다.');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -129,7 +134,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     } catch (e) {
       _showSnackBar('승인 처리에 실패했습니다.');
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) {
+        setState(() => _processingIds.remove(requestId));
+      }
     }
   }
 
@@ -195,7 +202,9 @@ class _PendingApprovalScreenState extends State<PendingApprovalScreen>
     } catch (e) {
       _showSnackBar('반려 처리에 실패했습니다.');
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) {
+        setState(() => _processingIds.remove(requestId));
+      }
     }
   }
 

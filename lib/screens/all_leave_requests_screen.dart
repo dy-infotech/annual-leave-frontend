@@ -80,6 +80,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
   }
 
   Future<void> _fetch() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final queryParams = <String, dynamic>{};
@@ -89,6 +90,7 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
 
       if (_dateRange == null && _buttonLabel == "본인") {
         await _loadMyLeavePeriod();
+        if (!mounted) return;
       }
       final effectiveRange = _displayRange;
 
@@ -107,13 +109,16 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
                 : '/api/leave-requests/all',
             queryParameters: queryParams.isEmpty ? null : queryParams,
           );
+      if (!mounted) return;
       setState(() {
         _items = (response.data as List)
             .map((json) => LeaveRequestListItem.fromJson(json))
             .toList();
       });
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -206,7 +211,9 @@ class _AllLeaveRequestsScreenState extends State<AllLeaveRequestsScreen>
             .showSnackBar(const SnackBar(content: Text('취소 처리에 실패했습니다.')));
       }
     } finally {
-      setState(() => _processingIds.remove(requestId));
+      if (mounted) {
+        setState(() => _processingIds.remove(requestId));
+      }
     }
   }
 
