@@ -1,8 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/models/employee.dart';
-import 'package:annual_leave_frontend/models/auth_models.dart';
-import 'package:annual_leave_frontend/models/enums/RoleType.dart';
 import 'package:intl/intl.dart';
 import '../services/api_client.dart';
 import '../theme/app_theme.dart';
@@ -35,8 +33,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   late TextEditingController _emailController;
   late TextEditingController _hireDateController;
   late TextEditingController _fireDateController;
-  late TextEditingController _passwordController;
-  late TextEditingController _otherTeamController; // 기타 팀 선택 시 입력 컨트롤러
 
   // 등록 화면과 매칭되는 공통 기초 데이터 리스트 및 선택 상태 변수
   final List<String> _departmentList = [];
@@ -46,14 +42,10 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   String? _selectedDepartment;
   String? _selectedTeam;
   String? _selectedPosition;
-  String? _selectedRole; // 💡 권한 타입 상태 변수 (ADMIN / EMPLOYEE 등 변환 타겟)
 
   // 🎯 날짜 처리를 위한 상태 변수 균형 맞춤
   DateTime? _selectedHireDate; // 입사일 전용 변수 (기존 양식 명칭 유지)
   DateTime? _selectedFireDate; // ⭕ 퇴사일 전용 독립 상태 변수 객체 추가
-  String? _formatDate;
-
-  RoleType? _selectedManagerYn = RoleType.employee; //선택된 관리자여부
   late Map<String, dynamic> _expectedEmployeeState;
 
   @override
@@ -85,13 +77,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
           : '',
     );
 
-    _passwordController = TextEditingController();
-    _otherTeamController = TextEditingController();
-
     _selectedDepartment = widget.employee.department;
     _selectedPosition = widget.employee.position;
     _selectedTeam = widget.employee.team;
-    _selectedRole = (widget.employee.role == 'ADMIN') ? '관리자' : '멤버';
     _expectedEmployeeState = _employeeStateFromModel(widget.employee);
 
     // 🎯 기존 입사일 파싱 양식 및 변수명 원본 유지
@@ -103,7 +91,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         if (cleanHire.length == 4) cleanHire = '$cleanHire-01-01';
 
         _selectedHireDate = DateTime.parse(cleanHire);
-        _formatDate = widget.employee.hireDate;
       } catch (_) {}
     }
 
@@ -129,8 +116,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     _emailController.dispose();
     _hireDateController.dispose();
     _fireDateController.dispose(); // 🎯 퇴사일 컨트롤러 누락되었던 메모리 자원 해제 추가
-    _passwordController.dispose();
-    _otherTeamController.dispose();
     super.dispose();
   }
 
@@ -167,7 +152,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     _selectedDepartment = employee.department;
     _selectedTeam = employee.team;
     _selectedPosition = employee.position;
-    _selectedRole = (employee.role == 'ADMIN') ? '관리자' : '멤버';
     _selectedHireDate = hireDate == null ? null : DateTime.parse(hireDate);
     _selectedFireDate = fireDate == null ? null : DateTime.parse(fireDate);
     _expectedEmployeeState = _employeeStateFromModel(employee);
@@ -198,9 +182,11 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
   }
 
   Future<void> _fetchCommonData() async {
+    if (!mounted) return;
     setState(() => _isLoadingCommon = true);
     try {
       final response = await ApiClient().dio.get('/api/admin/auth/common');
+      if (!mounted) return;
       final data = response.data as Map<String, dynamic>;
 
       final List<String> fetchedDepartments =
@@ -247,7 +233,9 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
     } catch (e) {
       debugPrint('🚨 DB 공통 코드 로딩 중 에러 발생: $e');
     } finally {
-      setState(() => _isLoadingCommon = false);
+      if (mounted) {
+        setState(() => _isLoadingCommon = false);
+      }
     }
   }
 
@@ -280,7 +268,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
 
     setState(() => _isSaving = true);
     try {
-      String roleCode = (_selectedRole == '관리자') ? 'ADMIN' : 'EMPLOYEE';
       String finalTeam = _selectedTeam ?? '';
 
       String formattedHireDate =
@@ -314,23 +301,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
         data: {
           'expected': _expectedEmployeeState,
           ...desiredState,
-          'password': _passwordController.text.trim().isEmpty
-              ? null
-              : _passwordController.text.trim(),
-          'role': roleCode,
-
-// TO-BE (수정 후)
-          // hireDate/fireDate는 desiredState에 포함해 전송합니다.
-          'firedDate':
-              formattedFireDate.isNotEmpty && formattedFireDate.length == 10
-                  ? formattedFireDate
-                  : null, // 👈 대칭되는 필드도 함께 null 처리합니다.
-
-          'currTotalLeaveDays': widget.employee.currTotalLeaveDays,
-          'targetTeamForRoleSwap':
-              (_selectedRole == '관리자' || _selectedManagerYn == RoleType.admin)
-                  ? (_selectedTeam ?? '')
-                  : '',
         },
       );
 
@@ -345,7 +315,6 @@ class _EmployeeDetailScreenState extends State<EmployeeDetailScreen> {
             _expectedEmployeeState =
                 Map<String, dynamic>.from(desiredState);
             _isEditing = false; // 읽기 전용 폼 잠금 활성화
-            _passwordController.clear();
 
             // 🎯 저장 완료 후 컨트롤러 데이터를 강제로 유지시켜 즉시 조회 보장
             _nameController.text = _nameController.text.trim();

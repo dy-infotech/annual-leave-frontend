@@ -706,7 +706,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
                 locale: 'ko_KR',
                 rowHeight: 42,
                 daysOfWeekHeight: 22,
-                firstDay: DateTime(DateTime.now().year - 1, 1, 1),
+                firstDay: DateTime(DateTime.now().year, 1, 1),
                 lastDay: DateTime(DateTime.now().year, 12, 31),
                 focusedDay: _focusedDay,
                 headerStyle: const HeaderStyle(

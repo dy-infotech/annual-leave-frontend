@@ -1164,13 +1164,22 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
 
   bool _canSelectAsManager(Employee employee, DateTime now) {
     if (employee.employeeId == null) return false;
+
+    final rawHireDate = employee.hireDate;
+    if (rawHireDate == null || rawHireDate.isEmpty) return false;
+    final hireDate = DateTime.tryParse(rawHireDate);
+    if (hireDate == null) return false;
+
+    final today = DateTime(now.year, now.month, now.day);
+    final hireDay = DateTime(hireDate.year, hireDate.month, hireDate.day);
+    if (hireDay.isAfter(today)) return false;
+
     final rawFireDate = employee.fireDate;
     if (rawFireDate == null || rawFireDate.isEmpty) return true;
 
     final fireDate = DateTime.tryParse(rawFireDate);
     if (fireDate == null) return false;
 
-    final today = DateTime(now.year, now.month, now.day);
     final fireDay = DateTime(fireDate.year, fireDate.month, fireDate.day);
     return !fireDay.isBefore(today);
   }
@@ -1224,7 +1233,7 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     }
     if (_pickedManager != null &&
         !_canSelectAsManager(_pickedManager!, DateTime.now())) {
-      _managerError = '퇴사 처리된 사원은 팀 담당자로 지정할 수 없습니다.';
+      _managerError = '입사 전이거나 퇴사 처리된 사원은 팀 담당자로 지정할 수 없습니다.';
       hasError = true;
     }
     if (_isEdit &&
