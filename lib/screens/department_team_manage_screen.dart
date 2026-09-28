@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -217,12 +219,15 @@ class _DepartmentTeamManageScreenState extends State<DepartmentTeamManageScreen>
   Future<String?> _submitTeamCreate(_TeamFormData data) async {
     final authProvider = context.read<AuthProvider>();
     try {
-      await _api.createTeam(TeamCreateRequest(
-        teamName: data.teamName,
-        projectManagerId: data.managerId!,
-        departmentId: data.departmentId!,
-        parentTeamId: data.parentTeamId,
-      ));
+      await _api.createTeam(
+        TeamCreateRequest(
+          teamName: data.teamName,
+          projectManagerId: data.managerId!,
+          departmentId: data.departmentId!,
+          parentTeamId: data.parentTeamId,
+        ),
+        idempotencyKey: data.idempotencyKey,
+      );
       await _refreshAfterOrganizationWrite(authProvider);
       return null;
     } catch (e) {
@@ -934,6 +939,20 @@ class _DepartmentFormSheetState extends State<_DepartmentFormSheet> {
     super.dispose();
   }
 
+  String _newCreateIdempotencyKey() {
+    final random = Random.secure();
+    return List<int>.generate(32, (_) => random.nextInt(256))
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  String _createSignature(_TeamFormData data) {
+    return '${data.teamName.length}:${data.teamName}'
+        '|${data.departmentId}'
+        '|${data.parentTeamId}'
+        '|${data.managerId}';
+  }
+
   Future<void> _submit() async {
     if (_isSaving) return;
     final name = _controller.text.trim();
@@ -1013,12 +1032,14 @@ class _TeamFormData {
   final int? departmentId;
   final int? parentTeamId;
   final int? managerId;
+  final String? idempotencyKey;
 
   _TeamFormData({
     required this.teamName,
     this.departmentId,
     this.parentTeamId,
     this.managerId,
+    this.idempotencyKey,
   });
 }
 
@@ -1059,6 +1080,8 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
   String? _managerError;
   String? _serverError;
   bool _isSaving = false;
+  String? _createIdempotencyKey;
+  String? _createPayloadSignature;
 
   bool get _isEdit => widget.team != null;
 
@@ -1220,13 +1243,32 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
       _isSaving = true;
       _serverError = null;
     });
-    final error = await widget.onSubmit(_TeamFormData(
+    final parentTeamId =
+        _parentTeamId == _kNoParent ? null : _parentTeamId;
+    var data = _TeamFormData(
       teamName: name,
       departmentId: _departmentId,
-      parentTeamId:
-          _parentTeamId == _kNoParent ? null : _parentTeamId,
+      parentTeamId: parentTeamId,
       managerId: _pickedManager?.employeeId,
-    ));
+    );
+
+    if (!_isEdit) {
+      final signature = _createSignature(data);
+      if (_createPayloadSignature != signature ||
+          _createIdempotencyKey == null) {
+        _createPayloadSignature = signature;
+        _createIdempotencyKey = _newCreateIdempotencyKey();
+      }
+      data = _TeamFormData(
+        teamName: data.teamName,
+        departmentId: data.departmentId,
+        parentTeamId: data.parentTeamId,
+        managerId: data.managerId,
+        idempotencyKey: _createIdempotencyKey,
+      );
+    }
+
+    final error = await widget.onSubmit(data);
     if (!mounted) return;
     if (error != null) {
       setState(() {
