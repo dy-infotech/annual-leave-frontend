@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../models/employee.dart'; // 기존 Employee 모델 경로 확인
@@ -22,6 +23,8 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
   String? _selectedGeneralTeam; // 선택된 일반 팀
   String? _selectedManagedTeam; // 선택된 관리자 팀
   bool _isLoading = false;
+  bool _needsReconcile = false;
+  int _teamLoadSeq = 0;
 
   final TextEditingController _employeeInfoController =
       TextEditingController(); //사용자 이름
@@ -43,29 +46,51 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   // 1️⃣ 사원 전체 목록 로드 (왼쪽 컬럼용)
   Future<void> _fetchEmployees() async {
+    if (!mounted) return;
     setState(() => _isLoading = true);
     try {
       final response = await ApiClient().dio.get('/api/admin/employees/all');
       final List<Employee> fetched = (response.data as List)
           .map((json) => Employee.fromJson(json))
           .toList();
+
+      if (!mounted) return;
+      final previousNumber = _selectedEmployee?.employeeNumber;
+      Employee? selected;
+      if (fetched.isNotEmpty) {
+        selected = previousNumber == null
+            ? fetched.first
+            : fetched.firstWhere(
+                (employee) => employee.employeeNumber == previousNumber,
+                orElse: () => fetched.first,
+              );
+      }
+
       setState(() {
         _employees = fetched;
-        if (_employees.isNotEmpty) {
-          _selectedEmployee = _employees.first; // 기본 첫 사원 자동 선택
-          _fetchEmployeeTeams();
+        _selectedEmployee = selected;
+        if (selected != null) {
+          _employeeInfoController.text =
+              '${selected.name} ${selected.position} ${selected.employeeNumber}';
         }
       });
+
+      if (selected != null) {
+        await _fetchEmployeeTeams();
+      }
     } catch (e) {
       //  print('사원 로드 실패: $e');
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   // 2️⃣ 선택된 사원의 '일반 팀' 및 '관리자 팀' 분리 로드
-  Future<void> _fetchEmployeeTeams() async {
-    if (_selectedEmployee == null) return;
+  Future<bool> _fetchEmployeeTeams() async {
+    final selected = _selectedEmployee;
+    if (selected == null) return false;
+    final seq = ++_teamLoadSeq;
+
     try {
       // 공통 기초 데이터에서 시스템 전체의 모든 팀 목록 확보
       final commonResponse =
@@ -82,73 +107,137 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
         }
       }
 
-      // 🎯 [핵심] DB 중복 이름 방어: 동일한 이름이 있으면 "대표이사 (1)", "대표이사 (2)" 형태로 유니크하게 변환
-      final List<String> uniqueAllTeams = [];
-      final Map<String, int> nameCounter = {};
-
-      for (var originalName in rawAllTeams) {
-        if (nameCounter.containsKey(originalName)) {
-          nameCounter[originalName] = nameCounter[originalName]! + 1;
-          uniqueAllTeams.add('$originalName (${nameCounter[originalName]})');
-        } else {
-          nameCounter[originalName] = 1;
-          // 첫 번째는 깔끔하게 원본 이름 유지 (또는 일괄적으로 '팀명 (1)' 형식을 맞춰도 됨)
-          uniqueAllTeams.add(originalName);
-        }
-      }
+      // v2에서는 팀명이 UNIQUE이므로 표시용 가짜 이름을 만들지 않고 원본 이름을 그대로 사용한다.
+      final List<String> allTeams = rawAllTeams.toSet().toList();
 
       // 🎯 1. 사용자의 권한 역할(Role) 파싱
-      final String currentRole = (_selectedEmployee!.role ?? '').toUpperCase();
+      final String currentRole = (selected.role ?? '').toUpperCase();
       final bool isAdmin = currentRole == 'ADMIN' || currentRole == 'MANAGER';
 
-      final List<String> currentManaged = [];
-
       // 🎯 2. 관리자('ADMIN')인 경우 사원의 teamList 매핑 구성
-      if (isAdmin) {
-        // 사원 정보에 들어있는 원본 팀명 목록들
-        final List<String> empTeams = [];
-        if (_selectedEmployee!.teamList != null) {
-          empTeams.addAll(_selectedEmployee!.teamList!);
-        }
+      final managedTeamNames =
+          isAdmin ? (selected.teamList ?? const <String>[]).toSet() : <String>{};
 
-        // 사원이 가진 원본 이름을 위에서 만든 고유 변환 이름 목록(uniqueAllTeams)과 매핑하여 순서대로 할당
-        // 이를 통해 DB에 중복 저장된 이름 개수만큼 순서대로 관리팀에 채워 넣습니다.
-        for (var empTeamName in empTeams) {
-          // uniqueAllTeams 중에서 해당 원본 이름으로 시작하는 유니크 이름을 찾아서 추가
-          final matchedUniqueTeams = uniqueAllTeams
-              .where((uTeam) =>
-                  uTeam == empTeamName || uTeam.startsWith('$empTeamName ('))
-              .toList();
-
-          for (var matched in matchedUniqueTeams) {
-            if (!currentManaged.contains(matched)) {
-              currentManaged.add(matched);
-            }
-          }
-        }
+      if (!mounted ||
+          seq != _teamLoadSeq ||
+          _selectedEmployee?.employeeNumber != selected.employeeNumber) {
+        return false;
       }
-
-      if (!mounted) return;
 
       setState(() {
         // 🎯 3. 최종 할당 및 중복 없는 필터링
-        _managedTeams = isAdmin ? List<String>.from(currentManaged) : [];
-
-        // 고유 문자열 구조이므로 이제 명확하게 걸러집니다.
+        _managedTeams =
+            allTeams.where((team) => managedTeamNames.contains(team)).toList();
         _generalTeams =
-            uniqueAllTeams.where((t) => !_managedTeams.contains(t)).toList();
+            allTeams.where((team) => !managedTeamNames.contains(team)).toList();
 
         // 선택 상태 초기화
         _selectedGeneralTeam = null;
         _selectedManagedTeam = null;
       });
 
-      print('--- [DB 중복 방어 분리 완료] ---');
-      print('전체 고유 팀 목록: $uniqueAllTeams');
+      print('--- [팀 권한 분리 완료] ---');
+      print('전체 팀 목록: $allTeams');
       print('일반 팀 목록: $_generalTeams');
       print('관리 팀 목록: $_managedTeams');
+      return true;
     } catch (e) {
       print('팀 분리 매핑 로드 실패: $e');
+      return false;
+    }
+  }
+
+  void _selectEmployee(Employee next) {
+    if (_isLoading || _needsReconcile) return;
+    if (_selectedEmployee?.employeeNumber == next.employeeNumber) return;
+
+    if (_changedTeams.isNotEmpty) {
+      final current = _selectedEmployee;
+      if (current != null) {
+        _employeeInfoController.text =
+            '${current.name} ${current.position} ${current.employeeNumber}';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('현재 직원의 변경사항을 저장한 뒤 다른 직원을 선택해 주세요.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _selectedEmployee = next;
+      _changedTeams.clear();
+      _generalTeams = [];
+      _managedTeams = [];
+      _selectedGeneralTeam = null;
+      _selectedManagedTeam = null;
+      _employeeInfoController.text =
+          '${next.name} ${next.position} ${next.employeeNumber}';
+    });
+    _fetchEmployeeTeams();
+  }
+
+  Future<bool> _reloadSelectedFromServer(String employeeNumber) async {
+    try {
+      final response = await ApiClient().dio.get(
+        '/api/admin/employees/all',
+        queryParameters: {'searchParam': employeeNumber},
+      );
+      final fetched = (response.data as List)
+          .map((json) => Employee.fromJson(json))
+          .where((employee) => employee.employeeNumber == employeeNumber)
+          .toList();
+      if (fetched.isEmpty || !mounted) return false;
+
+      final current = fetched.first;
+      setState(() {
+        _selectedEmployee = current;
+        _employees = _employees
+            .map((employee) => employee.employeeNumber == employeeNumber
+                ? current
+                : employee)
+            .toList();
+        _generalTeams = [];
+        _managedTeams = [];
+        _selectedGeneralTeam = null;
+        _selectedManagedTeam = null;
+        _employeeInfoController.text =
+            '${current.name} ${current.position} ${current.employeeNumber}';
+      });
+
+      final teamsLoaded = await _fetchEmployeeTeams();
+      if (!teamsLoaded || !mounted) return false;
+
+      setState(() {
+        _changedTeams.clear();
+        _needsReconcile = false;
+      });
+      return true;
+    } catch (e) {
+      print('선택 직원 서버 상태 재조회 실패: $e');
+      return false;
+    }
+  }
+
+  Future<void> _reconcileSelected() async {
+    final employee = _selectedEmployee;
+    if (_isLoading || employee == null) return;
+
+    setState(() => _isLoading = true);
+    final reloaded = await _reloadSelectedFromServer(employee.employeeNumber);
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+        _needsReconcile = !reloaded;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(reloaded
+              ? '서버의 현재 상태를 다시 불러왔습니다.'
+              : '서버 상태를 불러오지 못했습니다. 다시 시도해 주세요.'),
+        ),
+      );
     }
   }
 
@@ -213,7 +302,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   // 3️⃣ [로컬 상태 변경] 일반 -> 관리자로 이동 ( > 버튼 )
   void _moveToAdmin() {
-    if (_selectedGeneralTeam == null) return;
+    if (_needsReconcile || _isLoading || _selectedGeneralTeam == null) return;
     setState(() {
       final team = _selectedGeneralTeam!;
       _generalTeams.remove(team);
@@ -229,7 +318,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
   // 4️⃣ [로컬 상태 변경] 관리자 -> 일반으로 이동 ( < 버튼 )
   void _moveToGeneral() {
-    if (_selectedManagedTeam == null) return;
+    if (_needsReconcile || _isLoading || _selectedManagedTeam == null) return;
     setState(() {
       final team = _selectedManagedTeam!;
       _managedTeams.remove(team);
@@ -243,40 +332,73 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
     });
   }
 
+  Map<String, dynamic> _roleSwapBody(
+      Employee employee, Set<String> changedTeams) {
+    return {
+      'name': employee.name,
+      'email': employee.email ?? '',
+      'department': employee.department,
+      'team': employee.team,
+      'position': employee.position,
+      'hireDate': employee.hireDate,
+      'fireDate': employee.fireDate,
+      'targetTeamsForRoleSwap': changedTeams.toList(),
+    };
+  }
+
   // 5️⃣ [서버 전송] 최하단 저장 버튼을 누를 때 한 번에 백엔드로 전송하는 함수
   Future<void> _saveChanges() async {
-    if (_selectedEmployee == null) return;
+    final employee = _selectedEmployee;
+    if (_isLoading ||
+        _needsReconcile ||
+        employee == null ||
+        _changedTeams.isEmpty) {
+      return;
+    }
+
+    final changedTeams = Set<String>.from(_changedTeams);
     setState(() => _isLoading = true);
 
     try {
-      final saveResponse = await ApiClient().dio.put(
-        '/api/admin/employees/${_selectedEmployee!.employeeNumber}',
-        data: {
-          'name': _selectedEmployee!.name,
-          'email': _selectedEmployee!.email ?? '',
-          'department': _selectedEmployee!.department,
-          'team': _selectedEmployee!.team,
-          'position': _selectedEmployee!.position,
-          'hireDate': _selectedEmployee!.hireDate,
-          'targetTeamsForRoleSwap': _changedTeams.toList(),
-        },
+      await ApiClient().dio.put(
+        '/api/admin/employees/${employee.employeeNumber}',
+        data: _roleSwapBody(employee, changedTeams),
       );
 
-      if (saveResponse.statusCode == 200 || saveResponse.statusCode == 204) {
-        /* ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('권한 설정 변경 사항이 성공적으로 저장되었습니다.')),
-        ); */
-
-        _fetchEmployees(); // 완료 후 리스트 리프레시
+      final reloaded =
+          await _reloadSelectedFromServer(employee.employeeNumber);
+      if (!reloaded && mounted) {
+        setState(() => _needsReconcile = true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('저장은 완료됐지만 최신 상태를 다시 불러오지 못했습니다. 서버 상태를 재조회해 주세요.'),
+          ),
+        );
       }
+    } on DioException catch (e) {
+      if (!mounted) return;
+      final resultUnknown = e.response == null;
+      if (resultUnknown) {
+        setState(() => _needsReconcile = true);
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resultUnknown
+              ? '저장 결과를 확인하지 못했습니다. 서버 상태를 재조회한 뒤 다시 편집해 주세요.'
+              : (e.message ?? '저장 중 오류가 발생했습니다.')),
+        ),
+      );
     } catch (e) {
       print('권한 설정 저장 실패: $e');
+      if (!mounted) return;
+      setState(() => _needsReconcile = true);
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('저장 중 오류가 발생했습니다.')),
+        const SnackBar(
+          content: Text('저장 결과를 확인하지 못했습니다. 서버 상태를 재조회한 뒤 다시 편집해 주세요.'),
+        ),
       );
     } finally {
-      _changedTeams = {};
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -369,14 +491,7 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                                         ),
                                       ],
                                     ),
-                                    onTap: () {
-                                      setState(() {
-                                        _selectedEmployee = emp;
-                                        _employeeInfoController.text =
-                                            '${emp.name} ${emp.position} ${emp.employeeNumber}';
-                                      });
-                                      _fetchEmployeeTeams();
-                                    },
+                                    onTap: () => _selectEmployee(emp),
                                   ),
                                 );
                               },
@@ -558,9 +673,22 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
+                      if (_needsReconcile) ...[
+                        OutlinedButton.icon(
+                          onPressed: _selectedEmployee != null
+                              ? _reconcileSelected
+                              : null,
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('서버 상태 다시 조회'),
+                        ),
+                        const SizedBox(width: 8),
+                      ],
                       ElevatedButton.icon(
-                        onPressed:
-                            _selectedEmployee != null ? _saveChanges : null,
+                        onPressed: _selectedEmployee != null &&
+                                _changedTeams.isNotEmpty &&
+                                !_needsReconcile
+                            ? _saveChanges
+                            : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F3A5F),
                           padding: const EdgeInsets.symmetric(
@@ -666,13 +794,12 @@ class _AdminSettingsScreenState extends State<AdminSettingsScreen> {
 
     if (index == -1) return;
 
-    setState(() {
-      _selectedEmployee = _employees[index];
-    });
+    _selectEmployee(_employees[index]);
 
-    _fetchEmployeeTeams();
-
-    _scrollToEmployee(index);
+    if (_selectedEmployee?.employeeNumber ==
+        _employees[index].employeeNumber) {
+      _scrollToEmployee(index);
+    }
   }
 
   void _scrollToEmployee(int index) {
