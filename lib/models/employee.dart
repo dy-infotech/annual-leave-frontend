@@ -1,4 +1,7 @@
 class Employee {
+  /// employee PK. 팀 담당자(projectManagerId) 지정에 사용한다.
+  /// 사원 목록 API 가 내려주지 않는 경우를 대비해 nullable 로 둔다.
+  final int? employeeId;
   final String employeeNumber;
   final String name;
   final String position;
@@ -19,6 +22,7 @@ class Employee {
   final String? createdAt;
 
   Employee({
+    this.employeeId,
     required this.employeeNumber,
     required this.name,
     required this.position,
@@ -41,6 +45,7 @@ class Employee {
 
   factory Employee.fromJson(Map<String, dynamic> json) {
     return Employee(
+      employeeId: json['employeeId'],
       employeeNumber: json['employeeNumber'],
       name: json['name'],
       position: json['position'] ?? '',
@@ -86,6 +91,7 @@ class Employee {
       bool? isRegisted,
       String? createdAt}) {
     return Employee(
+      employeeId: employeeId,
       employeeNumber: employeeNumber ?? this.employeeNumber,
       name: name ?? this.name,
       position: position ?? this.position,
