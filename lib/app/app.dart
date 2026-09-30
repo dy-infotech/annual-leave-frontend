@@ -1,4 +1,5 @@
 import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/services/fcm_service.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
@@ -34,6 +35,7 @@ class MyApp extends StatelessWidget {
           create: (_) {
             final session = AuthSession();
             ApiClient().setUnauthorizedHandler(() async {
+              await FcmService.instance.clearLocalStateAfterSessionExpiry();
               final shouldRedirect = session.expireSession();
               if (!shouldRedirect) return;
               WidgetsBinding.instance.addPostFrameCallback((_) {

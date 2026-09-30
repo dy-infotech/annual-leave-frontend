@@ -132,23 +132,13 @@ class FcmService {
     }
   }
 
-  /// 로그아웃 시 서버의 FCM 매핑과 클라이언트 토큰을 함께 정리한다.
-  Future<void> unregisterToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final registeredToken = prefs.getString(fcmTokenKey);
+  /// 인증 만료처럼 서버 unregister를 보장할 수 없는 경우의 로컬 FCM 정리.
+  ///
+  /// 만료된 JWT로 /api/auth/logout을 다시 호출하지 않고 현재 Firebase token과
+  /// 리스너를 폐기한다. 다음 로그인 시 새 token이 발급되어 owner가 다시 동기화된다.
+  Future<void> clearLocalStateAfterSessionExpiry() async {
     _lastSyncedJwt = null;
-    if (registeredToken == null || registeredToken.isEmpty) {
-      return;
-    }
-
-    try {
-      await _apiClient.dio.post(
-        '/api/auth/logout',
-        data: {'fcmToken': registeredToken},
-      );
-    } catch (e) {
-      debugPrint('FCM 서버 토큰 정리 실패: $e');
-    }
+    await closeSubscription();
 
     try {
       await FirebaseMessaging.instance.deleteToken();
@@ -156,7 +146,27 @@ class FcmService {
       debugPrint('FCM 클라이언트 토큰 폐기 실패: $e');
     }
 
+    final prefs = await SharedPreferences.getInstance();
     await prefs.remove(fcmTokenKey);
+  }
+
+  /// 명시적 로그아웃 시 서버의 FCM 매핑과 클라이언트 토큰을 함께 정리한다.
+  Future<void> unregisterToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final registeredToken = prefs.getString(fcmTokenKey);
+
+    if (registeredToken != null && registeredToken.isNotEmpty) {
+      try {
+        await _apiClient.dio.post(
+          '/api/auth/logout',
+          data: {'fcmToken': registeredToken},
+        );
+      } catch (e) {
+        debugPrint('FCM 서버 토큰 정리 실패: $e');
+      }
+    }
+
+    await clearLocalStateAfterSessionExpiry();
   }
 
   Future<void> closeSubscription() async {
