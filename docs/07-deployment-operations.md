@@ -2,16 +2,17 @@
 
 ## 7.1 CI
 
-`.github/workflows/ci.yml`은 `develop_v2.0` push와 지정된 PR에서 실행됩니다.
+`.github/workflows/ci.yml`은 `develop_v2.0`/`release` push와 지정된 PR, 수동 실행에서 동작합니다.
 
 주요 단계:
 
 1. Flutter stable 설치 및 cache 사용
 2. `flutter pub get`
-3. `flutter analyze --no-fatal-infos --no-fatal-warnings`
+3. `flutter analyze --no-fatal-infos`
 4. `flutter test`
+5. `flutter build web --release`
 
-기존 warning/info 정리 전까지 CI는 analyzer error를 차단하는 수준으로 운용합니다.
+info 수준 analyzer 항목은 비치명적으로 두지만 warning/error는 CI에서 차단합니다.
 
 ## 7.2 Release Web 배포
 
@@ -36,7 +37,7 @@ Backend release는 별도 저장소의 CD가 담당하며 Oracle v2 schema valid
 
 ## 7.4 FCM
 
-FCM은 현재 구현되어 있습니다. 관리자 대시보드에서 token/topic 동기화를 수행하고, 로그아웃 시 서버와 클라이언트의 FCM token을 정리합니다.
+FCM은 현재 구현되어 있습니다. 관리자 대시보드에서 token/topic 동기화를 수행하고, 명시적 로그아웃 시 서버와 클라이언트 token을 정리합니다. 인증된 API의 401로 세션이 만료되면 AuthSession을 먼저 만료/리다이렉트한 뒤 로컬 FCM token과 listener를 best-effort로 정리합니다.
 
 브라우저/플랫폼 알림 권한 거부는 로그인 자체를 실패시키지 않습니다.
 
