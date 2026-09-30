@@ -81,7 +81,7 @@ void main() {
       expect(storageCalls.map((call) => call.method), contains('read'));
       expect(
         (storageCalls.first.arguments as Map)['key'],
-        'jwt_token',
+        'annual_leave_access_token',
       );
     });
 
@@ -257,11 +257,11 @@ void main() {
   });
 
   group('토큰 저장소', () {
-    test('saveToken은 jwt_token 키로 값을 저장한다', () async {
+    test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');
 
       final write = storageCalls.firstWhere((call) => call.method == 'write');
-      expect((write.arguments as Map)['key'], 'jwt_token');
+      expect((write.arguments as Map)['key'], 'annual_leave_access_token');
       expect((write.arguments as Map)['value'], 'new.jwt.token');
       expect(storedToken, 'new.jwt.token');
     });
@@ -273,13 +273,13 @@ void main() {
       expect(await ApiClient().getToken(), 'saved.jwt.token');
     });
 
-    test('clearToken은 jwt_token 키를 삭제한다', () async {
+    test('clearToken은 annual_leave_access_token 키를 삭제한다', () async {
       storedToken = 'saved.jwt.token';
 
       await ApiClient().clearToken();
 
       final delete = storageCalls.firstWhere((call) => call.method == 'delete');
-      expect((delete.arguments as Map)['key'], 'jwt_token');
+      expect((delete.arguments as Map)['key'], 'annual_leave_access_token');
       expect(storedToken, isNull);
     });
 

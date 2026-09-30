@@ -83,7 +83,13 @@ class AuthRepository {
 
   Future<void> saveToken(String token) => _apiClient.saveToken(token);
 
-  Future<String?> getToken() => _apiClient.getToken();
+  Future<String?> getToken() async {
+    final session = await _apiClient.restoreSession();
+    return session?.token;
+  }
+
+  Future<void> logout({String? fcmToken}) =>
+      _apiClient.logoutSession(fcmToken: fcmToken);
 
   Future<void> clearToken() => _apiClient.clearToken();
 }

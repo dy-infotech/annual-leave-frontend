@@ -163,7 +163,7 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
 
                 // 로컬 인증 상태를 FCM SDK/네트워크보다 먼저 종료한다.
-                await authProvider.logout();
+                await authProvider.logout(fcmToken: cleanupContext?.fcmToken);
                 final loggedOutGeneration = ApiClient().sessionGeneration;
 
                 if (navigator.mounted) {

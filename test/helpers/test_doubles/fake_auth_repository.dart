@@ -23,6 +23,9 @@ class FakeAuthRepository implements AuthRepository {
   Object? findIdErrorToThrow;
   final List<Map<String, String>> findIdCalls = [];
 
+  Object? logoutErrorToThrow;
+  int logoutCalls = 0;
+
   @override
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
     signInCalls.add({'employeeNumber': employeeNumber, 'password': password});
@@ -64,6 +67,13 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> saveToken(String token) async {
     storedToken = token;
+  }
+
+  @override
+  Future<void> logout({String? fcmToken}) async {
+    logoutCalls++;
+    if (logoutErrorToThrow != null) throw logoutErrorToThrow!;
+    storedToken = null;
   }
 
   @override

@@ -117,10 +117,10 @@ class AuthSession extends ChangeNotifier {
     return wasLoggedIn;
   }
 
-  Future<void> logout() async {
+  Future<void> logout({String? fcmToken}) async {
     ++_generation;
     _resetState();
-    await _repository.clearToken();
+    await _repository.logout(fcmToken: fcmToken);
   }
 
   Future<void> updateEmail(newEmail) async {

@@ -195,27 +195,6 @@ class FcmService {
     FcmLogoutContext context, {
     required int expectedAuthGeneration,
   }) async {
-    final token = context.fcmToken;
-    final jwt = context.jwt;
-
-    if (token != null &&
-        token.isNotEmpty &&
-        jwt != null &&
-        jwt.isNotEmpty) {
-      try {
-        await _apiClient.dio.post(
-          '/api/auth/logout',
-          data: {'fcmToken': token},
-          options: Options(
-            headers: {'Authorization': 'Bearer $jwt'},
-            extra: {'skipUnauthorizedHandling': true},
-          ),
-        );
-      } catch (e) {
-        debugPrint('FCM 서버 토큰 정리 실패: $e');
-      }
-    }
-
     if (_apiClient.sessionGeneration != expectedAuthGeneration) {
       return;
     }
@@ -228,9 +207,13 @@ class FcmService {
   /// 하위 호환용. 가능하면 captureLogoutContext + 로컬 logout +
   /// cleanupCapturedLogout 순서를 사용한다.
   Future<void> unregisterToken() async {
-    final context = await captureLogoutContext();
-    await cleanupCapturedLogout(
-      context,
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString(fcmTokenKey);
+
+    await _apiClient.logoutSession(
+      fcmToken: token != null && token.isNotEmpty ? token : null,
+    );
+    await clearLocalStateAfterSessionExpiry(
       expectedAuthGeneration: _apiClient.sessionGeneration,
     );
   }
