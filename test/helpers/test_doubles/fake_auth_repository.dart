@@ -27,7 +27,6 @@ class FakeAuthRepository implements AuthRepository {
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
     signInCalls.add({'employeeNumber': employeeNumber, 'password': password});
     if (signInErrorToThrow != null) throw signInErrorToThrow!;
-    storedToken = signInResponse.token;
     return signInResponse;
   }
 
@@ -60,6 +59,11 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> findId(String name, String email) async {
     findIdCalls.add({'name': name, 'email': email});
     if (findIdErrorToThrow != null) throw findIdErrorToThrow!;
+  }
+
+  @override
+  Future<void> saveToken(String token) async {
+    storedToken = token;
   }
 
   @override

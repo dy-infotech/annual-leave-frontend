@@ -34,9 +34,10 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) {
             final session = AuthSession();
-            ApiClient().setUnauthorizedHandler(() async {
+            ApiClient().setUnauthorizedHandler((expiredGeneration) async {
+              if (ApiClient().sessionGeneration != expiredGeneration) return;
+
               // 인증 상태와 화면 전환을 Firebase 정리보다 먼저 확정한다.
-              // FCM 정리는 외부 SDK 실패와 무관하게 best-effort로 수행한다.
               final shouldRedirect = session.expireSession();
               if (shouldRedirect) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -48,7 +49,9 @@ class MyApp extends StatelessWidget {
               }
 
               try {
-                await FcmService.instance.clearLocalStateAfterSessionExpiry();
+                await FcmService.instance.clearLocalStateAfterSessionExpiry(
+                  expectedAuthGeneration: expiredGeneration,
+                );
               } catch (e) {
                 debugPrint('FCM 세션 만료 정리 실패: $e');
               }

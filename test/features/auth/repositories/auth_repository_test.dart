@@ -101,19 +101,20 @@ void main() {
       expect(response.isAdmin, isTrue);
     });
 
-    test('로그인에 성공하면 토큰을 저장한다', () async {
+    test('signIn 자체는 토큰을 저장하지 않고 호출자가 세대 확인 후 저장한다', () async {
       dioAdapter.onPost(
         '/api/auth/signin',
         (server) => server.reply(200, fixtureJson('auth/login_response.json')),
         data: {'employeeNumber': 'A0001', 'password': 'pw1234!'},
       );
 
-      await repository.signIn('A0001', 'pw1234!');
+      final response = await repository.signIn('A0001', 'pw1234!');
 
+      expect(writeCalls(), isEmpty);
+      expect(await repository.getToken(), isNull);
+
+      await repository.saveToken(response.token);
       expect(writeCalls(), hasLength(1));
-      expect((writeCalls().single.arguments as Map)['key'], 'jwt_token');
-      expect((writeCalls().single.arguments as Map)['value'],
-          'header.payload.signature');
       expect(await repository.getToken(), 'header.payload.signature');
     });
 

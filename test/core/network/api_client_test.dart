@@ -196,7 +196,7 @@ void main() {
     test('인증된 요청의 401은 토큰을 지우고 세션 만료 핸들러를 호출한다', () async {
       storedToken = 'expired.token';
       var expiredCount = 0;
-      ApiClient().setUnauthorizedHandler(() async {
+      ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
       });
       dioAdapter.onGet(
@@ -218,7 +218,7 @@ void main() {
     test('공개 로그인 요청의 401은 기존 세션 만료로 처리하지 않는다', () async {
       storedToken = 'existing.token';
       var expiredCount = 0;
-      ApiClient().setUnauthorizedHandler(() async {
+      ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
       });
       dioAdapter.onPost(

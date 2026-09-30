@@ -11,16 +11,16 @@ class AuthRepository {
 
   final ApiClient _apiClient;
 
-  /// 로그인. POST /api/auth/signin. 성공 시 JWT를 저장하고 응답을 돌려준다.
+  /// 로그인. POST /api/auth/signin.
+  ///
+  /// 응답 토큰 저장은 AuthSession이 세대 검증을 마친 뒤 수행한다.
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
     final response = await _apiClient.dio.post(
       '/api/auth/signin',
       data: LoginRequest(employeeNumber: employeeNumber, password: password)
           .toJson(),
     );
-    final loginResponse = LoginResponse.fromJson(response.data);
-    await _apiClient.saveToken(loginResponse.token);
-    return loginResponse;
+    return LoginResponse.fromJson(response.data);
   }
 
   /// 내 정보 조회. GET /api/employees/me
@@ -80,6 +80,8 @@ class AuthRepository {
       throw Exception('발송 실패');
     }
   }
+
+  Future<void> saveToken(String token) => _apiClient.saveToken(token);
 
   Future<String?> getToken() => _apiClient.getToken();
 

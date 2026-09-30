@@ -10,22 +10,36 @@ class ApiClient {
   late final Dio dio;
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
-  Future<void> Function()? _unauthorizedHandler;
-  bool _handlingUnauthorized = false;
+  Future<void> Function(int generation)? _unauthorizedHandler;
+  int _sessionGeneration = 0;
 
-  void setUnauthorizedHandler(Future<void> Function()? handler) {
+  int get sessionGeneration => _sessionGeneration;
+
+  void setUnauthorizedHandler(
+      Future<void> Function(int generation)? handler) {
     _unauthorizedHandler = handler;
   }
 
-  Future<void> _handleUnauthorized() async {
-    if (_handlingUnauthorized) return;
-    _handlingUnauthorized = true;
-    try {
-      await clearToken();
-      final handler = _unauthorizedHandler;
-      if (handler != null) await handler();
-    } finally {
-      _handlingUnauthorized = false;
+  Future<void> _handleUnauthorized(
+      int requestGeneration, String requestToken) async {
+    if (requestGeneration != _sessionGeneration) return;
+
+    final currentToken = await getToken();
+    if (requestGeneration != _sessionGeneration ||
+        currentToken != requestToken) {
+      return;
+    }
+
+    // delete await 전에 세대를 먼저 올려 같은 세대의 다른 늦은 응답을 무효화한다.
+    final expiredGeneration = ++_sessionGeneration;
+    await _storage.delete(key: _tokenKey);
+
+    // delete 중 새 로그인 토큰이 저장됐다면 새 세션을 만료시키지 않는다.
+    if (expiredGeneration != _sessionGeneration) return;
+
+    final handler = _unauthorizedHandler;
+    if (handler != null) {
+      await handler(expiredGeneration);
     }
   }
 
@@ -50,14 +64,12 @@ class ApiClient {
       receiveTimeout: const Duration(seconds: 10),
     ));
 
-    // 디버그 빌드에서만 요청 내용을 로그로 남긴다.
-    // 리팩터링 전후로 같은 시나리오의 요청이 동일한지 비교하는 용도.
-    // Authorization 헤더는 남기지 않는다.
     if (kDebugMode) {
       dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) {
-          final query =
-              options.queryParameters.isEmpty ? '' : ' query=${options.queryParameters}';
+          final query = options.queryParameters.isEmpty
+              ? ''
+              : ' query=${options.queryParameters}';
           final body = options.data == null
               ? ''
               : ' body=${_redactForLog(options.data)}';
@@ -67,16 +79,26 @@ class ApiClient {
       ));
     }
 
-    // 요청마다, 저장된 JWT를 자동으로 Authorization 헤더에 할당
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final isPublicAuthPath =
             options.path.startsWith('/api/auth/') &&
             options.path != '/api/auth/logout';
         if (!isPublicAuthPath) {
-          final token = await _storage.read(key: _tokenKey);
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          var authorization = options.headers['Authorization']?.toString();
+          if (authorization == null || authorization.isEmpty) {
+            final token = await _storage.read(key: _tokenKey);
+            if (token != null) {
+              authorization = 'Bearer $token';
+              options.headers['Authorization'] = authorization;
+            }
+          }
+
+          if (authorization != null &&
+              authorization.startsWith('Bearer ')) {
+            options.extra['authGeneration'] = _sessionGeneration;
+            options.extra['authToken'] =
+                authorization.substring('Bearer '.length);
           }
         }
         return handler.next(options);
@@ -84,8 +106,18 @@ class ApiClient {
       onError: (DioException error, handler) async {
         final authenticatedRequest =
             error.requestOptions.headers['Authorization'] != null;
-        if (error.response?.statusCode == 401 && authenticatedRequest) {
-          await _handleUnauthorized();
+        final skipUnauthorized =
+            error.requestOptions.extra['skipUnauthorizedHandling'] == true;
+
+        if (error.response?.statusCode == 401 &&
+            authenticatedRequest &&
+            !skipUnauthorized) {
+          final generation =
+              error.requestOptions.extra['authGeneration'] as int?;
+          final token = error.requestOptions.extra['authToken'] as String?;
+          if (generation != null && token != null) {
+            await _handleUnauthorized(generation, token);
+          }
         }
 
         final responseData = error.response?.data;
@@ -103,14 +135,14 @@ class ApiClient {
   }
 
   Future<void> saveToken(String token) async {
+    ++_sessionGeneration;
     await _storage.write(key: _tokenKey, value: token);
   }
 
-  Future<String?> getToken() async {
-    return await _storage.read(key: _tokenKey);
-  }
+  Future<String?> getToken() => _storage.read(key: _tokenKey);
 
   Future<void> clearToken() async {
+    ++_sessionGeneration;
     await _storage.delete(key: _tokenKey);
   }
 }
