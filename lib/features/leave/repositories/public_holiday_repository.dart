@@ -52,15 +52,35 @@ class PublicHolidayRepository {
     });
   }
 
+  // Future<List<PublicHoliday>> _load(int year, DateTime loadedAt) async {
+  //   final responses = await Future.wait([
+  //     _dio.get('/api/leave-requests/current-year-special-days'),
+  //     _dio.get('/api/leave-requests/next-year-special-days'),
+  //   ]);
+
+  //   final result = [
+  //     ...(responses[0].data as List).map(PublicHoliday.fromJson),
+  //     ...(responses[1].data as List).map(PublicHoliday.fromJson),
+  //   ];
+
+  //   // 조회 도중 해가 바뀌었다면 다음 호출이 다시 동기화하도록 캐시하지 않는다.
+  //   if (_now().year == year) {
+  //     _cache = result;
+  //     _cachedYear = year;
+  //     _expiresAt = loadedAt.add(_cacheTtl);
+  //   }
+  //   return result;
+  // }
+// 변경 후
   Future<List<PublicHoliday>> _load(int year, DateTime loadedAt) async {
     final responses = await Future.wait([
       _dio.get('/api/leave-requests/current-year-special-days'),
       _dio.get('/api/leave-requests/next-year-special-days'),
     ]);
 
-    final result = [
-      ...(responses[0].data as List).map(PublicHoliday.fromJson),
-      ...(responses[1].data as List).map(PublicHoliday.fromJson),
+    final result = <PublicHoliday>[
+      ...(responses[0].data as List).map((e) => PublicHoliday.fromJson(e)),
+      ...(responses[1].data as List).map((e) => PublicHoliday.fromJson(e)),
     ];
 
     // 조회 도중 해가 바뀌었다면 다음 호출이 다시 동기화하도록 캐시하지 않는다.
