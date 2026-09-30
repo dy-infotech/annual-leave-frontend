@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/core/services/fcm_service.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -150,17 +152,40 @@ class AppDrawer extends StatelessWidget {
                 final navigator = Navigator.of(context, rootNavigator: true);
                 final authProvider = context.read<AuthSession>();
 
+                FcmLogoutContext? cleanupContext;
+                try {
+                  cleanupContext =
+                      await FcmService.instance.captureLogoutContext();
+                } catch (e) {
+                  debugPrint('FCM 로그아웃 정보 캡처 실패: $e');
+                }
+
                 Navigator.pop(context);
 
-                await FcmService.instance.unregisterToken();
+                // 로컬 인증 상태를 FCM SDK/네트워크보다 먼저 종료한다.
                 await authProvider.logout();
+                final loggedOutGeneration = ApiClient().sessionGeneration;
 
-                if (!navigator.mounted) return;
+                if (navigator.mounted) {
+                  navigator.pushNamedAndRemoveUntil(
+                    '/login',
+                    (_) => false,
+                  );
+                }
 
-                navigator.pushNamedAndRemoveUntil(
-                  '/login',
-                  (_) => false,
-                );
+                if (cleanupContext != null) {
+                  unawaited(
+                    FcmService.instance
+                        .cleanupCapturedLogout(
+                          cleanupContext,
+                          expectedAuthGeneration: loggedOutGeneration,
+                        )
+                        .timeout(const Duration(seconds: 10))
+                        .catchError((Object e) {
+                      debugPrint('FCM 로그아웃 정리 실패: $e');
+                    }),
+                  );
+                }
               },
             ),
             const SizedBox(height: 12),

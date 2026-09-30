@@ -22,6 +22,7 @@ class MyInfoViewModel extends ChangeNotifier {
   String? _errorMessage;
   String? _emailErrorMessage;
   bool _isEditingEmail = false;
+  bool _disposed = false;
 
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
@@ -37,6 +38,7 @@ class MyInfoViewModel extends ChangeNotifier {
 
   /// 비밀번호 변경. 검증 통과 후 API 호출까지 성공하면 true를 돌려준다.
   Future<bool> changePassword() async {
+    if (_disposed || _isSubmitting) return false;
     if (currentPasswordController.text.isEmpty ||
         newPasswordController.text.isEmpty ||
         newPasswordConfirmController.text.isEmpty) {
@@ -64,21 +66,27 @@ class MyInfoViewModel extends ChangeNotifier {
         currentPassword: currentPasswordController.text,
         newPassword: newPasswordController.text,
       );
+      if (_disposed) return true;
       currentPasswordController.clear();
       newPasswordController.clear();
       newPasswordConfirmController.clear();
+
+      // 비밀번호 hash 변경으로 기존 JWT credentialVersion이 즉시 무효화된다.
+      // 성공 응답 직후 로컬 세션도 종료해 다음 API의 갑작스러운 401을 피한다.
+      await _authProvider.logout();
       return true;
     } catch (e) {
       _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
       return false;
     } finally {
       _isSubmitting = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   /// 이메일 변경. 성공 시 세션의 이메일도 갱신하고 편집 모드를 종료한다.
   Future<bool> changeEmail() async {
+    if (_disposed || _isSubmitting) return false;
     if (emailController.text.isEmpty) {
       _emailErrorMessage = '이메일 정보를 입력해 주세요.';
       notifyListeners();
@@ -108,12 +116,13 @@ class MyInfoViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isSubmitting = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
     currentPasswordController.dispose();
     newPasswordController.dispose();
     newPasswordConfirmController.dispose();

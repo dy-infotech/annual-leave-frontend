@@ -12,6 +12,16 @@ import 'package:annual_leave_frontend/features/auth/models/auth_models.dart'
 ///
 /// 알림 리스너 구독이 앱 수명주기 동안 1개만 유지되어야 하므로 싱글턴으로 둔다.
 /// (기존 DashboardProvider가 전역 등록 provider로서 담당하던 역할)
+class FcmLogoutContext {
+  const FcmLogoutContext({
+    required this.jwt,
+    required this.fcmToken,
+  });
+
+  final String? jwt;
+  final String? fcmToken;
+}
+
 class FcmService {
   FcmService._internal();
 
@@ -136,9 +146,21 @@ class FcmService {
   ///
   /// 만료된 JWT로 /api/auth/logout을 다시 호출하지 않고 현재 Firebase token과
   /// 리스너를 폐기한다. 다음 로그인 시 새 token이 발급되어 owner가 다시 동기화된다.
-  Future<void> clearLocalStateAfterSessionExpiry() async {
+  Future<void> clearLocalStateAfterSessionExpiry({
+    int? expectedAuthGeneration,
+  }) async {
+    if (expectedAuthGeneration != null &&
+        _apiClient.sessionGeneration != expectedAuthGeneration) {
+      return;
+    }
+
     _lastSyncedJwt = null;
     await closeSubscription();
+
+    if (expectedAuthGeneration != null &&
+        _apiClient.sessionGeneration != expectedAuthGeneration) {
+      return;
+    }
 
     try {
       await FirebaseMessaging.instance.deleteToken();
@@ -146,27 +168,70 @@ class FcmService {
       debugPrint('FCM 클라이언트 토큰 폐기 실패: $e');
     }
 
+    if (expectedAuthGeneration != null &&
+        _apiClient.sessionGeneration != expectedAuthGeneration) {
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(fcmTokenKey);
   }
 
-  /// 명시적 로그아웃 시 서버의 FCM 매핑과 클라이언트 토큰을 함께 정리한다.
-  Future<void> unregisterToken() async {
+  /// 명시적 로그아웃 전에 이전 세션의 JWT/FCM token을 캡처한다.
+  Future<FcmLogoutContext> captureLogoutContext() async {
     final prefs = await SharedPreferences.getInstance();
-    final registeredToken = prefs.getString(fcmTokenKey);
+    return FcmLogoutContext(
+      jwt: await _apiClient.getToken(),
+      fcmToken: prefs.getString(fcmTokenKey),
+    );
+  }
 
-    if (registeredToken != null && registeredToken.isNotEmpty) {
+  /// 로컬 로그아웃이 확정된 뒤 이전 세션 자격으로 서버 FCM binding을 정리한다.
+  ///
+  /// 이후 새 로그인이 시작되면 auth generation이 달라지므로 새 세션의
+  /// Firebase token/prefs는 건드리지 않는다.
+  Future<void> cleanupCapturedLogout(
+    FcmLogoutContext context, {
+    required int expectedAuthGeneration,
+  }) async {
+    final token = context.fcmToken;
+    final jwt = context.jwt;
+
+    if (token != null &&
+        token.isNotEmpty &&
+        jwt != null &&
+        jwt.isNotEmpty) {
       try {
         await _apiClient.dio.post(
           '/api/auth/logout',
-          data: {'fcmToken': registeredToken},
+          data: {'fcmToken': token},
+          options: Options(
+            headers: {'Authorization': 'Bearer $jwt'},
+            extra: {'skipUnauthorizedHandling': true},
+          ),
         );
       } catch (e) {
         debugPrint('FCM 서버 토큰 정리 실패: $e');
       }
     }
 
-    await clearLocalStateAfterSessionExpiry();
+    if (_apiClient.sessionGeneration != expectedAuthGeneration) {
+      return;
+    }
+
+    await clearLocalStateAfterSessionExpiry(
+      expectedAuthGeneration: expectedAuthGeneration,
+    );
+  }
+
+  /// 하위 호환용. 가능하면 captureLogoutContext + 로컬 logout +
+  /// cleanupCapturedLogout 순서를 사용한다.
+  Future<void> unregisterToken() async {
+    final context = await captureLogoutContext();
+    await cleanupCapturedLogout(
+      context,
+      expectedAuthGeneration: _apiClient.sessionGeneration,
+    );
   }
 
   Future<void> closeSubscription() async {

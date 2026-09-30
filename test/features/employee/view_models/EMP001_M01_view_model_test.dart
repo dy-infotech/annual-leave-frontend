@@ -76,6 +76,7 @@ void main() {
       expect(vm.newPasswordConfirmController.text, isEmpty);
       expect(vm.errorMessage, isNull);
       expect(vm.isSubmitting, isFalse);
+      expect(session.logoutCount, 1);
     });
 
     test('실패 - 고정 문구를 남기고 입력값은 유지한다', () async {

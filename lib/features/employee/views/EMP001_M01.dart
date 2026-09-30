@@ -1,5 +1,8 @@
+import 'dart:async';
 // EMP001_M01: 내 정보 화면
 import 'package:flutter/material.dart';
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/services/fcm_service.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
@@ -37,11 +40,31 @@ class _MyInfoViewState extends State<_MyInfoView> {
   MyInfoViewModel get _vm => context.read<MyInfoViewModel>();
 
   Future<void> _handleChangePassword() async {
+    final navigator = Navigator.of(context, rootNavigator: true);
     final messenger = ScaffoldMessenger.of(context);
+    final authGenerationBefore = ApiClient().sessionGeneration;
+
     final ok = await _vm.changePassword();
-    if (ok && mounted) {
-      messenger
-          .showSnackBar(const SnackBar(content: Text('비밀번호가 변경되었습니다.')));
+    if (!ok || !mounted) return;
+
+    messenger.showSnackBar(
+      const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해주세요.')),
+    );
+    navigator.pushNamedAndRemoveUntil('/login', (_) => false);
+
+    // 비밀번호 변경 뒤 기존 JWT는 서버에서 무효화되므로 서버 logout은 호출하지 않고
+    // 로컬 FCM 상태만 현재 로그아웃 세대에서 best-effort로 정리한다.
+    final loggedOutGeneration = ApiClient().sessionGeneration;
+    if (loggedOutGeneration != authGenerationBefore) {
+      unawaited(
+        FcmService.instance
+            .clearLocalStateAfterSessionExpiry(
+              expectedAuthGeneration: loggedOutGeneration,
+            )
+            .catchError((Object e) {
+          debugPrint('비밀번호 변경 후 FCM 정리 실패: $e');
+        }),
+      );
     }
   }
 

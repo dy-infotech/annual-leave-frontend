@@ -8,6 +8,7 @@ class FakeAuthSession extends AuthSession {
   final Employee? _fakeEmployeeInfo;
 
   int fetchMyInfoCount = 0;
+  int logoutCount = 0;
   final List<String> updatedEmails = [];
 
   Object? loginErrorToThrow;
@@ -19,6 +20,11 @@ class FakeAuthSession extends AuthSession {
   @override
   Future<void> fetchMyInfo() async {
     fetchMyInfoCount++;
+  }
+
+  @override
+  Future<void> logout() async {
+    logoutCount++;
   }
 
   @override
