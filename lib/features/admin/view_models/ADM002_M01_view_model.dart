@@ -151,8 +151,113 @@ class SignupManageViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    if (emailController.text.isEmpty) {
+    final email = emailController.text.trim();
+    if (email.isEmpty) {
       _emailError = '이메일 정보를 입력해 주세요.';
+      notifyListeners();
+      return false;
+    }
+    final emailRegex = RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,}
+      _hireDateError = '입사일 정보를 입력해 주세요.';
+      notifyListeners();
+      return false;
+    }
+    return true;
+  }
+
+  /// 사용자 등록. 성공 여부를 돌려준다.
+  Future<bool> register() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _signupRepository.registerUser(AdminAuthRegisterRequest(
+        employeeNumber: employeeNumberController.text.trim(),
+        name: employeeNameController.text.trim(),
+        department: selectedDepartment ?? '',
+        team: selectedTeam ?? '',
+        position: selectedPosition ?? '',
+        role: selectedManagerYn?.code ?? '',
+        email: emailController.text.trim(),
+        hireDate: formatDate.toString(),
+      ));
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().contains('Exception')
+          ? '사용자 등록에 실패했습니다.' + e.toString()
+          : '';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void setHireDate(DateTime picked) {
+    selectedDate = picked;
+    formatDate = DateFormat('yyyy-MM-dd').format(picked);
+    hireDateController.text = '${picked.year}년 ${picked.month}월 ${picked.day}일';
+    _errorMessage = null; // 날짜 선택 시 오류 초기화
+    notifyListeners();
+  }
+
+  void clearEmployeeNumberError() {
+    _employeeNumberError = null;
+    notifyListeners();
+  }
+
+  void clearEmployeeNameError() {
+    _employeeNameError = null;
+    notifyListeners();
+  }
+
+  void clearEmailError() {
+    _emailError = null;
+    notifyListeners();
+  }
+
+  void clearHireDateError() {
+    _hireDateError = null;
+    notifyListeners();
+  }
+
+  void selectDepartment(String? value) {
+    selectedDepartment = value;
+    _departmentError = null;
+    selectedTeam = null; // 부서 변경 시 하위 팀 선택 값 강제 리셋
+    notifyListeners();
+  }
+
+  void selectTeam(String? value) {
+    selectedTeam = value;
+    _teamError = null;
+    notifyListeners();
+  }
+
+  void selectPosition(String? value) {
+    selectedPosition = value;
+    _positionError = null;
+    notifyListeners();
+  }
+
+  void selectManagerYn(RoleType? value) {
+    selectedManagerYn = value;
+    notifyListeners();
+  }
+
+  @override
+  void dispose() {
+    employeeNumberController.dispose();
+    employeeNameController.dispose();
+    emailController.dispose();
+    hireDateController.dispose();
+    super.dispose();
+  }
+}
+);
+    if (!emailRegex.hasMatch(email)) {
+      _emailError = '올바른 이메일 형식이 아닙니다.';
       notifyListeners();
       return false;
     }
