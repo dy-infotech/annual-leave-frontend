@@ -46,7 +46,7 @@ void main() {
   tearDown(PublicHolidayRepository.clearCache);
 
   group('조회', () {
-    test('당해년도와 내년 공휴일을 순서대로 각각 조회해 합친다', () async {
+    test('당해년도와 내년 공휴일을 병렬 조회해 합친다', () async {
       stubHolidays(
         currentYear: [holiday('광복절', '2026-08-15')],
         nextYear: [holiday('신정', '2027-01-01')],
@@ -54,7 +54,8 @@ void main() {
 
       final holidays = await repository.fetchPublicHolidays();
 
-      expect(sentRequests.map((r) => r.path), [currentYearPath, nextYearPath]);
+      expect(sentRequests.map((r) => r.path).toSet(),
+          {currentYearPath, nextYearPath});
       expect(sentRequests.every((r) => r.method == 'GET'), isTrue);
       expect(holidays, hasLength(2));
       expect(holidays.first.name, '광복절');
@@ -108,9 +109,8 @@ void main() {
 
       await repository.fetchPublicHolidays(refresh: true);
 
-      expect(sentRequests, hasLength(4));
-      expect(sentRequests.map((r) => r.path),
-          [currentYearPath, nextYearPath, currentYearPath, nextYearPath]);
+      expect(sentRequests.length, greaterThanOrEqualTo(4));
+      expect(sentRequests.map((r) => r.path).toList(), hasLength(4));
     });
 
     test('refresh=true로 다시 조회한 결과가 캐시를 덮어쓴다', () async {
@@ -150,7 +150,7 @@ void main() {
   });
 
   group('실패', () {
-    test('당해년도 조회가 실패하면 예외가 전파되고 내년 조회는 하지 않는다', () async {
+    test('당해년도 조회가 실패하면 예외가 전파되고 병렬로 시작한 내년 조회도 이미 요청된다', () async {
       dioAdapter.onGet(
         currentYearPath,
         (server) => server.reply(500, {'message': '서버 오류'}),
@@ -161,7 +161,8 @@ void main() {
         repository.fetchPublicHolidays(),
         throwsA(isA<DioException>()),
       );
-      expect(sentRequests.map((r) => r.path), [currentYearPath]);
+      expect(sentRequests.map((r) => r.path).toSet(),
+          {currentYearPath, nextYearPath});
     });
 
     test('실패한 조회 결과는 캐시에 남지 않아 다음 호출에서 다시 조회한다', () async {
@@ -182,7 +183,7 @@ void main() {
       final holidays = await repository.fetchPublicHolidays();
 
       expect(holidays.map((h) => h.name), ['광복절']);
-      expect(sentRequests, hasLength(3));
+      expect(sentRequests, hasLength(4));
     });
 
     test('내년 조회가 실패해도 캐시는 채워지지 않는다', () async {

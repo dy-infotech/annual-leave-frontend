@@ -9,7 +9,38 @@ import 'package:dio/dio.dart';
 class LeaveRepository {
   final Dio _dio;
 
+  static const int _pageSize = 100;
+  static const int _maxPages = 1000;
+
   LeaveRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
+
+  Future<List<T>> _fetchAllPages<T>(
+    String path, {
+    Map<String, dynamic>? queryParameters,
+    required T Function(dynamic json) fromJson,
+  }) async {
+    final result = <T>[];
+
+    for (var page = 0; page < _maxPages; page++) {
+      final params = <String, dynamic>{
+        ...?queryParameters,
+        if (page > 0) 'page': page,
+        if (page > 0) 'size': _pageSize,
+      };
+      final response = await _dio.get(
+        path,
+        queryParameters: params.isEmpty ? null : params,
+      );
+      final raw = response.data as List;
+      result.addAll(raw.map(fromJson));
+
+      if (raw.length < _pageSize) {
+        return result;
+      }
+    }
+
+    throw StateError('휴가 목록이 서버 페이지 한도를 초과했습니다.');
+  }
 
   /// 휴가 신청 상세 조회. GET /api/leave-requests/{requestId}
   Future<LeaveRequestDetail> fetchLeaveRequestDetail(int requestId) async {
@@ -39,13 +70,11 @@ class LeaveRepository {
       if (startDate != null) 'startDate': startDate,
       if (endDate != null) 'endDate': endDate,
     };
-    final response = await _dio.get(
+    return _fetchAllPages(
       '/api/leave-requests/my',
-      queryParameters: queryParams.isEmpty ? null : queryParams,
+      queryParameters: queryParams,
+      fromJson: (json) => LeaveRequestListItem.fromJson(json),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
   }
 
   /// 전직원 휴가 신청 목록 조회. GET /api/leave-requests/all
@@ -59,13 +88,11 @@ class LeaveRepository {
       if (startDate != null) 'startDate': startDate,
       if (endDate != null) 'endDate': endDate,
     };
-    final response = await _dio.get(
+    return _fetchAllPages(
       '/api/leave-requests/all',
-      queryParameters: queryParams.isEmpty ? null : queryParams,
+      queryParameters: queryParams,
+      fromJson: (json) => LeaveRequestListItem.fromJson(json),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
   }
 
   /// 휴가 신청 취소. DELETE /api/leave-requests/{requestId}
@@ -101,21 +128,19 @@ class LeaveRepository {
       if (normalizedEmployeeParam != null && normalizedEmployeeParam.isNotEmpty)
         'employeeParam': normalizedEmployeeParam,
     };
-    final response = await _dio.get(
+    return _fetchAllPages(
       '/api/admin/leave-requests/$normalizedStatus',
-      queryParameters: queryParams.isEmpty ? null : queryParams,
+      queryParameters: queryParams,
+      fromJson: (json) => LeaveRequestListItem.fromJson(json),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
   }
 
   /// 결재 대기 목록 조회. GET /api/admin/leave-requests/pending
-  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
-    final response = await _dio.get('/api/admin/leave-requests/pending');
-    return (response.data as List)
-        .map((json) => PendingLeaveRequest.fromJson(json))
-        .toList();
+  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() {
+    return _fetchAllPages(
+      '/api/admin/leave-requests/pending',
+      fromJson: (json) => PendingLeaveRequest.fromJson(json),
+    );
   }
 
   /// 휴가 신청 승인. POST /api/admin/leave-requests/{requestId}/approve
