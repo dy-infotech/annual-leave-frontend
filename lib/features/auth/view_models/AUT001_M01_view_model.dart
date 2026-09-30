@@ -95,8 +95,13 @@ class LoginViewModel extends ChangeNotifier {
         passwordController.text,
       );
 
-      // 로그인이 최종 성공한 시점에 로컬 저장소 값 업데이트 수행 (사번+비번)
-      await _saveAccountInfoPreference();
+      // 계정 기억하기는 로그인 자체와 분리된 부가 기능이다.
+      // 저장소 실패가 이미 확정된 인증 세션까지 실패로 보이게 만들지 않는다.
+      try {
+        await _saveAccountInfoPreference();
+      } catch (e) {
+        debugPrint('계정 저장 정보 갱신 실패: $e');
+      }
 
       try {
         await _holidayRepository.fetchPublicHolidays();

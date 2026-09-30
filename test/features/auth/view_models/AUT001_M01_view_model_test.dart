@@ -26,6 +26,7 @@ void main() {
 
   late Map<String, String> secureStore;
   late List<String> secureMethods;
+  late bool failSecureStorageWrite;
   late FakeAuthSession session;
   late _CountingHolidayRepository holidayRepository;
 
@@ -38,6 +39,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     secureStore = {};
     secureMethods = [];
+    failSecureStorageWrite = false;
 
     // 비밀번호 저장소는 플랫폼 채널을 타므로 인메모리 맵으로 대신한다.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -48,6 +50,9 @@ void main() {
         case 'read':
           return secureStore[args['key'] as String];
         case 'write':
+          if (failSecureStorageWrite) {
+            throw PlatformException(code: 'write-failed');
+          }
           secureStore[args['key'] as String] = args['value'] as String;
           return null;
         case 'delete':
@@ -193,6 +198,22 @@ void main() {
       expect(prefs.getString('savedEmployeeNumber'), isNull);
       expect(secureStore, isEmpty);
       expect(secureMethods, contains('delete'));
+    });
+
+    test('계정 저장소 쓰기가 실패해도 이미 성공한 로그인은 유지한다', () async {
+      failSecureStorageWrite = true;
+
+      final vm = build();
+      vm.employeeNumberController.text = 'A0001';
+      vm.passwordController.text = 'pw1234';
+      vm.setRememberMe(true);
+
+      expect(await vm.login(), isTrue);
+      expect(session.loginCalls, [
+        {'employeeNumber': 'A0001', 'password': 'pw1234'}
+      ]);
+      expect(vm.errorMessage, isNull);
+      expect(holidayRepository.fetchCount, 1);
     });
 
     test('공휴일 프리페치가 실패해도 로그인 성공으로 처리한다', () async {
