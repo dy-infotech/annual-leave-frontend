@@ -23,6 +23,7 @@ void main() {
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
@@ -192,8 +193,12 @@ void main() {
   });
 
   group('401 응답', () {
-    test('401 응답의 message가 그대로 전달되고 저장된 토큰은 그대로 남는다', () async {
+    test('인증된 요청의 401은 토큰을 지우고 세션 만료 핸들러를 호출한다', () async {
       storedToken = 'expired.token';
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler(() async {
+        expiredCount++;
+      });
       dioAdapter.onGet(
         '/api/employees/me',
         (server) => server.reply(401, {'message': '인증 정보가 유효하지 않습니다.'}),
@@ -205,9 +210,34 @@ void main() {
 
       expect(error.response?.statusCode, 401);
       expect(error.message, '인증 정보가 유효하지 않습니다.');
-      // 현재 ApiClient에는 401 자동 로그아웃/토큰 삭제 처리가 없다.
-      expect(storedToken, 'expired.token');
-      expect(storageCalls.map((call) => call.method), isNot(contains('delete')));
+      expect(storedToken, isNull);
+      expect(storageCalls.map((call) => call.method), contains('delete'));
+      expect(expiredCount, 1);
+    });
+
+    test('공개 로그인 요청의 401은 기존 세션 만료로 처리하지 않는다', () async {
+      storedToken = 'existing.token';
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler(() async {
+        expiredCount++;
+      });
+      dioAdapter.onPost(
+        '/api/auth/signin',
+        (server) => server.reply(401, {'message': '사번 또는 비밀번호가 일치하지 않습니다.'}),
+        data: {'employeeNumber': 'A0001', 'password': 'wrong'},
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.post(
+              '/api/auth/signin',
+              data: {'employeeNumber': 'A0001', 'password': 'wrong'},
+            ),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(error.requestOptions.headers.containsKey('Authorization'), isFalse);
+      expect(storedToken, 'existing.token');
+      expect(expiredCount, 0);
     });
 
     test('401 응답 본문이 비어 있으면 네트워크 오류 메시지가 된다', () async {
