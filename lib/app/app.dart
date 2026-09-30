@@ -1,5 +1,4 @@
 import 'package:annual_leave_frontend/core/network/api_client.dart';
-import 'package:annual_leave_frontend/core/navigation/app_navigator.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
