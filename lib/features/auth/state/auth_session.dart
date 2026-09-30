@@ -85,6 +85,16 @@ class AuthSession extends ChangeNotifier {
     }
   }
 
+  bool expireSession() {
+    final wasLoggedIn = _isLoggedIn;
+    _isLoggedIn = false;
+    _role = null;
+    _name = null;
+    _employeeInfo = null;
+    notifyListeners();
+    return wasLoggedIn;
+  }
+
   Future<void> logout() async {
     await _repository.clearToken();
     _isLoggedIn = false;

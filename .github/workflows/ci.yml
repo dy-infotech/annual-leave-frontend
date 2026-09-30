@@ -29,3 +29,6 @@ jobs:
 
       - name: 테스트
         run: flutter test
+
+      - name: 웹 릴리스 빌드
+        run: flutter build web --release

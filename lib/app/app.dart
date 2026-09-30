@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
@@ -20,6 +21,7 @@ import 'package:provider/provider.dart';
 
 final RouteObserver<PageRoute<dynamic>> routeObserver =
     RouteObserver<PageRoute<dynamic>>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -28,9 +30,25 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthSession()),
+        ChangeNotifierProvider(
+          create: (_) {
+            final session = AuthSession();
+            ApiClient().setUnauthorizedHandler(() async {
+              final shouldRedirect = session.expireSession();
+              if (!shouldRedirect) return;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                rootNavigatorKey.currentState?.pushNamedAndRemoveUntil(
+                  '/login',
+                  (_) => false,
+                );
+              });
+            });
+            return session;
+          },
+        ),
       ],
       child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
         title: '연차 관리',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.theme,

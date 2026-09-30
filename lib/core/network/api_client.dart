@@ -10,6 +10,24 @@ class ApiClient {
   late final Dio dio;
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
+  Future<void> Function()? _unauthorizedHandler;
+  bool _handlingUnauthorized = false;
+
+  void setUnauthorizedHandler(Future<void> Function()? handler) {
+    _unauthorizedHandler = handler;
+  }
+
+  Future<void> _handleUnauthorized() async {
+    if (_handlingUnauthorized) return;
+    _handlingUnauthorized = true;
+    try {
+      await clearToken();
+      final handler = _unauthorizedHandler;
+      if (handler != null) await handler();
+    } finally {
+      _handlingUnauthorized = false;
+    }
+  }
 
   dynamic _redactForLog(dynamic value) {
     if (value is Map) {
@@ -58,7 +76,11 @@ class ApiClient {
         }
         return handler.next(options);
       },
-      onError: (DioException error, handler) {
+      onError: (DioException error, handler) async {
+        if (error.response?.statusCode == 401) {
+          await _handleUnauthorized();
+        }
+
         final responseData = error.response?.data;
         final rawMessage =
             responseData is Map ? responseData['message'] : null;

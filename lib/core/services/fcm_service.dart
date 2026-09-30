@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'dart:async' show StreamSubscription;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -64,12 +63,15 @@ class FcmService {
       final currentJwt = await _apiClient.getToken();
       if (registeredToken != token || _lastSyncedJwt != currentJwt) {
         final deviceOs = kIsWeb
-            ? "Web"
-            : Platform.isAndroid
-                ? "Android"
-                : Platform.isIOS
-                    ? "iOS"
-                    : "Unknown";
+            ? 'Web'
+            : switch (defaultTargetPlatform) {
+                TargetPlatform.android => 'Android',
+                TargetPlatform.iOS => 'iOS',
+                TargetPlatform.macOS => 'macOS',
+                TargetPlatform.windows => 'Windows',
+                TargetPlatform.linux => 'Linux',
+                TargetPlatform.fuchsia => 'Fuchsia',
+              };
         await _apiClient.dio.post(
           '/api/admin/auth/sync-fcm-token',
           data: SyncFcmTokenRequest(
