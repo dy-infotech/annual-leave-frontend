@@ -59,7 +59,7 @@ graph TD
 
 ## 1.5 배포 대상 (있는 그대로)
 
-- **Web**: Vercel(`annual-leave-frontend.vercel.app`)에 배포되어 있으나, 저장소에 `vercel.json`/`next.config` 등 커밋된 배포 설정이 없습니다. `test-web-deploy` 브랜치에 ngrok 터널링 URL 적용 커밋("웹 배포 테스트용 터널링 URL 적용", "ngrok 경고 페이지 우회 헤더 추가")이 남아 있어, **`flutter build web` 산출물을 Vercel 대시보드에서 정적 사이트로 수동 배포**한 것으로 추정됩니다(추정 — 실제 배포 파이프라인은 확인 필요).
+- **Web**: GitHub Actions `.github/workflows/deploy.yml`이 `release` 브랜치에서 `flutter build web --release`를 수행하고, 서버 staging 디렉터리에 업로드한 뒤 `/opt/annual-leave/front/web`으로 전환합니다. 전환 실패 시 이전 디렉터리를 복원합니다.
 - **Android/iOS**: 스토어 배포 자동화(Fastlane 등) 없음. 로컬 빌드 후 수동 배포로 추정.
 - **CI/CD**: `.github/workflows` 없음 — 빌드/테스트/배포 전 과정이 CI 없이 로컬에서 수행되는 것으로 보입니다.
 
@@ -70,7 +70,7 @@ graph TD
 | 기능 | 사용 여부 |
 |---|---|
 | JWT 인증 | 사용(전 화면) |
-| FCM 푸시 알림 | **백엔드는 지원하나 프론트엔드에는 Firebase 관련 코드가 전혀 없음(미구현)** |
+| FCM 푸시 알림 | `FcmService`가 관리자 대시보드에서 token/topic을 동기화하고 로그아웃 시 서버/클라이언트 token을 정리 |
 | 공휴일 동기화 API | 사용(연차 신청 캘린더의 주말/공휴일 표시) |
 | 관리자 승인/반려 | 사용 |
 | OpenAPI/Swagger 문서 소비 | 해당 없음(백엔드 springdoc 비활성 상태) |
