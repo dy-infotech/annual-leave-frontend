@@ -813,6 +813,7 @@ class _LeaveRequestViewState extends State<_LeaveRequestView> {
               const SizedBox(height: 10),
               TextField(
                 controller: vm.reasonController,
+                maxLength: 200,
                 maxLines: 3,
                 style: const TextStyle(fontSize: 14),
                 decoration: InputDecoration(
