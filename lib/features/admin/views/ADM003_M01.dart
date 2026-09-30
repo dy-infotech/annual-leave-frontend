@@ -1033,10 +1033,14 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     if (origin == null) {
       _parentTeamId = _kNoParent;
     } else if (!origin.isRoot) {
-      _parentTeamId = _parentCandidates
-              .any((t) => t.teamId == origin.parentTeamId)
-          ? origin.parentTeamId
-          : null;
+      if (origin.managers.isEmpty) {
+        _parentTeamId = _kNoParent;
+      } else {
+        _parentTeamId = _parentCandidates
+                .any((t) => t.teamId == origin.parentTeamId)
+            ? origin.parentTeamId
+            : null;
+      }
     }
   }
 
@@ -1115,13 +1119,6 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     if (_pickedManager != null &&
         !_canSelectAsManager(_pickedManager!, DateTime.now())) {
       _managerError = '입사 전이거나 퇴사 처리된 사원은 팀 담당자로 지정할 수 없습니다.';
-      hasError = true;
-    }
-    if (_isEdit &&
-        widget.team!.managers.isEmpty &&
-        _pickedManager != null &&
-        (_parentTeamId == null || _parentTeamId == _kNoParent)) {
-      _serverError = '첫 담당자를 지정하려면 상위 팀도 선택해 주세요.';
       hasError = true;
     }
     if (hasError) {
@@ -1296,12 +1293,12 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
       value: _parentTeamId,
       decoration: const InputDecoration(
         labelText: '상위 팀',
-        helperText: '상위 팀은 연차 결재선을 결정합니다.',
+        helperText: '미지정 시 대표이사 팀 직속으로 설정됩니다.',
         helperStyle: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
       ),
       icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
       items: [
-        if (!_isEdit)
+        if (!_isEdit || (widget.team?.managers.isEmpty ?? false))
           const DropdownMenuItem(
             value: _kNoParent,
             child: Text('미지정 — 대표이사 팀 직속', overflow: TextOverflow.ellipsis),
