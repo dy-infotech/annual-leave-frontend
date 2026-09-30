@@ -432,16 +432,18 @@ void main() {
       expect(vm.useDaysText, '0');
     });
 
-    test('주말 반차에서 종일로 되돌리면 0일로 재계산된다', () {
-      // 반차 경로에서는 0.5였던 주말이 종일 재계산에서는 0이 된다.
+    test('주말 반차 선택은 즉시 거절되고 선택 상태를 남기지 않는다', () {
       final vm = buildVm();
       vm.setLeaveType(LeaveType.pmHalf);
-      vm.selectDay(DateTime(2026, 8, 8), DateTime(2026, 8, 8)); // 토
-      expect(vm.useDaysText, '0.5');
 
-      vm.setLeaveType(LeaveType.full);
+      final confirmed =
+          vm.selectDay(DateTime(2026, 8, 8), DateTime(2026, 8, 8)); // 토
 
+      expect(confirmed, isFalse);
+      expect(vm.startDate, isNull);
+      expect(vm.endDate, isNull);
       expect(vm.useDaysText, '0');
+      expect(vm.errorMessage, isNotNull);
     });
 
     test('반차끼리 바꿔도 이미 확정된 0.5일과 선택 날짜가 유지된다', () {
