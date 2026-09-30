@@ -121,6 +121,63 @@ void main() {
     });
   });
 
+  group('updateManagedTeams', () {
+    test('전용 managed-teams 엔드포인트에 expected와 desired 상태를 보낸다', () async {
+      dioAdapter.onPut(
+        '/api/admin/employees/A0001/managed-teams',
+        (server) => server.reply(200, null),
+        data: {
+          'expectedManagedTeams': ['SI사업팀'],
+          'managedTeams': ['SI사업팀', 'BI사업팀'],
+        },
+      );
+
+      expect(
+        await repository.updateManagedTeams(
+          'A0001',
+          expectedManagedTeams: ['SI사업팀'],
+          managedTeams: ['SI사업팀', 'BI사업팀'],
+        ),
+        200,
+      );
+
+      expect(lastRequest().method, 'PUT');
+      expect(
+        lastRequest().path,
+        '/api/admin/employees/A0001/managed-teams',
+      );
+      expect(lastRequest().data, {
+        'expectedManagedTeams': ['SI사업팀'],
+        'managedTeams': ['SI사업팀', 'BI사업팀'],
+      });
+    });
+
+    test('관리팀 전체 삭제는 빈 managedTeams 배열을 그대로 전송한다', () async {
+      dioAdapter.onPut(
+        '/api/admin/employees/A0001/managed-teams',
+        (server) => server.reply(204, null),
+        data: {
+          'expectedManagedTeams': ['SI사업팀'],
+          'managedTeams': <String>[],
+        },
+      );
+
+      expect(
+        await repository.updateManagedTeams(
+          'A0001',
+          expectedManagedTeams: ['SI사업팀'],
+          managedTeams: const [],
+        ),
+        204,
+      );
+
+      expect(lastRequest().data, {
+        'expectedManagedTeams': ['SI사업팀'],
+        'managedTeams': <String>[],
+      });
+    });
+  });
+
   group('updateEmployee', () {
     test('PUT /api/admin/employees/{employeeNumber}에 수정 본문을 보낸다', () async {
       dioAdapter.onPut(

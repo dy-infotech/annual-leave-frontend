@@ -15,7 +15,7 @@ void main() {
     String name = '홍길동',
     String position = '과장',
     String role = 'EMPLOYEE',
-    List<String> teamList = const ['SI사업팀'],
+    List<String> teamList = const [],
   }) =>
       Employee.fromJson(fixtureJson('admin/employee.json')
         ..['employeeNumber'] = employeeNumber
@@ -118,52 +118,43 @@ void main() {
   });
 
   group('AdminSettingsViewModel - 팀 분리 매핑', () {
-    test('동명이인 팀 중복 방어 - 같은 이름이 반복되면 두 번째부터 "(n)"을 붙인다', () async {
+    test('중복 팀 이름은 한 번만 노출한다', () async {
       commonCodes.codesToReturn = {
         'accessibleTeam': ['SI사업팀', 'SI사업팀', 'BI사업팀', 'SI사업팀'],
       };
 
       final vm = build();
-      vm.selectEmployee(emp(role: 'EMPLOYEE'));
+      vm.selectEmployee(emp());
       await vm.fetchEmployeeTeams();
 
-      expect(vm.generalTeams, ['SI사업팀', 'SI사업팀 (2)', 'BI사업팀', 'SI사업팀 (3)']);
+      expect(vm.generalTeams, ['SI사업팀', 'BI사업팀']);
       expect(vm.managedTeams, isEmpty);
     });
 
-    test('startsWith 매칭 - 관리자의 팀 이름과 넘버링된 동명 팀을 모두 관리팀으로 넣는다', () async {
+    test('deprecated role 값과 무관하게 teamList를 관리팀 기준으로 사용한다', () async {
       commonCodes.codesToReturn = {
-        'accessibleTeam': ['SI사업팀', 'SI사업팀', 'BI사업팀', 'SI사업팀'],
+        'accessibleTeam': ['SI사업팀', 'BI사업팀'],
       };
 
       final vm = build();
-      vm.selectEmployee(emp(role: 'ADMIN', teamList: const ['SI사업팀']));
+      vm.selectEmployee(
+        emp(role: 'EMPLOYEE', teamList: const ['SI사업팀']),
+      );
       await vm.fetchEmployeeTeams();
 
-      expect(vm.managedTeams, ['SI사업팀', 'SI사업팀 (2)', 'SI사업팀 (3)']);
+      expect(vm.managedTeams, ['SI사업팀']);
       expect(vm.generalTeams, ['BI사업팀']);
     });
 
-    test('EMPLOYEE 역할이면 소속 팀이 있어도 관리팀이 비어 있다', () async {
+    test('teamList의 공백은 정규화해서 관리팀과 매칭한다', () async {
       commonCodes.codesToReturn = {
         'accessibleTeam': ['SI사업팀', 'BI사업팀'],
       };
 
       final vm = build();
-      vm.selectEmployee(emp(role: 'EMPLOYEE', teamList: const ['SI사업팀']));
-      await vm.fetchEmployeeTeams();
-
-      expect(vm.managedTeams, isEmpty);
-      expect(vm.generalTeams, ['SI사업팀', 'BI사업팀']);
-    });
-
-    test('MANAGER 역할도 관리자로 취급한다', () async {
-      commonCodes.codesToReturn = {
-        'accessibleTeam': ['SI사업팀', 'BI사업팀'],
-      };
-
-      final vm = build();
-      vm.selectEmployee(emp(role: 'manager', teamList: const ['BI사업팀']));
+      vm.selectEmployee(
+        emp(role: 'UNKNOWN', teamList: const ['  BI사업팀  ']),
+      );
       await vm.fetchEmployeeTeams();
 
       expect(vm.managedTeams, ['BI사업팀']);
@@ -176,7 +167,7 @@ void main() {
       };
 
       final vm = build();
-      vm.selectEmployee(emp(role: 'EMPLOYEE'));
+      vm.selectEmployee(emp());
       await vm.fetchEmployeeTeams();
 
       expect(vm.generalTeams, ['총무팀']);
@@ -204,12 +195,14 @@ void main() {
   });
 
   group('AdminSettingsViewModel - 팀 이동', () {
-    Future<AdminSettingsViewModel> loaded({String role = 'EMPLOYEE'}) async {
+    Future<AdminSettingsViewModel> loaded({
+      List<String> teamList = const [],
+    }) async {
       commonCodes.codesToReturn = {
         'accessibleTeam': ['SI사업팀', 'BI사업팀'],
       };
       final vm = build();
-      vm.selectEmployee(emp(role: role, teamList: const ['SI사업팀']));
+      vm.selectEmployee(emp(teamList: teamList));
       await vm.fetchEmployeeTeams();
       return vm;
     }
@@ -238,7 +231,7 @@ void main() {
     });
 
     test('moveToGeneral - 선택한 관리팀을 일반팀으로 되돌린다', () async {
-      final vm = await loaded(role: 'ADMIN');
+      final vm = await loaded(teamList: const ['SI사업팀']);
       expect(vm.managedTeams, ['SI사업팀']);
 
       vm.selectManagedTeam('SI사업팀');
@@ -297,6 +290,31 @@ void main() {
       expect(update.managedTeams, ['BI사업팀']);
       expect(repository.fetchQueries, ['A0001']);
       expect(vm.isLoading, isFalse);
+    });
+
+    test('saveChanges - 관리팀 삭제도 expected와 빈 desired 상태로 저장한다', () async {
+      commonCodes.codesToReturn = {
+        'accessibleTeam': ['SI사업팀', 'BI사업팀'],
+      };
+      repository.employeesToReturn = [emp(teamList: const [])];
+
+      final vm = build();
+      expect(
+        vm.selectEmployee(emp(teamList: const ['SI사업팀'])),
+        isTrue,
+      );
+      await vm.fetchEmployeeTeams();
+
+      vm.selectManagedTeam('SI사업팀');
+      vm.moveToGeneral();
+
+      expect(await vm.saveChanges(), isNull);
+
+      final update = repository.managedTeamUpdates.single;
+      expect(update.employeeNumber, 'A0001');
+      expect(update.expectedManagedTeams, ['SI사업팀']);
+      expect(update.managedTeams, isEmpty);
+      expect(repository.fetchQueries, ['A0001']);
     });
 
     test('saveChanges - 서버 재조회 후 expected 상태를 최신값으로 갱신한다', () async {

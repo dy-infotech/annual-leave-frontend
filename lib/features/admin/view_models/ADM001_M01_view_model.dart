@@ -117,10 +117,12 @@ class AdminSettingsViewModel extends ChangeNotifier {
         }
       }
 
-      final role = (selected.role ?? '').toUpperCase();
-      final isAdmin = role == 'ADMIN' || role == 'MANAGER';
-      final managedNames =
-          isAdmin ? (selected.teamList ?? const <String>[]).toSet() : <String>{};
+      // 관리팀의 기준은 서버가 명시적으로 내려준 teamList다.
+      // role은 deprecated 파생값이므로 관리팀 판정에 사용하지 않는다.
+      final managedNames = (selected.teamList ?? const <String>[])
+          .map((team) => team.trim())
+          .where((team) => team.isNotEmpty)
+          .toSet();
 
       if (_disposed ||
           seq != _teamLoadSeq ||

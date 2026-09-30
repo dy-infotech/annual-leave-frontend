@@ -104,7 +104,7 @@ void main() {
     expect(find.text('BI사업팀'), findsOneWidget);
   });
 
-  testWidgets('저장 - 변경된 팀 목록이 targetTeamsForRoleSwap으로 전송된다', (tester) async {
+  testWidgets('저장 - expected와 최종 관리팀을 전용 CAS 엔드포인트 계약으로 전송한다', (tester) async {
     fake.employeesToReturn = [employee()];
 
     await pumpSettingsScreen(tester);
@@ -117,10 +117,12 @@ void main() {
     await tester.tap(find.text('변경 사항 저장하기'));
     await tester.pumpAndSettle();
 
-    expect(fake.updates, hasLength(1));
-    expect(fake.updates.single.employeeNumber, 'A0001');
-    expect(fake.updates.single.data['targetTeamsForRoleSwap'], ['BI사업팀']);
-    // 저장 후 목록 재조회
+    expect(fake.updates, isEmpty);
+    expect(fake.managedTeamUpdates, hasLength(1));
+    expect(fake.managedTeamUpdates.single.employeeNumber, 'A0001');
+    expect(fake.managedTeamUpdates.single.expectedManagedTeams, isEmpty);
+    expect(fake.managedTeamUpdates.single.managedTeams, ['BI사업팀']);
+    // 저장 후 선택 사원의 서버 상태를 다시 조회한다.
     expect(fake.fetchQueries.length, 2);
   });
 }
