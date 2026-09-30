@@ -50,6 +50,19 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 300) {
+      context.read<AllLeaveRequestsViewModel>().loadMore();
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
@@ -364,8 +377,24 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
                                 left: 20.0,
                                 right: 20.0,
                                 bottom: 20.0),
-                            itemCount: vm.items.length,
+                            itemCount:
+                                vm.items.length + (vm.isLoadingMore ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (index == vm.items.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.slate,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
                               final item = vm.items[index];
                               final isProcessing =
                                   vm.isProcessing(item.requestId);

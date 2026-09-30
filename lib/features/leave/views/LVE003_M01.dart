@@ -38,6 +38,19 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 300) {
+      context.read<PendingApprovalViewModel>().loadMore();
+    }
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     final route = ModalRoute.of(context);
@@ -284,7 +297,8 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
           controller: _scrollController,
           padding:
               const EdgeInsets.only(left: 20, right: 20, top: 5, bottom: 100),
-          itemCount: vm.requests.length + 1,
+          itemCount:
+              vm.requests.length + 1 + (vm.isLoadingMore ? 1 : 0),
           itemBuilder: (context, index) {
             // 첫 번째 아이템 자리에 상단 우측 끝 "조회건수" 라벨 배치
             if (index == 0) {
@@ -303,6 +317,22 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
                 ),
               );
             }
+            if (index == vm.requests.length + 1) {
+              return const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: SizedBox(
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.slate,
+                    ),
+                  ),
+                ),
+              );
+            }
+
             final req = vm.requests[index - 1];
             final bool isSelected = vm.selectedRequestId == req.requestId;
             final leaveTypeNm = LeaveType.getLabel(req.leaveType);
