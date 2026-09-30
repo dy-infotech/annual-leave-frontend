@@ -65,12 +65,12 @@ void main() {
     expect(find.text('홍길동'), findsOneWidget);
     expect(find.text('2020.01.01'), findsOneWidget); // 입사일 0패딩 포맷
     expect(find.text('등록'), findsOneWidget);
-    expect(find.text('수정'), findsOneWidget);
+    expect(find.text('수정'), findsNothing);
   });
 
   testWidgets('수정 저장 - 이메일을 바꿔 저장하면 수정 요청이 전송되고 잠금 모드로 돌아간다',
       (tester) async {
-    await pumpDetailScreen(tester, login: loginUser());
+    await pumpDetailScreen(tester, login: loginUser(position: '사장'));
 
     await tester.tap(find.text('수정'));
     await tester.pumpAndSettle();
@@ -97,12 +97,10 @@ void main() {
     expect(find.text('수정'), findsOneWidget); // 저장 후 잠금 모드 복귀
   });
 
-  testWidgets('일반 관리자 - 수정 모드여도 부서/팀/직급은 드롭다운이 아닌 읽기 전용이다', (tester) async {
+  testWidgets('일반 관리자 - 인사정보 수정 액션이 노출되지 않는다', (tester) async {
     await pumpDetailScreen(tester, login: loginUser(position: '과장'));
 
-    await tester.tap(find.text('수정'));
-    await tester.pumpAndSettle();
-
+    expect(find.text('수정'), findsNothing);
     expect(find.byType(DropdownButtonFormField<String>), findsNothing);
   });
 

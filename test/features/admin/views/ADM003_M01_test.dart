@@ -317,6 +317,7 @@ class _FakeDepartmentTeamApi extends DepartmentTeamRepository {
       department: 'SI사업팀',
       team: '스마트팩토리구축사업',
       teamList: null,
+      hireDate: '2020-01-01',
       currTotalLeaveDays: 15,
       remainingLeaveDays: 15,
       isRegisted: true,

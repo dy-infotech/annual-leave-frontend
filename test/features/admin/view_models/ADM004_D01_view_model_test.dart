@@ -212,7 +212,6 @@ void main() {
       final data = repository.updates.single.data;
       expect(data['hireDate'], '2020-01-01');
       expect(data['fireDate'], '2024-12-31');
-      expect(data['firedDate'], '2024-12-31');
     });
 
     test('날짜가 10자리가 아니면 null로 보낸다', () async {
@@ -224,7 +223,6 @@ void main() {
       final data = repository.updates.single.data;
       expect(data['hireDate'], isNull);
       expect(data['fireDate'], isNull);
-      expect(data['firedDate'], isNull);
     });
 
     test('저장 요청에 역할 관련 값을 담지 않는다', () async {
@@ -242,7 +240,6 @@ void main() {
       expect(update.data['name'], '홍길동');
       expect(update.data['email'], 'hong@example.com');
       expect(update.data['team'], 'SI사업팀');
-      expect(update.data['currTotalLeaveDays'], 15.0);
       expect(update.data.containsKey('role'), isFalse);
       expect(update.data.containsKey('targetTeamForRoleSwap'), isFalse);
       expect(update.data.containsKey('targetTeamsForRoleSwap'), isFalse);
