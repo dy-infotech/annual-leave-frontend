@@ -21,8 +21,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
-  String? _cursorCreatedAt;
-  int? _cursorRequestId;
+  int _nextPage = 0;
   String? _statusFilter;
   DateTimeRange? _dateRange;
   String _buttonLabel = '전체';
@@ -52,10 +51,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     await fetch();
   }
 
-  Future<List<LeaveRequestListItem>> _fetchPage({
-    required String? cursorCreatedAt,
-    required int? cursorRequestId,
-  }) {
+  Future<List<LeaveRequestListItem>> _fetchPage({required int page}) {
     final year = _today.year;
     var startDate = formatDate(DateTime(year, 1, 1));
     var endDate = formatDate(DateTime(year, 12, 31));
@@ -69,16 +65,14 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
             status: _statusFilter,
             startDate: startDate,
             endDate: endDate,
-            cursorCreatedAt: cursorCreatedAt,
-            cursorRequestId: cursorRequestId,
+            page: page,
             size: _pageSize,
           )
         : _repository.fetchAllLeaveRequestsPage(
             status: _statusFilter,
             startDate: startDate,
             endDate: endDate,
-            cursorCreatedAt: cursorCreatedAt,
-            cursorRequestId: cursorRequestId,
+            page: page,
             size: _pageSize,
           );
   }
@@ -88,15 +82,11 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     _isLoading = true;
     _isLoadingMore = false;
     _hasMore = true;
-    _cursorCreatedAt = null;
-    _cursorRequestId = null;
+    _nextPage = 0;
     _notify();
 
     try {
-      final page = await _fetchPage(
-        cursorCreatedAt: null,
-        cursorRequestId: null,
-      );
+      final page = await _fetchPage(page: 0);
       if (_disposed || seq != _requestSeq) return;
       _items = page;
       _applyPageCursor(page);
@@ -112,17 +102,11 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
 
     final seq = _requestSeq;
-    final cursorCreatedAt = _cursorCreatedAt;
-    final cursorRequestId = _cursorRequestId;
-    if (cursorCreatedAt == null || cursorRequestId == null) return;
-
+    final pageNumber = _nextPage;
     _isLoadingMore = true;
     _notify();
     try {
-      final page = await _fetchPage(
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
-      );
+      final page = await _fetchPage(page: pageNumber);
       if (_disposed || seq != _requestSeq) return;
 
       final existingIds = _items.map((item) => item.requestId).toSet();
@@ -138,10 +122,9 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
 
   void _applyPageCursor(List<LeaveRequestListItem> page) {
     _hasMore = page.length == _pageSize;
-    if (page.isEmpty) return;
-    final last = page.last;
-    _cursorCreatedAt = last.requestedAt;
-    _cursorRequestId = last.requestId;
+    if (page.isNotEmpty) {
+      _nextPage++;
+    }
   }
 
   void setFilter(String? status) {

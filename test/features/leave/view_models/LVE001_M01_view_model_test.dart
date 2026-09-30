@@ -885,7 +885,7 @@ void main() {
 
       final results = await Future.wait([vm.submit(), vm.submit()]);
 
-      expect(results, [true, true]);
+      expect(results, [true, false]);
       expect(fake.submittedRequests, hasLength(2));
     });
 

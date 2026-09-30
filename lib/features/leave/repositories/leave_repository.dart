@@ -25,20 +25,18 @@ class LeaveRepository {
     String? status,
     String? startDate,
     String? endDate,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = defaultPageSize,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/my',
-      queryParameters: _cursorQuery(
+      queryParameters: _pageQuery(
         {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
         },
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
         size: size,
       ),
     );
@@ -51,20 +49,18 @@ class LeaveRepository {
     String? status,
     String? startDate,
     String? endDate,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = defaultPageSize,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/all',
-      queryParameters: _cursorQuery(
+      queryParameters: _pageQuery(
         {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
         },
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
         size: size,
       ),
     );
@@ -79,13 +75,12 @@ class LeaveRepository {
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((cursorCreatedAt, cursorRequestId) {
+    return _collectLeavePages((page) {
       return fetchMyLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
       );
     });
   }
@@ -96,13 +91,12 @@ class LeaveRepository {
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((cursorCreatedAt, cursorRequestId) {
+    return _collectLeavePages((page) {
       return fetchAllLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
       );
     });
   }
@@ -119,8 +113,7 @@ class LeaveRepository {
     required String? status,
     required String? team,
     String? employeeParam,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = defaultPageSize,
   }) async {
     final normalizedStatus = status?.trim().toLowerCase();
@@ -133,7 +126,7 @@ class LeaveRepository {
     final normalizedEmployeeParam = employeeParam?.trim();
     final response = await _dio.get(
       '/api/admin/leave-requests/$normalizedStatus',
-      queryParameters: _cursorQuery(
+      queryParameters: _pageQuery(
         {
           if (normalizedTeam != null && normalizedTeam.isNotEmpty)
             'team': normalizedTeam,
@@ -141,8 +134,7 @@ class LeaveRepository {
               normalizedEmployeeParam.isNotEmpty)
             'employeeParam': normalizedEmployeeParam,
         },
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
         size: size,
       ),
     );
@@ -156,28 +148,25 @@ class LeaveRepository {
     required String? team,
     String? employeeParam,
   }) {
-    return _collectLeavePages((cursorCreatedAt, cursorRequestId) {
+    return _collectLeavePages((page) {
       return searchAdminLeaveRequestsPage(
         status: status,
         team: team,
         employeeParam: employeeParam,
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
       );
     });
   }
 
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = defaultPageSize,
   }) async {
     final response = await _dio.get(
       '/api/admin/leave-requests/pending',
-      queryParameters: _cursorQuery(
+      queryParameters: _pageQuery(
         const {},
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: page,
         size: size,
       ),
     );
@@ -188,21 +177,13 @@ class LeaveRepository {
 
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
     final result = <PendingLeaveRequest>[];
-    String? cursorCreatedAt;
-    int? cursorRequestId;
 
-    for (var batch = 0; batch < _maxCursorBatches; batch++) {
-      final page = await fetchPendingLeaveRequestsPage(
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
-      );
-      result.addAll(page);
-      if (page.length < defaultPageSize) return result;
-      final last = page.last;
-      cursorCreatedAt = last.createdAt;
-      cursorRequestId = last.requestId;
+    for (var page = 0; page < _maxCursorBatches; page++) {
+      final items = await fetchPendingLeaveRequestsPage(page: page);
+      result.addAll(items);
+      if (items.length < defaultPageSize) return result;
     }
-    throw StateError('결재 대기 목록이 cursor 조회 한도를 초과했습니다.');
+    throw StateError('결재 대기 목록이 페이지 조회 한도를 초과했습니다.');
   }
 
   Future<void> approveLeaveRequest(int requestId) async {
@@ -216,38 +197,28 @@ class LeaveRepository {
     );
   }
 
-  Map<String, dynamic> _cursorQuery(
+  Map<String, dynamic> _pageQuery(
     Map<String, dynamic> base, {
-    required String? cursorCreatedAt,
-    required int? cursorRequestId,
+    required int page,
     required int size,
   }) {
     return {
       ...base,
-      if (cursorCreatedAt != null) 'cursorCreatedAt': cursorCreatedAt,
-      if (cursorRequestId != null) 'cursorRequestId': cursorRequestId,
+      'page': page,
       'size': size,
     };
   }
 
   Future<List<LeaveRequestListItem>> _collectLeavePages(
-    Future<List<LeaveRequestListItem>> Function(
-            String? cursorCreatedAt, int? cursorRequestId)
-        fetchPage,
+    Future<List<LeaveRequestListItem>> Function(int page) fetchPage,
   ) async {
     final result = <LeaveRequestListItem>[];
-    String? cursorCreatedAt;
-    int? cursorRequestId;
 
-    for (var batch = 0; batch < _maxCursorBatches; batch++) {
-      final page = await fetchPage(cursorCreatedAt, cursorRequestId);
-      result.addAll(page);
-      if (page.length < defaultPageSize) return result;
-
-      final last = page.last;
-      cursorCreatedAt = last.requestedAt;
-      cursorRequestId = last.requestId;
+    for (var page = 0; page < _maxCursorBatches; page++) {
+      final items = await fetchPage(page);
+      result.addAll(items);
+      if (items.length < defaultPageSize) return result;
     }
-    throw StateError('휴가 목록이 cursor 조회 한도를 초과했습니다.');
+    throw StateError('휴가 목록이 페이지 조회 한도를 초과했습니다.');
   }
 }

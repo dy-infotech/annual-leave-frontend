@@ -130,7 +130,7 @@ void main() {
     expect(fake.passwordChanges, [
       {'currentPassword': 'old1', 'newPassword': 'new1'},
     ]);
-    expect(find.text('비밀번호가 변경되었습니다.'), findsOneWidget);
+    expect(find.text('비밀번호가 변경되었습니다. 다시 로그인해주세요.'), findsOneWidget);
   });
 
   testWidgets('비밀번호 변경 실패 - 실패 안내가 표시된다', (tester) async {

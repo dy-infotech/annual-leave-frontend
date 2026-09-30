@@ -53,6 +53,19 @@ class _AdminSearchLeaveRequestsViewState
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    if (_scrollController.position.extentAfter < 300) {
+      context.read<AdminSearchLeaveRequestsViewModel>().loadMore();
+    }
+  }
+
+  @override
   void dispose() {
     _scrollController.dispose();
     routeObserver.unsubscribe(this);
@@ -269,8 +282,24 @@ class _AdminSearchLeaveRequestsViewState
                           child: ListView.builder(
                             controller: _scrollController, // 추가
                             padding: const EdgeInsets.fromLTRB(20,5,20,20),
-                            itemCount: vm.items.length,
+                            itemCount:
+                                vm.items.length + (vm.isLoadingMore ? 1 : 0),
                             itemBuilder: (context, index) {
+                              if (index == vm.items.length) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: Center(
+                                    child: SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: AppColors.slate,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }
                               final item = vm.items[index];
                               final leaveTypeNm = LeaveType.getLabel(item.leaveType);
                               return InkWell(
