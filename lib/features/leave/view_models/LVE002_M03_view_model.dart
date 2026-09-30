@@ -8,12 +8,14 @@ import 'package:flutter/material.dart';
 /// 관리자 휴가 검색 화면(LVE002_M03)의 ViewModel.
 class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   AdminSearchLeaveRequestsViewModel({
+    this.initialStatus,
     this.initialFilter,
     LeaveRepository? repository,
     CommonCodeRepository? commonCodeRepository,
   })  : _repository = repository ?? LeaveRepository(),
         _commonCodeRepository = commonCodeRepository ?? CommonCodeRepository();
 
+  final String? initialStatus;
   final String? initialFilter;
   final LeaveRepository _repository;
   final CommonCodeRepository _commonCodeRepository;
@@ -42,10 +44,17 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  String? _normalizeStatus(String? value) {
+    final normalized = value?.trim().toLowerCase();
+    return switch (normalized) {
+      'approved' || 'admin_approved' => 'approved',
+      'rejected' || 'admin_rejected' => 'rejected',
+      _ => null,
+    };
+  }
+
   Future<void> load() async {
-    if (initialFilter != null) {
-      _status = initialFilter == 'admin_rejected' ? 'rejected' : 'approved';
-    }
+    _status = _normalizeStatus(initialStatus ?? initialFilter) ?? 'approved';
     await getComData();
     await fetch();
   }
@@ -96,8 +105,11 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
-  void setFilter(String? filter) {
-    _status = filter == 'admin_rejected' ? 'rejected' : 'approved';
+  void setFilter(String? status) {
+    final normalized = _normalizeStatus(status);
+    if (normalized == null) return;
+    _status = normalized;
+    _notify();
     unawaited(fetch());
   }
 

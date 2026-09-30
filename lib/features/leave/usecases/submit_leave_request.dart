@@ -4,6 +4,7 @@ import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dar
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:dio/dio.dart';
 
 /// 휴가 신청 유스케이스.
 ///
@@ -20,7 +21,14 @@ class SubmitLeaveRequest {
     try {
       await _repository.submitLeaveRequest(request);
       return const Ok(null);
-    } catch (e) {
+    } on DioException catch (e) {
+      final message = e.message?.trim();
+      return Err(Failure(
+        message != null && message.isNotEmpty
+            ? message
+            : '신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.',
+      ));
+    } catch (_) {
       return const Err(Failure('신청 중 오류가 발생했습니다. 입력값을 확인해 주세요.'));
     }
   }

@@ -30,6 +30,7 @@ class AdminSearchLeaveRequestsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => AdminSearchLeaveRequestsViewModel(
+        initialStatus: status,
         initialFilter: filter,
         repository: repository,
         commonCodeRepository: commonCodeRepository,

@@ -93,16 +93,8 @@ class _LeaveRequestDetailView extends StatelessWidget {
           _row('휴가 기간',
               '${_formatDate(d.startDate)} ~ ${_formatDate(d.endDate)}'),
           _row('사용 연차', '${d.useDays}일'),
-          // 사유는 권한 있을 때(null 아님)만 표시
-          // if (d.leaveReason != null) _row('사유', d.leaveReason!),
-          // 사유 표시 (권한 있을때만 내용 표시)
-          _row(
-              '신청 사유',
-              (d.leaveReason == null ||
-                      d.leaveReason.toString() == 'null' ||
-                      d.leaveReason.toString().isEmpty)
-                  ? '-'
-                  : d.leaveReason!),
+          if (d.leaveReason != null && d.leaveReason!.trim().isNotEmpty)
+            _row('신청 사유', d.leaveReason!),
           _row(
               '신청일',
               d.createdAt != null
@@ -149,12 +141,10 @@ class _LeaveRequestDetailView extends StatelessWidget {
                           ? '-'
                           : DateFormat('yyyy.MM.dd')
                               .format(DateTime.parse(d.managedAt.toString()))),
-                  if (d.status == 'REJECTED')
-                    _row(
-                        '반려 사유',
-                        (d.rejectReason == null || d.rejectReason!.isEmpty)
-                            ? '-'
-                            : d.rejectReason!),
+                  if (d.status == 'REJECTED' &&
+                      d.rejectReason != null &&
+                      d.rejectReason!.trim().isNotEmpty)
+                    _row('반려 사유', d.rejectReason!),
                 ]
               : [
                   const Padding(

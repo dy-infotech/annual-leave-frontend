@@ -88,8 +88,19 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
-  static bool isCancelable(LeaveRequestListItem item) =>
-      item.status == 'PENDING';
+  static bool isCancelable(
+    LeaveRequestListItem item, {
+    DateTime? now,
+  }) {
+    if (item.status == 'PENDING') return true;
+    if (item.status != 'APPROVED') return false;
+
+    final current = now ?? DateTime.now();
+    final today = DateTime(current.year, current.month, current.day);
+    final start = DateTime.tryParse(item.startDate);
+    if (start == null) return false;
+    return DateTime(start.year, start.month, start.day).isAfter(today);
+  }
 
   static String formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
