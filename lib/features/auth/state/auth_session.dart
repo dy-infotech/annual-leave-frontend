@@ -64,13 +64,14 @@ class AuthSession extends ChangeNotifier {
 
   Future<void> login(String employeeNumber, String password) async {
     try {
-      final loginResponse =
-          await _repository.signIn(employeeNumber, password);
+      await _repository.signIn(employeeNumber, password);
       final info = await _repository.fetchMyInfo();
 
+      // 로그인 응답의 role/name은 signin 시점 snapshot일 수 있다.
+      // 세션을 확정하는 최종 정본은 현재 조직 상태를 반영한 /me 응답이다.
       _employeeInfo = info;
-      _role = loginResponse.role;
-      _name = loginResponse.name;
+      _role = info.role;
+      _name = info.name;
       _isLoggedIn = true;
       notifyListeners();
     } catch (_) {

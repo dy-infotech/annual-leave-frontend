@@ -133,7 +133,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
 
   Future<String?> submitTeamCreate({
     required String teamName,
-    required int managerId,
+    int? managerId,
     required int departmentId,
     int? parentTeamId,
     String? idempotencyKey,

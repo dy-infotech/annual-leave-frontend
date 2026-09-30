@@ -306,6 +306,22 @@ void main() {
       expect(request.parentTeamId, 1);
     });
 
+    test('submitTeamCreate - 담당자 없이 팀만 생성할 수 있다', () async {
+      final vm = build();
+
+      expect(
+        await vm.submitTeamCreate(
+          teamName: '관리자없는팀',
+          departmentId: 2,
+        ),
+        isNull,
+      );
+
+      final request = repository.createdTeams.single;
+      expect(request.projectManagerId, isNull);
+      expect(request.parentTeamId, isNull);
+    });
+
     test('submitTeamCreate 실패 - 서버 메시지 또는 기본 문구를 돌려준다', () async {
       repository.createTeamError = dioError(message: '중복된 팀명입니다.');
       final vm = build();

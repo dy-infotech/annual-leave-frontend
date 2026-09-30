@@ -29,6 +29,21 @@ void main() {
       expect(session.employeeInfo?.employeeNumber, 'A0001');
     });
 
+    test('login - signin과 /me role이 다르면 /me의 현재 role을 사용한다', () async {
+      fake.myInfoToReturn = fake.myInfoToReturn!.copyWith(
+        role: 'ADMIN',
+        name: '현재 관리자',
+      );
+      final session = AuthSession(repository: fake);
+
+      await session.login('A0001', 'pw');
+
+      expect(fake.signInResponse.role, 'EMPLOYEE');
+      expect(session.isAdmin, isTrue);
+      expect(session.name, '현재 관리자');
+      expect(session.employeeInfo?.role, 'ADMIN');
+    });
+
     test('login 후 내 정보 조회가 실패하면 토큰과 세션을 롤백한다', () async {
       fake.myInfoToReturn = null;
       final session = AuthSession(repository: fake);

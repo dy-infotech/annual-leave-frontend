@@ -165,7 +165,7 @@ void main() {
       expect(find.text('이 부서에 소속된 팀이 없습니다.'), findsOneWidget);
     });
 
-    testWidgets('추가 — 담당자를 지정하지 않으면 저장되지 않는다', (tester) async {
+    testWidgets('추가 — 담당자 없이 팀만 먼저 생성할 수 있다', (tester) async {
       await pumpScreen(tester);
       await goToTeamTab(tester);
 
@@ -181,7 +181,9 @@ void main() {
       await tester.tap(find.text('등록'));
       await settle(tester);
 
-      expect(find.text('팀 담당자를 지정해 주세요.'), findsOneWidget);
+      final saved = fake.teams.firstWhere((t) => t.teamName == '신규팀');
+      expect(saved.managers, isEmpty);
+      expect(saved.parentTeamId, isNull);
     });
 
     testWidgets('추가 — 사원을 조회해 담당자를 지정하면 등록된다', (tester) async {
@@ -417,23 +419,28 @@ class _FakeDepartmentTeamApi extends DepartmentTeamRepository {
     if (teams.any((t) => t.teamName == request.teamName)) {
       _reject('이미 존재하는 팀명입니다.');
     }
-    final manager =
-        employees.firstWhere((e) => e.employeeId == request.projectManagerId);
+    final managerId = request.projectManagerId;
+    final manager = managerId == null
+        ? null
+        : employees.firstWhere((e) => e.employeeId == managerId);
     final id = ++_teamSeq;
     teams.add(_rebuild(
       Team(teamId: id, teamName: request.teamName),
       teamName: request.teamName,
       departmentId: request.departmentId,
-      // 미지정 시 대표이사 팀 직속 (백엔드와 동일)
-      parentTeamId: request.parentTeamId ?? 1,
-      managers: [
-        TeamManager(
-          employeeId: manager.employeeId!,
-          employeeNumber: manager.employeeNumber,
-          name: manager.name,
-          position: manager.position,
-        ),
-      ],
+      // 담당자가 있을 때만 결재선이 생기며, 상위 미지정은 대표이사 직속이다.
+      parentTeamId:
+          manager == null ? null : (request.parentTeamId ?? 1),
+      managers: manager == null
+          ? const []
+          : [
+              TeamManager(
+                employeeId: manager.employeeId!,
+                employeeNumber: manager.employeeNumber,
+                name: manager.name,
+                position: manager.position,
+              ),
+            ],
     ));
   }
 

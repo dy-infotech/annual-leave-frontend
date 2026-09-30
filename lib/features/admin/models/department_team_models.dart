@@ -1,6 +1,6 @@
 // 부서 및 팀 관리 화면 전용 모델.
 //
-// 백엔드 부서/팀 CRUD API(feature/department-team-admin-api, PR #57) 응답에 대응한다.
+// 백엔드 develop_v2.0 부서/팀 CRUD API 응답에 대응한다.
 // 상세 명세는 docs/api-spec-department-team.md 참고.
 
 /// 대표이사 부서/팀 이름. 백엔드 DepartmentType 이 이름으로 식별하므로
@@ -135,22 +135,23 @@ class DepartmentSaveRequest {
 /// parentTeamId 미지정 시 백엔드가 대표이사 팀을 상위 팀으로 설정한다.
 class TeamCreateRequest {
   final String teamName;
-  final int projectManagerId;
+  final int? projectManagerId;
   final int departmentId;
   final int? parentTeamId;
 
   TeamCreateRequest({
     required this.teamName,
-    required this.projectManagerId,
+    this.projectManagerId,
     required this.departmentId,
     this.parentTeamId,
   });
 
   Map<String, dynamic> toJson() => {
         'teamName': teamName,
-        'projectManagerId': projectManagerId,
         'departmentId': departmentId,
-        if (parentTeamId != null) 'parentTeamId': parentTeamId,
+        if (projectManagerId != null) 'projectManagerId': projectManagerId,
+        if (projectManagerId != null && parentTeamId != null)
+          'parentTeamId': parentTeamId,
       };
 }
 

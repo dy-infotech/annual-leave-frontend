@@ -143,7 +143,7 @@ class _DepartmentTeamManageViewState extends State<_DepartmentTeamManageView>
         onSubmit: (data) => team == null
             ? vm.submitTeamCreate(
                 teamName: data.teamName,
-                managerId: data.managerId!,
+                managerId: data.managerId,
                 departmentId: data.departmentId!,
                 parentTeamId: data.parentTeamId,
                 idempotencyKey: data.idempotencyKey,
@@ -916,7 +916,7 @@ class _TeamFormData {
 ///
 /// - 소속 부서는 필수. 수정 시 부서를 바꾸면 소속 사원의 부서도 함께 바뀐다(서버 동작).
 /// - 상위 팀은 등록 시 미지정 가능(대표이사 팀 직속). 루트 팀 수정 시에는 노출하지 않는다.
-/// - 담당자는 등록 시 필수 1명. 수정 시 새로 고르면 기존 담당자 전원이 교체된다.
+/// - 담당자는 등록 시 선택 사항. 수정 시 새로 고르면 기존 담당자 전원이 교체된다.
 class _TeamFormSheet extends StatefulWidget {
   final Team? team;
   final List<Department> departments;
@@ -1108,10 +1108,6 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
       _departmentError = '소속 부서를 선택해 주세요.';
       hasError = true;
     }
-    if (!_isEdit && _pickedManager == null) {
-      _managerError = '팀 담당자를 지정해 주세요.';
-      hasError = true;
-    }
     if (_pickedManager != null && _pickedManager!.employeeId == null) {
       _managerError = '사원 정보에 employeeId가 없어 담당자로 지정할 수 없습니다.';
       hasError = true;
@@ -1288,13 +1284,18 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
   }
 
   Widget _buildParentTeamField() {
+    final hasManager = _pickedManager != null ||
+        (widget.team?.managers.isNotEmpty ?? false);
     return DropdownButtonFormField<int>(
       isExpanded: true,
       value: _parentTeamId,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: '상위 팀',
-        helperText: '미지정 시 대표이사 팀 직속으로 설정됩니다.',
-        helperStyle: TextStyle(fontSize: 11.5, color: AppColors.textMuted),
+        helperText: hasManager
+            ? '미지정 시 대표이사 팀 직속으로 설정됩니다.'
+            : '담당자 미지정 팀은 상위 결재선을 저장하지 않습니다.',
+        helperStyle:
+            const TextStyle(fontSize: 11.5, color: AppColors.textMuted),
       ),
       icon: const Icon(Icons.arrow_drop_down, color: Colors.grey),
       items: [
@@ -1308,7 +1309,9 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
               child: Text(team.teamName, overflow: TextOverflow.ellipsis),
             )),
       ],
-      onChanged: (value) => setState(() => _parentTeamId = value),
+      onChanged: hasManager && !_isSaving
+          ? (value) => setState(() => _parentTeamId = value)
+          : null,
     );
   }
 
@@ -1344,7 +1347,7 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
             ),
             const SizedBox(width: 4),
             Text(
-              _isEdit ? '(1명)' : '(필수 1명)',
+              _isEdit ? '(변경 시 1명)' : '(선택 1명)',
               style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ],

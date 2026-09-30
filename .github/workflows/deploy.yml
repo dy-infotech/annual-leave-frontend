@@ -38,7 +38,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SERVER_PORT }}
           source: "build/web/*"
-          target: "/tmp/flutter-deploy"
+          target: "/tmp/flutter-deploy-${{ github.run_id }}-${{ github.run_attempt }}"
           strip_components: 2
 
       - name: 서버에서 배포 마무리
@@ -55,7 +55,7 @@ jobs:
             CURRENT_DIR=$APP_DIR/web
             NEXT_DIR=$APP_DIR/web.next
             PREVIOUS_DIR=$APP_DIR/web.prev
-            STAGING_DIR=/tmp/flutter-deploy
+            STAGING_DIR=/tmp/flutter-deploy-${{ github.run_id }}-${{ github.run_attempt }}
 
             echo "===== 신규 정적 파일 staging ====="
             sudo rm -rf "$NEXT_DIR"
