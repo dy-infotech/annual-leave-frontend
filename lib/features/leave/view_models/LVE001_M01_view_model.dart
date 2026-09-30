@@ -70,7 +70,11 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   /// 화면 진입 시 1회 호출한다.
   Future<void> load() async {
-    _authProvider.fetchMyInfo();
+    try {
+      await _authProvider.fetchMyInfo();
+    } catch (_) {
+      // 내 정보 갱신 실패 시 기존 세션 정보를 유지한다.
+    }
 
     try {
       // 캘린더에 별표를 표시하기 위한 내 휴가 신청 목록 조회
@@ -99,6 +103,14 @@ class LeaveRequestViewModel extends ChangeNotifier {
         _selectedLeaveType == LeaveType.pmHalf;
 
     if (isHalfDay) {
+      if (!isSelectableDay(selectedDay)) {
+        _errorMessage = '주말·공휴일 또는 재직기간 밖 날짜에는 반차를 신청할 수 없습니다.';
+        _startDate = null;
+        _endDate = null;
+        _useDaysText = '0';
+        notifyListeners();
+        return false;
+      }
       _startDate = selectedDay;
       _endDate = selectedDay;
       _useDaysText = '0.5';
@@ -186,6 +198,31 @@ class LeaveRequestViewModel extends ChangeNotifier {
         h.year == day.year && h.month == day.month && h.day == day.day);
   }
 
+  bool isSelectableDay(DateTime day) {
+    final now = DateTime.now();
+    final date = DateTime(day.year, day.month, day.day);
+    if (date.year != now.year) return false;
+    if (date.weekday == DateTime.saturday ||
+        date.weekday == DateTime.sunday ||
+        isHoliday(date)) {
+      return false;
+    }
+
+    final employee = _authProvider.employeeInfo;
+    final hireDate = DateTime.tryParse(employee?.hireDate ?? '');
+    if (hireDate != null) {
+      final hireDay = DateTime(hireDate.year, hireDate.month, hireDate.day);
+      if (date.isBefore(hireDay)) return false;
+    }
+
+    final fireDate = DateTime.tryParse(employee?.fireDate ?? '');
+    if (fireDate != null) {
+      final fireDay = DateTime(fireDate.year, fireDate.month, fireDate.day);
+      if (date.isAfter(fireDay)) return false;
+    }
+    return true;
+  }
+
   bool isInRange(DateTime day) {
     if (_startDate == null) {
       return false;
@@ -216,6 +253,13 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   /// 선택한 기간의 사용 일수가 잔여 연차를 초과하는지 확인한다.
   bool exceedsRemaining() {
+    if ([
+      LeaveType.alternative,
+      LeaveType.parental,
+      LeaveType.family,
+    ].contains(_selectedLeaveType)) {
+      return false;
+    }
     return SubmitLeaveRequest.exceedsRemaining(
         useDays: useDays, remainingLeaveDays: remainingLeaveDays);
   }

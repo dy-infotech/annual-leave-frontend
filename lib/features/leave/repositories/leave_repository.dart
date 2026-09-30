@@ -78,13 +78,22 @@ class LeaveRepository {
     required String? team,
     String? employeeParam,
   }) async {
+    final normalizedStatus = status?.trim().toLowerCase();
+    if (normalizedStatus != 'approved' && normalizedStatus != 'rejected') {
+      throw ArgumentError.value(
+          status, 'status', 'approved 또는 rejected 상태가 필요합니다.');
+    }
+
+    final normalizedTeam = team?.trim();
+    final normalizedEmployeeParam = employeeParam?.trim();
     final queryParams = <String, dynamic>{
-      if (status != null) 'status': status,
-      'team': team,
-      if (employeeParam != null) 'employeeParam': employeeParam,
+      if (normalizedTeam != null && normalizedTeam.isNotEmpty)
+        'team': normalizedTeam,
+      if (normalizedEmployeeParam != null && normalizedEmployeeParam.isNotEmpty)
+        'employeeParam': normalizedEmployeeParam,
     };
     final response = await _dio.get(
-      '/api/admin/leave-requests/$status',
+      '/api/admin/leave-requests/$normalizedStatus',
       queryParameters: queryParams.isEmpty ? null : queryParams,
     );
     return (response.data as List)

@@ -319,88 +319,68 @@ void main() {
   });
 
   group('searchAdminLeaveRequests', () {
-    test('status가 경로와 쿼리 양쪽에 실린다', () async {
+    test('approved 상태는 approved 경로로 보내고 값 있는 필터만 쿼리에 싣는다', () async {
       dioAdapter.onGet(
-        '/api/admin/leave-requests/PENDING',
+        '/api/admin/leave-requests/approved',
         (server) => server.reply(200, listItems()),
-        queryParameters: {'status': 'PENDING', 'team': 'SI사업팀'},
-      );
-
-      await repository.searchAdminLeaveRequests(
-        status: 'PENDING',
-        team: 'SI사업팀',
-      );
-
-      expect(lastRequest().path, '/api/admin/leave-requests/PENDING');
-      expect(lastRequest().queryParameters['status'], 'PENDING');
-      expect(lastRequest().queryParameters['team'], 'SI사업팀');
-    });
-
-    test('team이 null이어도 team 키는 쿼리에 유지된다', () async {
-      dioAdapter.onGet(
-        '/api/admin/leave-requests/PENDING',
-        (server) => server.reply(200, []),
-        queryParameters: {'status': 'PENDING', 'team': null},
-      );
-
-      await repository.searchAdminLeaveRequests(status: 'PENDING', team: null);
-
-      expect(lastRequest().queryParameters.containsKey('team'), isTrue);
-      expect(lastRequest().queryParameters['team'], isNull);
-      // 발견한 문제: 리포지토리 주석은 "dio가 null 값은 전송하지 않음"이라고 적혀 있지만
-      // 실제로는 값 없는 키(team)가 쿼리 문자열에 그대로 실린다.
-      // 서버는 team 을 빈 문자열로 받게 되므로 주석과 동작이 어긋난다.
-      expect(lastRequest().uri.query, 'status=PENDING&team');
-    });
-
-    test('employeeParam을 넘기면 쿼리에 함께 실린다', () async {
-      dioAdapter.onGet(
-        '/api/admin/leave-requests/APPROVED',
-        (server) => server.reply(200, []),
-        queryParameters: {
-          'status': 'APPROVED',
-          'team': null,
-          'employeeParam': 'A0001',
-        },
-      );
-
-      await repository.searchAdminLeaveRequests(
-        status: 'APPROVED',
-        team: null,
-        employeeParam: 'A0001',
-      );
-
-      expect(lastRequest().queryParameters['employeeParam'], 'A0001');
-    });
-
-    // 발견한 문제: status가 null이면 경로에 문자열 'null'이 그대로 들어가
-    // /api/admin/leave-requests/null 을 호출한다. (전체 상태 조회 의도로 null을
-    // 넘기면 404가 난다)
-    test('status가 null이면 경로에 문자열 null이 들어간다', () async {
-      dioAdapter.onGet(
-        '/api/admin/leave-requests/null',
-        (server) => server.reply(200, []),
         queryParameters: {'team': 'SI사업팀'},
       );
 
       await repository.searchAdminLeaveRequests(
-        status: null,
-        team: 'SI사업팀',
+        status: 'APPROVED',
+        team: ' SI사업팀 ',
       );
 
-      expect(lastRequest().path, '/api/admin/leave-requests/null');
-      expect(lastRequest().queryParameters.containsKey('status'), isFalse);
+      expect(lastRequest().path, '/api/admin/leave-requests/approved');
+      expect(lastRequest().queryParameters, {'team': 'SI사업팀'});
+    });
+
+    test('team이 null이면 빈 team 쿼리를 만들지 않는다', () async {
+      dioAdapter.onGet(
+        '/api/admin/leave-requests/approved',
+        (server) => server.reply(200, []),
+      );
+
+      await repository.searchAdminLeaveRequests(status: 'approved', team: null);
+
+      expect(lastRequest().queryParameters.containsKey('team'), isFalse);
+      expect(lastRequest().uri.query, isEmpty);
+    });
+
+    test('employeeParam은 trim 후 값이 있을 때만 전송한다', () async {
+      dioAdapter.onGet(
+        '/api/admin/leave-requests/rejected',
+        (server) => server.reply(200, []),
+        queryParameters: {'employeeParam': 'A0001'},
+      );
+
+      await repository.searchAdminLeaveRequests(
+        status: 'rejected',
+        team: null,
+        employeeParam: ' A0001 ',
+      );
+
+      expect(lastRequest().queryParameters, {'employeeParam': 'A0001'});
+    });
+
+    test('status가 null이면 잘못된 null 경로를 호출하지 않고 즉시 거절한다', () async {
+      await expectLater(
+        repository.searchAdminLeaveRequests(
+          status: null,
+          team: 'SI사업팀',
+        ),
+        throwsArgumentError,
+      );
     });
 
     test('배열 응답을 목록 모델로 매핑한다', () async {
       dioAdapter.onGet(
-        '/api/admin/leave-requests/PENDING',
+        '/api/admin/leave-requests/approved',
         (server) => server.reply(200, listItems()),
-        queryParameters: {'status': 'PENDING', 'team': null},
       );
 
       final items =
-          await repository.searchAdminLeaveRequests(status: 'PENDING', team: null);
+          await repository.searchAdminLeaveRequests(status: 'approved', team: null);
 
       expect(items, hasLength(1));
       expect(items.first.status, 'PENDING');
@@ -409,13 +389,12 @@ void main() {
 
     test('에러 응답은 예외로 전파된다', () async {
       dioAdapter.onGet(
-        '/api/admin/leave-requests/PENDING',
+        '/api/admin/leave-requests/approved',
         (server) => server.reply(403, {'message': '권한이 없습니다.'}),
-        queryParameters: {'status': 'PENDING', 'team': null},
       );
 
       await expectLater(
-        repository.searchAdminLeaveRequests(status: 'PENDING', team: null),
+        repository.searchAdminLeaveRequests(status: 'approved', team: null),
         throwsA(isA<DioException>()),
       );
     });

@@ -292,29 +292,24 @@ void main() {
       expect(vm.useDaysText, '3');
     });
 
-    test('반차는 주말을 선택해도 0.5일로 확정된다', () {
-      // 발견한 문제: 반차 경로는 주말/공휴일 검사를 거치지 않는다.
-      // 캘린더에도 선택 제한이 없어 토요일 반차 신청이 서버까지 전달된다.
+    test('주말은 선택 불가 날짜다', () {
       final vm = buildVm();
-      vm.setLeaveType(LeaveType.amHalf);
-
-      vm.selectDay(DateTime(2026, 8, 8), DateTime(2026, 8, 8));
-
-      expect(vm.useDaysText, '0.5');
+      expect(vm.isSelectableDay(DateTime(2026, 8, 8)), isFalse);
     });
 
-    test('반차는 공휴일을 선택해도 0.5일로 확정된다', () async {
-      // 발견한 문제: 위와 같은 원인으로 공휴일 반차도 막히지 않는다.
+    test('공휴일은 선택 불가 날짜다', () async {
       fakeHolidays.holidaysToReturn = [
-        PublicHoliday(name: '광복절', date: DateTime(2026, 8, 17)),
+        PublicHoliday(name: '광복절 대체', date: DateTime(2026, 8, 17)),
       ];
       final vm = buildVm();
       await vm.load();
-      vm.setLeaveType(LeaveType.pmHalf);
+      expect(vm.isSelectableDay(DateTime(2026, 8, 17)), isFalse);
+    });
 
-      vm.selectDay(DateTime(2026, 8, 17), DateTime(2026, 8, 17));
-
-      expect(vm.useDaysText, '0.5');
+    test('현재 회계연도 밖 날짜는 선택 불가다', () {
+      final vm = buildVm();
+      expect(vm.isSelectableDay(DateTime(2025, 12, 31)), isFalse);
+      expect(vm.isSelectableDay(DateTime(2027, 1, 2)), isFalse);
     });
   });
 
@@ -710,14 +705,7 @@ void main() {
       expect(vm.exceedsRemaining(), isFalse); // 0 > 0 이 아님
     });
 
-    test('대체/출산/가족돌봄 휴가도 프론트에서는 잔여 연차로 막힌다 (백엔드와 불일치)', () {
-      // 발견한 문제:
-      // 백엔드 LeaveRequestService.createLeaveRequest는 ALTERNATIVE / PARENTAL /
-      // FAMILY 를 validateRemainingLeave 대상에서 제외한다.
-      // 반면 LVE001_M01_view_model.exceedsRemaining()은 휴가 종류를 보지 않고
-      // useDays > remainingLeaveDays 만 판단하므로, 잔여 연차가 없는 사용자는
-      // 서버에서 허용되는 이 3종도 화면에서 신청할 수 없다.
-      // 현재 프론트 동작을 그대로 고정해 둔다.
+    test('대체/출산/가족돌봄 휴가는 잔여 연차가 없어도 허용한다', () {
       fakeAuth = FakeAuthSession(
         employeeInfo: Employee.fromJson(
             fixtureJson('admin/employee.json')..['remainingLeaveDays'] = 0.0),
@@ -733,8 +721,8 @@ void main() {
         selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
 
         expect(vm.useDays, 2.0, reason: type.label);
-        expect(vm.exceedsRemaining(), isTrue,
-            reason: '${type.label}은 백엔드에서는 잔여 연차 검증 대상이 아니다');
+        expect(vm.exceedsRemaining(), isFalse,
+            reason: '${type.label}은 연차 잔여량 차감 대상이 아니다');
       }
     });
   });

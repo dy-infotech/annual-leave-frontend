@@ -572,9 +572,10 @@ class _LeaveRequestViewState extends State<_LeaveRequestView> {
                 locale: 'ko_KR',
                 rowHeight: 42,
                 daysOfWeekHeight: 22,
-                firstDay: DateTime(DateTime.now().year - 1, 1, 1),
+                firstDay: DateTime(DateTime.now().year, 1, 1),
                 lastDay: DateTime(DateTime.now().year, 12, 31),
                 focusedDay: vm.focusedDay,
+                enabledDayPredicate: vm.isSelectableDay,
                 headerStyle: const HeaderStyle(
                   formatButtonVisible: false,
                   titleCentered: true,
@@ -879,12 +880,10 @@ class _HalfClipper extends CustomClipper<Rect> {
 class _PulsingStar extends StatefulWidget {
   final bool isHalf; // 반쪽 여부 (반차)
   final bool isLeft; // 반쪽일 때 왼쪽(오전) / 오른쪽(오후)
-  final double size;
 
   const _PulsingStar({
     this.isHalf = false,
     this.isLeft = true,
-    this.size = 32,
   });
 
   @override
@@ -925,7 +924,7 @@ class _PulsingStarState extends State<_PulsingStar>
       builder: (context, child) {
         final star = Icon(
           Icons.star_rounded,
-          size: widget.size,
+          size: 32,
           color: Colors.yellow,
           shadows: [
             Shadow(
