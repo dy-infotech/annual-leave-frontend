@@ -29,6 +29,30 @@ class Department {
   bool get isProtected => departmentName == kCeoName;
 }
 
+/// 사용자 등록/수정 공통데이터의 접근 가능 팀 한 건.
+/// GET /api/admin/auth/common 의 accessibleTeamInfo 에 대응한다.
+class AccessibleTeamOption {
+  final int teamId;
+  final String teamName;
+  final int departmentId;
+  final String departmentName;
+
+  AccessibleTeamOption({
+    required this.teamId,
+    required this.teamName,
+    required this.departmentId,
+    required this.departmentName,
+  });
+
+  factory AccessibleTeamOption.fromJson(Map<String, dynamic> json) =>
+      AccessibleTeamOption(
+        teamId: json['teamId'] as int,
+        teamName: json['teamName'] ?? '',
+        departmentId: json['departmentId'] as int,
+        departmentName: json['departmentName'] ?? '',
+      );
+}
+
 /// 팀 담당자(PM). GET /api/admin/teams 응답의 managers 한 건.
 class TeamManager {
   final int employeeId;

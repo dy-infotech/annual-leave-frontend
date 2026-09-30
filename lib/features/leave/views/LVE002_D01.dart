@@ -47,6 +47,13 @@ class _LeaveRequestDetailView extends StatelessWidget {
     return DateFormat('yyyy.MM.dd').format(DateTime.parse(raw));
   }
 
+  String _formatLeaveDays(double? value) {
+    if (value == null) return '-';
+    return value == value.roundToDouble()
+        ? value.toInt().toString()
+        : value.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final vm = context.watch<LeaveRequestDetailViewModel>();
@@ -102,6 +109,12 @@ class _LeaveRequestDetailView extends StatelessWidget {
                   ? DateFormat('yyyy.MM.dd')
                       .format(DateTime.parse(d.createdAt.toString()))
                   : '-'),
+          if (d.prevTotalLeaveDays != null || d.currTotalLeaveDays != null)
+            _row(
+              '잔여 연차',
+              '신청 전 \${_formatLeaveDays(d.prevTotalLeaveDays)}일'
+                  ' → 신청 후 \${_formatLeaveDays(d.currTotalLeaveDays)}일',
+            ),
           // 상태는 배지로
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
@@ -130,7 +143,6 @@ class _LeaveRequestDetailView extends StatelessWidget {
                   _row('사번', d.approverNumber ?? '-'),
                   _row('이름', '${d.approverName} ${d.approverPosition ?? ''}'),
                   _row('부서', d.approverDepartment ?? '-'),
-                  _row('소속팀', d.team ?? '-'),
                   _row(
                       '결재일',
                       (d.managedAt == null || d.managedAt.toString() == 'null')

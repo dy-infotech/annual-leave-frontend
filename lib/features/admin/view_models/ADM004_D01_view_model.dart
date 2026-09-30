@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
@@ -55,7 +56,8 @@ class EmployeeDetailViewModel extends ChangeNotifier {
   late final TextEditingController fireDateController;
 
   final List<String> departmentList = [];
-  final List<String> teamList = [];
+  final List<String> teamList = []; // 하위 호환용 팀명 목록
+  final List<AccessibleTeamOption> teamOptions = [];
   final List<String> positionList = [];
 
   String? selectedDepartment;
@@ -69,6 +71,28 @@ class EmployeeDetailViewModel extends ChangeNotifier {
   bool get isSaving => _isSaving;
   bool get isLoadingCommon => _isLoadingCommon;
   String? get lastSaveMessage => _lastSaveMessage;
+
+  List<String> get availableTeams {
+    final department = selectedDepartment;
+    if (department == null) return const [];
+
+    if (teamOptions.isNotEmpty) {
+      final result = teamOptions
+          .where((team) => team.departmentName == department)
+          .map((team) => team.teamName)
+          .toList();
+
+      // 현재 배정값은 공통데이터 접근범위 밖이어도 조회/수정 화면에서 잃지 않는다.
+      if (department == employee.department &&
+          employee.team.isNotEmpty &&
+          !result.contains(employee.team)) {
+        result.add(employee.team);
+      }
+      return result;
+    }
+
+    return List<String>.unmodifiable(teamList);
+  }
 
   static String? _normalizeApiDate(String? raw) {
     if (raw == null || raw.trim().isEmpty) return null;
@@ -99,6 +123,9 @@ class EmployeeDetailViewModel extends ChangeNotifier {
 
   void selectDepartment(String? value) {
     selectedDepartment = value;
+    if (selectedTeam != null && !availableTeams.contains(selectedTeam)) {
+      selectedTeam = null;
+    }
     _notify();
   }
 
@@ -166,6 +193,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
           List<String>.from(data['position'] ?? const []);
       final rawTeamData = data['accessibleTeam'] ?? data['team'] ?? [];
       final fetchedTeams = <String>[];
+      final fetchedTeamOptions = <AccessibleTeamOption>[];
 
       if (rawTeamData is List) {
         for (final item in rawTeamData) {
@@ -179,12 +207,28 @@ class EmployeeDetailViewModel extends ChangeNotifier {
         }
       }
 
+      final rawTeamInfo = data['accessibleTeamInfo'];
+      if (rawTeamInfo is List) {
+        for (final item in rawTeamInfo) {
+          if (item is Map) {
+            fetchedTeamOptions.add(
+              AccessibleTeamOption.fromJson(
+                Map<String, dynamic>.from(item),
+              ),
+            );
+          }
+        }
+      }
+
       departmentList
         ..clear()
         ..addAll(fetchedDepartments);
       teamList
         ..clear()
         ..addAll(fetchedTeams);
+      teamOptions
+        ..clear()
+        ..addAll(fetchedTeamOptions);
       positionList
         ..clear()
         ..addAll(fetchedPositions);

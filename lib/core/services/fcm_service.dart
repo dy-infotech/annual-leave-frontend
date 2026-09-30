@@ -23,11 +23,15 @@ class FcmService {
   final String _fcmTokenKey = 'registered_fcm_token';
   String get fcmTokenKey => _fcmTokenKey;
 
+  // 같은 FCM token이라도 로그인 사용자가 바뀌면 서버 owner migration이 필요하다.
+  // JWT 자체는 저장하지 않고 앱 프로세스 내 마지막 sync 기준으로만 사용한다.
+  String? _lastSyncedJwt;
+
   StreamSubscription? _foregroundNotificationSubscription;
   StreamSubscription? _openedNotificationSubscription;
 
   /// 관리자 대시보드 조회 성공 후 호출된다.
-  /// 토큰이 이전 등록값과 다를 때만 서버에 재전송한다. (기존 동작 유지)
+  /// 같은 기기 token이라도 로그인 세션이 바뀌면 서버에 다시 동기화한다.
   Future<void> registerTokenAndListeners() async {
     final messaging = FirebaseMessaging.instance;
     try {
@@ -57,7 +61,8 @@ class FcmService {
 
       final prefs = await SharedPreferences.getInstance();
       final registeredToken = prefs.getString(fcmTokenKey);
-      if (registeredToken != token) {
+      final currentJwt = await _apiClient.getToken();
+      if (registeredToken != token || _lastSyncedJwt != currentJwt) {
         final deviceOs = kIsWeb
             ? "Web"
             : Platform.isAndroid
@@ -73,6 +78,7 @@ class FcmService {
           ).toJson(),
         );
         await prefs.setString(fcmTokenKey, token);
+        _lastSyncedJwt = currentJwt;
       }
     } on PlatformException catch (e) {
       // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
@@ -128,6 +134,7 @@ class FcmService {
   Future<void> unregisterToken() async {
     final prefs = await SharedPreferences.getInstance();
     final registeredToken = prefs.getString(fcmTokenKey);
+    _lastSyncedJwt = null;
     if (registeredToken == null || registeredToken.isEmpty) {
       return;
     }

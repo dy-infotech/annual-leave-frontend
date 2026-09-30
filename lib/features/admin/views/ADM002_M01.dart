@@ -199,16 +199,8 @@ class _SignupManageViewState extends State<_SignupManageView> {
                     errorText: _vm.teamError,
                   ),
                   value: _vm.selectedTeam,
-                  // 🌟 변경 포인트: 전체 팀 목록 중 현재 선택된 부서에 맞는 팀만 필터링하여 노출합니다.
-                  items: _vm.teamList
-                      .where((team) {
-                        if (_vm.selectedDepartment == '대표이사') {
-                          // 부서가 '대표이사'일 때는 팀명에 '대표'가 포함되거나 '대표이사'인 팀만 필터링
-                          return team == '대표이사' || team.contains('대표');
-                        }
-                        // 다른 부서일 때는 '대표이사' 팀을 제외하고 표시 (필요에 따라 규칙 추가 가능)
-                        return team != '대표이사';
-                      })
+                  // 백엔드가 제공한 Team -> Department 관계로 실제 소속 부서만 노출한다.
+                  items: _vm.availableTeams
                       .map((team) => DropdownMenuItem<String>(
                             value: team,
                             child: Text(team),

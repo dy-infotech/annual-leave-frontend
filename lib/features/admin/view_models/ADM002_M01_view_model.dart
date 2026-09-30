@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/features/admin/models/department_team_models.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/signup_manage_repository.dart';
@@ -33,7 +34,8 @@ class SignupManageViewModel extends ChangeNotifier {
   String? _emailError; //이메일에러
   String? _hireDateError; //입사일에러
 
-  final List<String> teamList = []; //팀
+  final List<String> teamList = []; // 하위 호환용 팀명 목록
+  final List<AccessibleTeamOption> teamOptions = []; // 팀-부서 관계 포함
   final List<String> departmentList = []; //부서
   final List<String> positionList = []; //직급
   String? selectedTeam; //선택된 팀
@@ -51,6 +53,21 @@ class SignupManageViewModel extends ChangeNotifier {
   String? get positionError => _positionError;
   String? get emailError => _emailError;
   String? get hireDateError => _hireDateError;
+
+  List<String> get availableTeams {
+    final department = selectedDepartment;
+    if (department == null) return const [];
+
+    if (teamOptions.isNotEmpty) {
+      return teamOptions
+          .where((team) => team.departmentName == department)
+          .map((team) => team.teamName)
+          .toList();
+    }
+
+    // 구버전 서버와의 일시적 호환. 새 v2 서버에서는 accessibleTeamInfo를 사용한다.
+    return List<String>.unmodifiable(teamList);
+  }
 
   /// 관리자 역할 부여 가능 여부.
   /// 대표(사장/대표이사 직급)이면서 관리자인 접속자만 부여할 수 있다.
@@ -76,10 +93,25 @@ class SignupManageViewModel extends ChangeNotifier {
 
         departmentList.clear();
         teamList.clear();
+        teamOptions.clear();
         positionList.clear();
 
         departmentList.addAll(List<String>.from(data['department']));
         teamList.addAll(List<String>.from(data['accessibleTeam']));
+
+        final rawTeamInfo = data['accessibleTeamInfo'];
+        if (rawTeamInfo is List) {
+          for (final item in rawTeamInfo) {
+            if (item is Map) {
+              teamOptions.add(
+                AccessibleTeamOption.fromJson(
+                  Map<String, dynamic>.from(item),
+                ),
+              );
+            }
+          }
+        }
+
         positionList.addAll(List<String>.from(data['position']));
       } else {
         // 데이터가 이상할 때 대비한 예외처리

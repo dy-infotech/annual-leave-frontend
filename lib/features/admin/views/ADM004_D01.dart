@@ -303,10 +303,10 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
                                       !widget.employee.isCeo)
                                   ? DropdownButtonFormField<String>(
                                       value: (_vm.selectedTeam != '기타' &&
-                                              _vm.teamList.contains(_vm.selectedTeam))
+                                              _vm.availableTeams.contains(_vm.selectedTeam))
                                           ? _vm.selectedTeam
                                           : null,
-                                      items: _vm.teamList
+                                      items: _vm.availableTeams
                                           .where((t) => t != '기타')
                                           .map((t) => DropdownMenuItem(
                                               value: t,

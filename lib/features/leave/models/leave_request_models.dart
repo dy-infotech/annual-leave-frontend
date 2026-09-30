@@ -92,6 +92,8 @@ class LeaveRequestDetail {
   final String startDate;
   final String endDate;
   final double useDays;
+  final double? prevTotalLeaveDays;
+  final double? currTotalLeaveDays;
   final String status;
   final String? leaveReason; // 권한 없으면 null
   final String? rejectReason; // 반려 시에만 값 존재
@@ -115,6 +117,8 @@ class LeaveRequestDetail {
     required this.endDate,
     required this.useDays,
     required this.status,
+    this.prevTotalLeaveDays,
+    this.currTotalLeaveDays,
     this.leaveReason,
     this.rejectReason,
     this.createdAt,
@@ -136,6 +140,8 @@ class LeaveRequestDetail {
       startDate: json['startDate'] ?? '',
       endDate: json['endDate'] ?? '',
       useDays: (json['useDays'] ?? 0).toDouble(),
+      prevTotalLeaveDays: (json['prevTotalLeaveDays'] as num?)?.toDouble(),
+      currTotalLeaveDays: (json['currTotalLeaveDays'] as num?)?.toDouble(),
       status: json['status'] ?? '',
       leaveReason: json['leaveReason'],
       rejectReason: json['rejectReason'],
