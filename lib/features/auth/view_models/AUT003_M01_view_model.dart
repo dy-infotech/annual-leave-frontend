@@ -15,12 +15,17 @@ class FindAccountViewModel extends ChangeNotifier {
   // 비밀번호 찾기용 컨트롤러
   final employeeNoController = TextEditingController();
   final emailForPwController = TextEditingController();
+  final resetTokenController = TextEditingController();
+  final newPasswordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _resetRequested = false;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
+  bool get resetRequested => _resetRequested;
 
   /// 탭 전환 시 에러 메시지 초기화.
   void clearInputs() {
@@ -74,10 +79,44 @@ class FindAccountViewModel extends ChangeNotifier {
         employeeNoController.text.trim(),
         emailForPwController.text.trim(),
       );
+      _resetRequested = true;
       return true;
     } catch (e) {
       print("비밀번호 찾기 에러 발생: $e");
       _errorMessage = '등록된 정보가 일치하지 않거나 발송에 실패했습니다.';
+      return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> confirmPasswordReset() async {
+    if (resetTokenController.text.trim().isEmpty ||
+        newPasswordController.text.isEmpty ||
+        confirmPasswordController.text.isEmpty) {
+      _errorMessage = '재설정 토큰과 새 비밀번호를 모두 입력해 주세요.';
+      notifyListeners();
+      return false;
+    }
+    if (newPasswordController.text != confirmPasswordController.text) {
+      _errorMessage = '새 비밀번호 확인이 일치하지 않습니다.';
+      notifyListeners();
+      return false;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _repository.resetPassword(
+        resetTokenController.text.trim(),
+        newPasswordController.text,
+      );
+      return true;
+    } catch (_) {
+      _errorMessage = '재설정 토큰이 유효하지 않거나 만료되었습니다.';
       return false;
     } finally {
       _isLoading = false;
@@ -91,6 +130,9 @@ class FindAccountViewModel extends ChangeNotifier {
     emailForIdController.dispose();
     employeeNoController.dispose();
     emailForPwController.dispose();
+    resetTokenController.dispose();
+    newPasswordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 }

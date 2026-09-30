@@ -51,6 +51,21 @@ class AuthRepository {
     }
   }
 
+  /// 이메일로 받은 일회용 token을 소비해 새 비밀번호를 설정한다.
+  Future<void> resetPassword(String token, String newPassword) async {
+    final response = await _apiClient.dio.post(
+      '/api/auth/reset-password',
+      data: {
+        'token': token,
+        'newPassword': newPassword,
+      },
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('비밀번호 재설정 실패');
+    }
+  }
+
   /// 아이디 찾기 메일 발송. POST /api/auth/find-id
   Future<void> findId(String name, String email) async {
     final response = await _apiClient.dio.post(

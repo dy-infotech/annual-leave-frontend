@@ -17,6 +17,8 @@ class FakeAuthRepository implements AuthRepository {
 
   Object? resetErrorToThrow;
   final List<Map<String, String>> resetCalls = [];
+  Object? confirmResetErrorToThrow;
+  final List<Map<String, String>> confirmResetCalls = [];
 
   Object? findIdErrorToThrow;
   final List<Map<String, String>> findIdCalls = [];
@@ -46,6 +48,12 @@ class FakeAuthRepository implements AuthRepository {
       String employeeNumber, String email) async {
     resetCalls.add({'employeeNumber': employeeNumber, 'email': email});
     if (resetErrorToThrow != null) throw resetErrorToThrow!;
+  }
+
+  @override
+  Future<void> resetPassword(String token, String newPassword) async {
+    confirmResetCalls.add({'token': token, 'newPassword': newPassword});
+    if (confirmResetErrorToThrow != null) throw confirmResetErrorToThrow!;
   }
 
   @override

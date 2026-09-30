@@ -75,13 +75,23 @@ class _FindAccountViewState extends State<_FindAccountView>
     }
   }
 
-  // 비밀번호 찾기(이메일 발송) 요청 처리
+  // 비밀번호 재설정 token 이메일 발송 요청 처리
   Future<void> _handleForgotPassword() async {
     final messenger = ScaffoldMessenger.of(context);
     final ok = await _vm.sendPasswordResetEmail();
     if (ok && mounted) {
       messenger.showSnackBar(
         const SnackBar(content: Text('비밀번호 재설정 이메일이 발송되었습니다.')),
+      );
+    }
+  }
+
+  Future<void> _handleResetPassword() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await _vm.confirmPasswordReset();
+    if (ok && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해 주세요.')),
       );
       Navigator.pop(context);
     }
@@ -200,49 +210,69 @@ class _FindAccountViewState extends State<_FindAccountView>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              '등록된 사번과 이메일을 입력하시면\n임시 비밀번호를 발송해 드립니다.',
+            Text(
+              _vm.resetRequested
+                  ? '이메일로 받은 재설정 토큰과 새 비밀번호를 입력해 주세요.'
+                  : '등록된 사번과 이메일을 입력하시면\n비밀번호 재설정 토큰을 발송해 드립니다.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textPrimary),
+              style: const TextStyle(color: AppColors.textPrimary),
             ),
-            // const SizedBox(height: 32),
-            // TextField(
-            //   controller: _employeeNoController,
-            //   decoration: const InputDecoration(labelText: '사번'),
-            //   keyboardType: TextInputType.text,
-            //   enableSuggestions: false,
-            //   autocorrect: false,
-            // ),
             const SizedBox(height: 32),
-            TextField(
-              controller: _vm.employeeNoController,
-              decoration: const InputDecoration(labelText: '사번'),
-              keyboardType: TextInputType.text,
-              enableSuggestions: false,
-              autocorrect: false,
-              // 영문/숫자 제한 및 실시간 대문자 변환 속성 결합
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                    RegExp(r'[a-zA-Z0-9]')), // 영문 및 숫자만 허용
-                UpperCaseTextFormatter(), // 소문자 입력 시 실시간 대문자 변환
-              ],
-            ),
-
-            const SizedBox(height: 12),
-            TextField(
-              controller: _vm.emailForPwController,
-              decoration: const InputDecoration(labelText: '이메일 주소'),
-              keyboardType: TextInputType.emailAddress,
-            ),
+            if (!_vm.resetRequested) ...[
+              TextField(
+                controller: _vm.employeeNoController,
+                decoration: const InputDecoration(labelText: '사번'),
+                keyboardType: TextInputType.text,
+                enableSuggestions: false,
+                autocorrect: false,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                  UpperCaseTextFormatter(),
+                ],
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _vm.emailForPwController,
+                decoration: const InputDecoration(labelText: '이메일 주소'),
+                keyboardType: TextInputType.emailAddress,
+              ),
+            ] else ...[
+              TextField(
+                controller: _vm.resetTokenController,
+                decoration: const InputDecoration(labelText: '재설정 토큰'),
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _vm.newPasswordController,
+                decoration: const InputDecoration(labelText: '새 비밀번호'),
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _vm.confirmPasswordController,
+                decoration: const InputDecoration(labelText: '새 비밀번호 확인'),
+                obscureText: true,
+                enableSuggestions: false,
+                autocorrect: false,
+              ),
+            ],
             _buildErrorSection(),
             const SizedBox(height: 24),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _vm.isLoading ? null : _handleForgotPassword,
+                onPressed: _vm.isLoading
+                    ? null
+                    : (_vm.resetRequested
+                        ? _handleResetPassword
+                        : _handleForgotPassword),
                 child: _vm.isLoading
                     ? _buildLoadingIndicator()
-                    : const Text('이메일 전송'),
+                    : Text(_vm.resetRequested ? '비밀번호 변경' : '이메일 전송'),
               ),
             ),
           ],

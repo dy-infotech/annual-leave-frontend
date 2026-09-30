@@ -87,6 +87,7 @@ void main() {
       ]);
       expect(vm.errorMessage, isNull);
       expect(vm.isLoading, isFalse);
+      expect(vm.resetRequested, isTrue);
     });
 
     test('실패 - 발송 실패 문구를 남긴다', () async {
@@ -99,6 +100,52 @@ void main() {
       expect(await vm.sendPasswordResetEmail(), isFalse);
       expect(vm.errorMessage, '등록된 정보가 일치하지 않거나 발송에 실패했습니다.');
       expect(vm.isLoading, isFalse);
+    });
+  });
+
+  group('FindAccountViewModel - 비밀번호 재설정 확정', () {
+    test('토큰 또는 새 비밀번호가 비어 있으면 API를 호출하지 않는다', () async {
+      final vm = build();
+      vm.resetTokenController.text = 'token';
+
+      expect(await vm.confirmPasswordReset(), isFalse);
+      expect(vm.errorMessage, '재설정 토큰과 새 비밀번호를 모두 입력해 주세요.');
+      expect(fake.confirmResetCalls, isEmpty);
+    });
+
+    test('새 비밀번호 확인이 다르면 API를 호출하지 않는다', () async {
+      final vm = build();
+      vm.resetTokenController.text = 'token';
+      vm.newPasswordController.text = 'new-password';
+      vm.confirmPasswordController.text = 'different';
+
+      expect(await vm.confirmPasswordReset(), isFalse);
+      expect(vm.errorMessage, '새 비밀번호 확인이 일치하지 않습니다.');
+      expect(fake.confirmResetCalls, isEmpty);
+    });
+
+    test('성공 - token과 새 비밀번호를 전달한다', () async {
+      final vm = build();
+      vm.resetTokenController.text = '  reset-token  ';
+      vm.newPasswordController.text = 'new-password';
+      vm.confirmPasswordController.text = 'new-password';
+
+      expect(await vm.confirmPasswordReset(), isTrue);
+      expect(fake.confirmResetCalls, [
+        {'token': 'reset-token', 'newPassword': 'new-password'}
+      ]);
+      expect(vm.errorMessage, isNull);
+    });
+
+    test('실패 - 만료 또는 유효하지 않은 토큰 안내를 남긴다', () async {
+      fake.confirmResetErrorToThrow = Exception('expired');
+      final vm = build();
+      vm.resetTokenController.text = 'reset-token';
+      vm.newPasswordController.text = 'new-password';
+      vm.confirmPasswordController.text = 'new-password';
+
+      expect(await vm.confirmPasswordReset(), isFalse);
+      expect(vm.errorMessage, '재설정 토큰이 유효하지 않거나 만료되었습니다.');
     });
   });
 
