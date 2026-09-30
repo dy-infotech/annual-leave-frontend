@@ -14,8 +14,14 @@ class DashboardScreen extends StatelessWidget {
   /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
   final DashboardRepository? repository;
   final Future<void> Function()? registerFcm;
+  final Future<void> Function()? refreshSession;
 
-  const DashboardScreen({super.key, this.repository, this.registerFcm});
+  const DashboardScreen({
+    super.key,
+    this.repository,
+    this.registerFcm,
+    this.refreshSession,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -23,6 +29,7 @@ class DashboardScreen extends StatelessWidget {
       create: (_) => DashboardViewModel(
         repository: repository,
         registerFcm: registerFcm,
+        refreshSession: refreshSession,
       ),
       child: const _DashboardView(),
     );

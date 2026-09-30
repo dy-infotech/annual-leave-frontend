@@ -11,12 +11,17 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel({
     DashboardRepository? repository,
     Future<void> Function()? registerFcm,
+    Future<void> Function()? refreshSession,
   })  : _repository = repository ?? DashboardRepository(),
         _registerFcm =
-            registerFcm ?? FcmService.instance.registerTokenAndListeners;
+            registerFcm ?? FcmService.instance.registerTokenAndListeners,
+        _refreshSession = refreshSession ?? _noopRefresh;
 
   final DashboardRepository _repository;
   final Future<void> Function() _registerFcm;
+  final Future<void> Function() _refreshSession;
+
+  static Future<void> _noopRefresh() async {}
 
   DashboardData? _data;
   bool _isLoading = false;
@@ -32,6 +37,8 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Backend 권한은 요청 시점 조직 상태를 사용하므로 메뉴 snapshot도 함께 갱신한다.
+      await _refreshSession();
       _data = await _repository.fetchDashboard();
     } catch (e) {
       _errorMessage = '대시보드 정보를 불러오지 못했습니다.';

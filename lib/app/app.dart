@@ -79,7 +79,9 @@ class MyApp extends StatelessWidget {
           // 비번찾기 화면
           '/forgot-password': (context) => const FindAccountScreen(),
           // 대시보드 화면
-          '/dashboard': (context) => const DashboardScreen(),
+          '/dashboard': (context) => DashboardScreen(
+                refreshSession: context.read<AuthSession>().fetchMyInfo,
+              ),
           // 휴가 신청 화면
           '/leave-request': (context) => const LeaveRequestScreen(),
           // 내 휴가 신청 목록 화면
