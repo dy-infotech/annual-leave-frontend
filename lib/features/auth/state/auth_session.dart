@@ -1,7 +1,3 @@
-import 'dart:async';
-
-import 'package:annual_leave_frontend/core/navigation/app_navigator.dart';
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:flutter/foundation.dart';
@@ -12,22 +8,10 @@ import 'package:dio/dio.dart';
 /// 앱 루트에 등록되는 유일한 전역 상태로, 로그인 여부와 내 정보를 보관한다.
 /// API 호출은 AuthRepository에 위임한다.
 class AuthSession extends ChangeNotifier {
-  AuthSession({
-    AuthRepository? repository,
-    Stream<void>? unauthorizedEvents,
-  }) : _repository = repository ?? AuthRepository() {
-    _unauthorizedSubscription =
-        (unauthorizedEvents ?? ApiClient().unauthorizedEvents).listen((_) {
-      final shouldRedirect = _isLoggedIn;
-      _resetSession();
-      if (shouldRedirect) {
-        resetToLogin();
-      }
-    });
-  }
+  AuthSession({AuthRepository? repository})
+      : _repository = repository ?? AuthRepository();
 
   final AuthRepository _repository;
-  late final StreamSubscription<void> _unauthorizedSubscription;
 
   bool _isLoggedIn = false;
   String? _role;
@@ -38,10 +22,6 @@ class AuthSession extends ChangeNotifier {
   bool get isAdmin => _role == 'ADMIN';
   String? get name => _name;
   Employee? get employeeInfo => _employeeInfo;
-
-  void _resetSession() {
-    _resetSession();
-  }
 
   Future<void> fetchMyInfo() async {
     final info = await _repository.fetchMyInfo();
@@ -67,10 +47,18 @@ class AuthSession extends ChangeNotifier {
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await _repository.clearToken();
       }
-      _resetSession();
+      _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
+      notifyListeners();
     } catch (_) {
       await _repository.clearToken();
-      _resetSession();
+      _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
+      notifyListeners();
     }
   }
 
@@ -88,7 +76,11 @@ class AuthSession extends ChangeNotifier {
     } catch (_) {
       // signIn 성공 뒤 /me가 실패해도 저장 JWT/메모리 세션이 남지 않게 롤백한다.
       await _repository.clearToken();
-      _resetSession();
+      _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
+      notifyListeners();
       rethrow;
     }
   }
@@ -110,12 +102,6 @@ class AuthSession extends ChangeNotifier {
     _name = null;
     _employeeInfo = null;
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    _unauthorizedSubscription.cancel();
-    super.dispose();
   }
 
   Future<void> updateEmail(newEmail) async {
