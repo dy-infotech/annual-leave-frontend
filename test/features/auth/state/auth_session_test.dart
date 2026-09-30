@@ -29,6 +29,18 @@ void main() {
       expect(session.employeeInfo?.employeeNumber, 'A0001');
     });
 
+    test('login 후 내 정보 조회가 실패하면 토큰과 세션을 롤백한다', () async {
+      fake.myInfoToReturn = null;
+      final session = AuthSession(repository: fake);
+
+      await expectLater(session.login('A0001', 'pw'), throwsA(isA<Exception>()));
+
+      expect(fake.storedToken, isNull);
+      expect(session.isLoggedIn, isFalse);
+      expect(session.name, isNull);
+      expect(session.employeeInfo, isNull);
+    });
+
     test('tryAutoLogin - 저장된 토큰이 없으면 로그인 상태가 아니다', () async {
       final session = AuthSession(repository: fake);
 

@@ -31,39 +31,55 @@ class AuthSession extends ChangeNotifier {
   // 앱 시작 시 저장된 JWT가 있을 경우 로그인 상태로 간주
   Future<void> tryAutoLogin() async {
     final token = await _repository.getToken();
-
-    if (token == null) {
-      return;
-    }
+    if (token == null) return;
 
     try {
+      final info = await _repository.fetchMyInfo();
+      _employeeInfo = info;
+      _role = info.role;
+      _name = info.name;
       _isLoggedIn = true;
-      await fetchMyInfo();
+      notifyListeners();
     } on DioException catch (e) {
-      // 인증 자체가 거절된 경우에만 저장된 JWT를 폐기한다.
-      // 네트워크/5xx 오류로 정상 토큰까지 지우면 일시 장애 뒤 강제 로그아웃된다.
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         await _repository.clearToken();
       }
       _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
       notifyListeners();
-    } catch (e) {
+    } catch (_) {
       await _repository.clearToken();
       _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
       notifyListeners();
     }
   }
 
   Future<void> login(String employeeNumber, String password) async {
-    final loginResponse = await _repository.signIn(employeeNumber, password);
+    try {
+      final loginResponse =
+          await _repository.signIn(employeeNumber, password);
+      final info = await _repository.fetchMyInfo();
 
-    _isLoggedIn = true;
-    _role = loginResponse.role;
-    _name = loginResponse.name;
-
-    await fetchMyInfo();
-
-    notifyListeners();
+      _employeeInfo = info;
+      _role = loginResponse.role;
+      _name = loginResponse.name;
+      _isLoggedIn = true;
+      notifyListeners();
+    } catch (_) {
+      // signIn 성공 뒤 /me가 실패해도 저장 JWT/메모리 세션이 남지 않게 롤백한다.
+      await _repository.clearToken();
+      _isLoggedIn = false;
+      _role = null;
+      _name = null;
+      _employeeInfo = null;
+      notifyListeners();
+      rethrow;
+    }
   }
 
   Future<void> logout() async {

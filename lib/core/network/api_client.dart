@@ -11,6 +11,20 @@ class ApiClient {
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
 
+  dynamic _redactForLog(dynamic value) {
+    if (value is Map) {
+      return value.map((key, item) {
+        final normalized = key.toString().toLowerCase();
+        final sensitive = normalized.contains('password') ||
+            normalized.contains('token') ||
+            normalized.contains('email');
+        return MapEntry(key, sensitive ? '<redacted>' : _redactForLog(item));
+      });
+    }
+    if (value is List) return value.map(_redactForLog).toList();
+    return value;
+  }
+
   ApiClient._internal() {
     dio = Dio(BaseOptions(
       baseUrl: ApiConfig.baseUrl,
@@ -26,7 +40,9 @@ class ApiClient {
         onRequest: (options, handler) {
           final query =
               options.queryParameters.isEmpty ? '' : ' query=${options.queryParameters}';
-          final body = options.data == null ? '' : ' body=${options.data}';
+          final body = options.data == null
+              ? ''
+              : ' body=${_redactForLog(options.data)}';
           debugPrint('[API] ${options.method} ${options.path}$query$body');
           return handler.next(options);
         },
@@ -43,9 +59,14 @@ class ApiClient {
         return handler.next(options);
       },
       onError: (DioException error, handler) {
-        // 공통 에러 메시지 추출
-        final message = error.response?.data is Map
-            ? error.response?.data['message'] ?? '알 수 없는 오류가 발생했습니다.' : '네트워크 오류가 발생했습니다.';
+        final responseData = error.response?.data;
+        final rawMessage =
+            responseData is Map ? responseData['message'] : null;
+        final message = rawMessage is String && rawMessage.trim().isNotEmpty
+            ? rawMessage
+            : responseData is Map
+                ? '요청 처리 중 오류가 발생했습니다.'
+                : '네트워크 오류가 발생했습니다.';
         error = error.copyWith(message: message);
         return handler.next(error);
       },

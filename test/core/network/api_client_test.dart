@@ -172,11 +172,7 @@ void main() {
       expect(error.message, '네트워크 오류가 발생했습니다.');
     });
 
-    // 발견한 문제: message 값이 문자열이 아니면(검증 오류 상세를 객체로 내려주는 경우 등)
-    // error.copyWith(message: ...)의 암묵적 String? 캐스팅이 실패해
-    // DioExceptionType.unknown 으로 바뀌고 서버가 준 정보가 전부 사라진다.
-    // 프로덕션 코드는 손대지 않고 현재 동작만 기록한다.
-    test('message 값이 문자열이 아니면 타입 오류로 바뀌어 원래 응답 정보가 사라진다', () async {
+    test('message 값이 문자열이 아니어도 원래 응답을 보존한다', () async {
       dioAdapter.onGet(
         '/api/employees/me',
         (server) => server.reply(400, {
@@ -188,9 +184,10 @@ void main() {
         () => ApiClient().dio.get('/api/employees/me'),
       );
 
-      expect(error.type, DioExceptionType.unknown);
-      expect(error.error, isA<TypeError>());
-      expect(error.response, isNull);
+      expect(error.type, DioExceptionType.badResponse);
+      expect(error.response?.statusCode, 400);
+      expect(error.response?.data, isA<Map>());
+      expect(error.message, '요청 처리 중 오류가 발생했습니다.');
     });
   });
 
