@@ -877,16 +877,14 @@ void main() {
       expect(vm.isSubmitting, isFalse);
     });
 
-    test('VM은 연속 제출을 막지 않는다 (중복 방지는 화면 버튼 비활성화에 의존)', () async {
-      // 발견한 문제: submit()은 _isSubmitting을 세우기만 하고 진입 시 검사하지 않는다.
-      // 화면에서 버튼을 비활성화하는 것으로만 중복 제출을 막고 있다.
+    test('VM은 연속 제출을 자체적으로 차단한다', () async {
       final vm = buildVm();
       selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
 
       final results = await Future.wait([vm.submit(), vm.submit()]);
 
       expect(results, [true, false]);
-      expect(fake.submittedRequests, hasLength(2));
+      expect(fake.submittedRequests, hasLength(1));
     });
 
     test('제출 실패 후 다시 제출하면 이전 오류 메시지가 지워진다', () async {

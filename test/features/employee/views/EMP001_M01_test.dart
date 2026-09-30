@@ -36,6 +36,9 @@ void main() {
       providers: [
         ChangeNotifierProvider<AuthSession>(create: (_) => fakeAuth),
       ],
+      routes: {
+        '/login': (_) => const Scaffold(body: Text('LOGIN')),
+      },
     );
     await tester.pumpAndSettle();
   }
@@ -117,7 +120,7 @@ void main() {
     expect(fake.passwordChanges, isEmpty);
   });
 
-  testWidgets('비밀번호 변경 성공 - 요청이 전송되고 입력이 초기화된다', (tester) async {
+  testWidgets('비밀번호 변경 성공 - 요청 후 로그인 화면으로 전환된다', (tester) async {
     await pumpMyInfoScreen(tester);
 
     await tester.enterText(find.widgetWithText(TextField, '현재 비밀번호'), 'old1');
@@ -130,7 +133,7 @@ void main() {
     expect(fake.passwordChanges, [
       {'currentPassword': 'old1', 'newPassword': 'new1'},
     ]);
-    expect(find.text('비밀번호가 변경되었습니다. 다시 로그인해주세요.'), findsOneWidget);
+    expect(find.text('LOGIN'), findsOneWidget);
   });
 
   testWidgets('비밀번호 변경 실패 - 실패 안내가 표시된다', (tester) async {

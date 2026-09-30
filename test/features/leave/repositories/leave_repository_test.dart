@@ -343,12 +343,13 @@ void main() {
       dioAdapter.onGet(
         '/api/admin/leave-requests/approved',
         (server) => server.reply(200, []),
+        queryParameters: {'page': 0, 'size': 50},
       );
 
       await repository.searchAdminLeaveRequests(status: 'approved', team: null);
 
       expect(lastRequest().queryParameters.containsKey('team'), isFalse);
-      expect(lastRequest().uri.query, isEmpty);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 50});
     });
 
     test('employeeParam은 trim 후 값이 있을 때만 전송한다', () async {
