@@ -5,7 +5,7 @@
 ## 4.1 LoginScreen (`/login`)
 파일: `lib/screens/login_screen.dart`
 
-- 사번/비밀번호 입력 → `AuthProvider.login()` → 성공 시 `PublicHolidayProvider.fetchPublicHoliday()` 선행 로드 후 `/dashboard`로 이동.
+- 사번/비밀번호 입력 → `AuthSession.login()` → 성공 시 `PublicHolidayRepository.fetchPublicHolidays()` 선행 로드 후 `/dashboard`로 이동.
 - "사용 등록"(`/signup`), "아이디/비밀번호 찾기"(`/forgot-password`) 버튼 제공.
 - ⚠️ 에러 메시지에 `e.toString()`을 그대로 노출하는 **디버그용 임시 코드**가 남아 있습니다("임시로 실제 에러 내용 확인" 주석, 55행) — 운영에서는 내부 예외 정보가 사용자에게 노출될 수 있습니다.
 
@@ -20,14 +20,14 @@
 파일: `lib/screens/forgotPasswordScreen.dart`
 
 - 탭 2개(아이디 찾기 / 비밀번호 찾기)로 구성된 `TabController` 화면.
-- **아이디 찾기**: 성함+이메일 → `AuthProvider.findId()` → 백엔드 `POST /api/auth/find-id`. 성공 시 사번을 화면에 표시.
-- **비밀번호 찾기**: 사번+이메일 → `AuthProvider.sendPasswordResetEmail()` → 백엔드 `POST /api/auth/forgot-password`. 성공 시 SnackBar 후 이전 화면으로.
+- **아이디 찾기**: 성함+이메일 → `AuthSession.findId()` → 백엔드 `POST /api/auth/find-id`. 성공 시 사번을 화면에 표시.
+- **비밀번호 찾기**: 사번+이메일 → `AuthSession.sendPasswordResetEmail()` → 백엔드 `POST /api/auth/forgot-password`. 성공 시 SnackBar 후 이전 화면으로.
 - `print()`로 에러를 콘솔에 출력하는 디버그 코드가 남아있음(82, 118행).
 
 ## 4.4 DashboardScreen (`/dashboard`)
 파일: `lib/screens/dashboard_screen.dart`
 
-- 진입 시 `DashboardProvider.fetchDashboard()`(`GET /api/dashboard`) 호출. `RouteAware`로 다른 화면에서 돌아올 때 자동 재조회([03 §3.5](03-app-architecture.md#35-화면-재진입-시-자동-새로고침)).
+- 진입 시 `DashboardViewModel.fetchDashboard()`(`GET /api/dashboard`) 호출. `RouteAware`로 다른 화면에서 돌아올 때 자동 재조회([03 §3.5](03-app-architecture.md#35-화면-재진입-시-자동-새로고침)).
 - 표시 섹션: "내 휴가 정보"(배정/사용/잔여), "내 휴가 신청 현황"(대기/승인/반려 카운트, 탭하면 `AllLeaveRequestsScreen(status: ..., filter: 'my')`로 이동), "전직원 휴가 신청 현황"(`allEmployeeRequestSummary`가 null이 아닐 때만 — 관리자 뱃지 표시, 탭하면 `filter: 'all'`로 이동).
 - `RefreshIndicator`로 pull-to-refresh 지원.
 
@@ -41,7 +41,7 @@
 - 제출 전 **클라이언트 측 중복 신청 검사**(`LeaveRequestListProvider.hasOverlap`) — 겹치면 확인 다이얼로그로 안내 후 제출 중단.
 - 제출: `POST /api/leave-requests`(`ApiClient` 직접 호출, Provider 경유 안 함).
 - 캘린더에 기존 신청(대기/승인) 날짜를 별표(⭐)로 표시(`LeaveRequestListProvider.isRequestedDate`).
-- 신청자/결재자 카드에 `AuthProvider.employeeInfo`의 `approverName`/`approverPosition` 등을 표시.
+- 신청자/결재자 카드에 `AuthSession.employeeInfo`의 `approverName`/`approverPosition` 등을 표시.
 
 ## 4.6 AllLeaveRequestsScreen (`/all-leave-requests`)
 파일: `lib/screens/all_leave_requests_screen.dart`
@@ -68,7 +68,7 @@
 - 진입 시 `GET /api/admin/auth/common`으로 부서/팀/직급 목록 로드(백엔드 `RegisterCommonDto`).
 - 신규 사원 등록 폼: 이름/부서/팀/직급/역할(`RoleType`: 관리자·멤버)/이메일/입사일(날짜 선택기).
 - 로그인한 관리자가 "대표이사" 직급이면 팀 드롭다운에 "기타"(신규 팀 생성용) 옵션을 동적으로 추가.
-- 제출: `AuthProvider.adminAuthRegister()` → `POST /api/admin/auth/register`. 성공 시 `DashboardScreen`으로 강제 이동(`Navigator.push`, 스택에 쌓임 — `pushReplacement` 아님).
+- 제출: `SignupManageViewModel.register()` → `POST /api/admin/auth/register`. 성공 시 `DashboardScreen`으로 강제 이동(`Navigator.push`, 스택에 쌓임 — `pushReplacement` 아님).
 - 필드별 개별 에러 메시지(`_employeeNameError`, `_departmentError` 등)를 사용하는 검증 패턴.
 
 ## 4.9 SearchEmployeeNumberScreen (`/search_employee_number_screen`, 관리자 전용 메뉴)
@@ -80,8 +80,8 @@
 ## 4.10 MyInfoScreen (`/my-info`)
 파일: `lib/screens/my_info_screen.dart`
 
-- **기본 정보(읽기 전용)**: 사번/이름/직급/부서/입사일 + `DashboardProvider`의 연차정보(잔여/총) 표시. `AuthProvider.employeeInfo`와 `DashboardProvider.data` 두 Provider를 함께 구독.
-- **이메일 변경**: 인라인 편집(연필 아이콘 토글) → `PATCH /api/employees/me/modify-email` → 성공 시 `AuthProvider.updateEmail()`로 로컬 상태 즉시 갱신(재조회 없이 optimistic update).
+- **기본 정보(읽기 전용)**: 사번/이름/직급/부서/입사일 + `DashboardViewModel`의 연차정보(잔여/총) 표시. `AuthSession.employeeInfo`와 `DashboardViewModel.data`를 함께 사용.
+- **이메일 변경**: 인라인 편집(연필 아이콘 토글) → `PATCH /api/employees/me/email` → 성공 시 `AuthSession.updateEmail()`로 로컬 상태 즉시 갱신(재조회 없이 optimistic update).
 - **비밀번호 변경**: 현재/새/새 확인 3개 필드, 클라이언트에서 일치·현재비번과 동일 여부 검증 → `PATCH /api/employees/me/password`.
 
 ## 4.11 (미사용) MyLeaveRequestsScreen
