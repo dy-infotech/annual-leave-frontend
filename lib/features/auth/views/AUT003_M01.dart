@@ -90,10 +90,10 @@ class _FindAccountViewState extends State<_FindAccountView>
     final messenger = ScaffoldMessenger.of(context);
     final ok = await _vm.confirmPasswordReset();
     if (ok && mounted) {
+      Navigator.pop(context);
       messenger.showSnackBar(
         const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해 주세요.')),
       );
-      Navigator.pop(context);
     }
   }
 

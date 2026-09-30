@@ -32,14 +32,15 @@ class AuthSession extends ChangeNotifier {
 
   Future<void> fetchMyInfo() async {
     final generation = _generation;
-    if (!_isLoggedIn) return;
-
     final info = await _repository.fetchMyInfo();
-    if (!_isCurrent(generation) || !_isLoggedIn) return;
+    if (!_isCurrent(generation)) return;
 
+    // /me 성공 자체를 현재 세션의 유효성 확인으로 취급한다.
+    // 로그아웃/새 로그인으로 generation이 바뀌면 늦은 응답은 위에서 폐기된다.
     _employeeInfo = info;
     _role = info.role;
     _name = info.name;
+    _isLoggedIn = true;
     notifyListeners();
   }
 

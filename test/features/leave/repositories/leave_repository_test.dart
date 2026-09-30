@@ -77,8 +77,8 @@ void main() {
 
       expect(lastRequest().method, 'GET');
       expect(lastRequest().path, '/api/leave-requests/my');
-      expect(lastRequest().queryParameters, isEmpty);
-      expect(lastRequest().uri.hasQuery, isFalse);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 50});
+      expect(lastRequest().uri.hasQuery, isTrue);
     });
 
     test('조건을 모두 넘기면 status/startDate/endDate가 쿼리로 실린다', () async {
@@ -102,6 +102,8 @@ void main() {
         'status': 'PENDING',
         'startDate': '2026-01-01',
         'endDate': '2026-12-31',
+        'page': 0,
+        'size': 50,
       });
     });
 
@@ -114,7 +116,7 @@ void main() {
 
       await repository.fetchMyLeaveRequests(status: 'APPROVED');
 
-      expect(lastRequest().queryParameters, {'status': 'APPROVED'});
+      expect(lastRequest().queryParameters, {'status': 'APPROVED', 'page': 0, 'size': 50});
     });
 
     test('배열 응답을 목록 모델로 매핑한다', () async {
@@ -165,7 +167,7 @@ void main() {
 
       expect(lastRequest().method, 'GET');
       expect(lastRequest().path, '/api/leave-requests/all');
-      expect(lastRequest().queryParameters, isEmpty);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 50});
       expect(items.first.requestId, 11);
     });
 
@@ -190,6 +192,8 @@ void main() {
         'status': 'REJECTED',
         'startDate': '2026-08-01',
         'endDate': '2026-08-31',
+        'page': 0,
+        'size': 50,
       });
     });
 
@@ -332,7 +336,7 @@ void main() {
       );
 
       expect(lastRequest().path, '/api/admin/leave-requests/approved');
-      expect(lastRequest().queryParameters, {'team': 'SI사업팀'});
+      expect(lastRequest().queryParameters, {'team': 'SI사업팀', 'page': 0, 'size': 50});
     });
 
     test('team이 null이면 빈 team 쿼리를 만들지 않는다', () async {
@@ -360,7 +364,7 @@ void main() {
         employeeParam: ' A0001 ',
       );
 
-      expect(lastRequest().queryParameters, {'employeeParam': 'A0001'});
+      expect(lastRequest().queryParameters, {'employeeParam': 'A0001', 'page': 0, 'size': 50});
     });
 
     test('status가 null이면 잘못된 null 경로를 호출하지 않고 즉시 거절한다', () async {
@@ -413,7 +417,7 @@ void main() {
 
       expect(lastRequest().method, 'GET');
       expect(lastRequest().path, '/api/admin/leave-requests/pending');
-      expect(lastRequest().queryParameters, isEmpty);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 50});
       expect(items, hasLength(1));
       expect(items.first, isA<PendingLeaveRequest>());
       expect(items.first.requestId, 21);
