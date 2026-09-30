@@ -409,7 +409,10 @@ class _FakeDepartmentTeamApi extends DepartmentTeamRepository {
   Future<List<Team>> fetchTeams() async => List.of(teams);
 
   @override
-  Future<void> createTeam(TeamCreateRequest request) async {
+  Future<void> createTeam(
+    TeamCreateRequest request, {
+    String? idempotencyKey,
+  }) async {
     if (teams.any((t) => t.teamName == request.teamName)) {
       _reject('이미 존재하는 팀명입니다.');
     }

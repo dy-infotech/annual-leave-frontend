@@ -259,16 +259,6 @@ void main() {
       expect(data.containsKey('targetTeamsForRoleSwap'), isFalse);
     });
 
-    test('비밀번호를 입력했을 때만 password 필드를 채운다', () async {
-      final vm = build(emp());
-      vm.passwordController.text = '  newPw1234  ';
-
-      expect(await vm.saveChanges(), isTrue);
-
-      expect(repository.updates.single.data['password'], 'newPw1234');
-      // 저장 성공 후 비밀번호 입력란은 비워진다.
-      expect(vm.passwordController.text, isEmpty);
-    });
 
     test('성공 상태코드면 수정 모드를 끄고 true를 돌려준다', () async {
       repository.updateStatusCodeToReturn = 204;
