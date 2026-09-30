@@ -56,11 +56,11 @@ Screen(Widget) → Provider(ChangeNotifier) → ApiClient(dio) → 백엔드 /ap
 
 - **Screen**: `StatefulWidget` + `TextEditingController`/`setState`로 폼과 로컬 UI 상태를 직접 관리.
 - **Provider**: `ChangeNotifier` 기반. `main.dart`에서 `MultiProvider`로 4개를 루트에 등록:
-  - `AuthProvider` — 로그인 상태, JWT 발급/삭제, 내 정보(`Employee`).
+  - `AuthSession` — 로그인 여부, 현재 role/name, 내 정보(`Employee`)를 보관하고 인증 API는 `AuthRepository`에 위임.
   - `DashboardProvider` — 대시보드 데이터.
   - `LeaveRequestListProvider` — 내 연차 신청 목록(중복 신청 검사에도 재사용).
   - `PublicHolidayProvider` — 올해/내년 공휴일.
-- **ApiClient**: `lib/services/api_client.dart`의 dio 싱글턴 하나만 존재. **별도 서비스 레이어(`services/leave_request_service.dart` 등)로 엔드포인트가 정리되어 있지 않고**, Provider와 화면 양쪽에서 `ApiClient().dio.get/post/patch/delete(...)`를 직접 호출합니다. 상세 매핑은 [05. 데이터 모델 및 API 연동](05-data-models-api-integration.md) 참조.
+- **ApiClient**: `lib/core/network/api_client.dart`의 Dio 싱글턴이 JWT 첨부, 공통 오류 메시지, 인증된 401 세션 만료 처리를 담당합니다. 기능별 HTTP 호출은 `features/*/repositories/`로 분리되어 있으며 ViewModel은 Repository를 통해 서버와 통신합니다. 상세 매핑은 [05. 데이터 모델 및 API 연동](05-data-models-api-integration.md) 참조.
 
 > React Query/SWR류의 서버 상태 캐싱은 없습니다. 화면에 진입할 때마다 Provider의 fetch 메서드를 수동 호출해 다시 불러옵니다.
 
