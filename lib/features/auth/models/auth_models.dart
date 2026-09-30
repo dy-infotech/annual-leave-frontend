@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class LoginRequest {
   final String employeeNumber;
   final String password;
@@ -15,21 +17,56 @@ class LoginResponse {
   final int? employeeId;
   final String? name;
   final String? role;
+  final DateTime? accessTokenExpiresAt;
 
   LoginResponse({
     required this.token,
     required this.employeeId,
     required this.name,
     required this.role,
+    this.accessTokenExpiresAt,
   });
 
   factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    final token = json['token'] as String;
+    final claims = tryFromAccessToken(token);
     return LoginResponse(
-      token: json['token'],
-      employeeId: json['employeeId'],
-      name: json['name'],
-      role: json['role'],
+      token: token,
+      employeeId: (json['employeeId'] as num?)?.toInt() ?? claims?.employeeId,
+      name: json['name']?.toString() ?? claims?.name,
+      role: json['role']?.toString() ?? claims?.role,
+      accessTokenExpiresAt: claims?.accessTokenExpiresAt,
     );
+  }
+
+  static LoginResponse? tryFromAccessToken(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return null;
+
+      final payload = jsonDecode(
+        utf8.decode(base64Url.decode(base64Url.normalize(parts[1]))),
+      );
+      if (payload is! Map) return null;
+
+      final employeeId = int.tryParse('${payload['sub'] ?? ''}');
+      final expSeconds = (payload['exp'] as num?)?.toInt();
+
+      return LoginResponse(
+        token: token,
+        employeeId: employeeId,
+        name: payload['name']?.toString(),
+        role: payload['role']?.toString(),
+        accessTokenExpiresAt: expSeconds == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(
+                expSeconds * 1000,
+                isUtc: true,
+              ),
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   bool get isAdmin => role == 'ADMIN';
