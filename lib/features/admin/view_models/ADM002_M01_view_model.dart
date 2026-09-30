@@ -157,7 +157,13 @@ class SignupManageViewModel extends ChangeNotifier {
       notifyListeners();
       return false;
     }
-    final emailRegex = RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,}
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+');
+    if (emailRegex.stringMatch(email) != email) {
+      _emailError = '올바른 이메일 형식이 아닙니다.';
+      notifyListeners();
+      return false;
+    }
+    if (hireDateController.text.isEmpty) {
       _hireDateError = '입사일 정보를 입력해 주세요.';
       notifyListeners();
       return false;
