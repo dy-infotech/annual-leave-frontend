@@ -1,0 +1,144 @@
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+/// 로그인 화면(AUT001_M01)의 ViewModel.
+class LoginViewModel extends ChangeNotifier {
+  LoginViewModel({
+    required AuthSession authSession,
+    PublicHolidayRepository? holidayRepository,
+    FlutterSecureStorage? secureStorage,
+  })  : _authSession = authSession,
+        _holidayRepository = holidayRepository ?? PublicHolidayRepository(),
+        _secureStorage = secureStorage ?? const FlutterSecureStorage();
+
+  final AuthSession _authSession;
+  final PublicHolidayRepository _holidayRepository;
+
+  // 비밀번호 전용 안전 저장소
+  final FlutterSecureStorage _secureStorage;
+
+  final employeeNumberController = TextEditingController();
+  final passwordController = TextEditingController();
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _isRememberMe = false;
+  bool _disposed = false;
+  int _requestSeq = 0;
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  bool get isRememberMe => _isRememberMe;
+
+  void setRememberMe(bool value) {
+    _isRememberMe = value;
+    notifyListeners();
+  }
+
+  void toggleRememberMe() {
+    _isRememberMe = !_isRememberMe;
+    notifyListeners();
+  }
+
+  // 로컬 저장소에서 계정 정보(사번 + 비밀번호) 불러오기
+  Future<void> loadSavedAccountInfo() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
+    final prefs = await SharedPreferences.getInstance();
+    if (_disposed || seq != _requestSeq) return;
+    _isRememberMe = prefs.getBool('isRememberMe') ?? false;
+    if (_isRememberMe) {
+      // 일반 설정에서 사번 로드
+      employeeNumberController.text =
+          prefs.getString('savedEmployeeNumber') ?? '';
+      // 암호화 공간에서 비밀번호 꺼내오기
+      final savedPassword =
+          await _secureStorage.read(key: 'savedPassword') ?? '';
+      if (_disposed || seq != _requestSeq) return;
+      passwordController.text = savedPassword;
+    }
+    if (!_disposed && seq == _requestSeq) notifyListeners();
+  }
+
+  // 로그인 성공 시 계정 정보(사번 + 암호화 비밀번호) 저장 처리
+  Future<void> _saveAccountInfoPreference() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (_isRememberMe) {
+      // 사번 일반 저장
+      await prefs.setBool('isRememberMe', true);
+      await prefs.setString(
+          'savedEmployeeNumber', employeeNumberController.text.trim());
+      // 비밀번호 안전하게 암호화 저장
+      await _secureStorage.write(
+          key: 'savedPassword', value: passwordController.text);
+    } else {
+      // 체크 해제 시 데이터 전부 일괄 소거
+      await prefs.remove('isRememberMe');
+      await prefs.remove('savedEmployeeNumber');
+      await _secureStorage.delete(key: 'savedPassword'); // 암호 저장소 삭제
+    }
+  }
+
+  /// 로그인. 성공하면 true를 돌려준다. (화면은 대시보드로 이동)
+  Future<bool> login() async {
+    if (_disposed || _isLoading) return false;
+    if (employeeNumberController.text.isEmpty ||
+        passwordController.text.isEmpty) {
+      _errorMessage = '사번과 비밀번호를 입력해주세요.';
+      notifyListeners();
+      return false;
+    }
+
+    final seq = ++_requestSeq;
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authSession.login(
+        employeeNumberController.text.trim(),
+        passwordController.text,
+      );
+
+      if (_disposed || seq != _requestSeq) return false;
+
+      // 계정 기억하기는 로그인 자체와 분리된 부가 기능이다.
+      // 저장소 실패가 이미 확정된 인증 세션까지 실패로 보이게 만들지 않는다.
+      try {
+        await _saveAccountInfoPreference();
+      } catch (e) {
+        debugPrint('계정 저장 정보 갱신 실패: $e');
+      }
+
+      try {
+        await _holidayRepository.fetchPublicHolidays();
+      } catch (_) {
+        // 공휴일 조회 실패가 로그인 흐름을 막지 않도록 무시
+      }
+
+      return true;
+    } catch (e) {
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = e.toString();
+      }
+      return false;
+    } finally {
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _requestSeq++;
+    employeeNumberController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
+}

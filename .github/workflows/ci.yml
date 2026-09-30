@@ -1,0 +1,34 @@
+name: CI
+
+on:
+  push:
+    branches: [develop_v2.0, release]
+  pull_request:
+    branches: [develop_v2.0, release, develop, main]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: Flutter 설치
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: 의존성 설치
+        run: flutter pub get
+
+      # deprecated API 등의 info는 단계적으로 정리하되 warning/error는 차단한다.
+      - name: 정적 분석
+        run: flutter analyze --no-fatal-infos
+
+      - name: 테스트
+        run: flutter test
+
+      - name: 웹 릴리스 빌드
+        run: flutter build web --release

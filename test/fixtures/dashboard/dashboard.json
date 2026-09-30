@@ -1,0 +1,17 @@
+{
+  "myLeaveInfoResponse": {
+    "totalLeaveDays": 15.0,
+    "usedLeaveDays": 3.5,
+    "remainingLeaveDays": 11.5
+  },
+  "myRequestSummary": {
+    "pendingCount": 1,
+    "approvedCount": 4,
+    "rejectedCount": 0
+  },
+  "allEmployeeRequestSummary": {
+    "pendingCount": 2,
+    "approvedCount": 10,
+    "rejectedCount": 1
+  }
+}

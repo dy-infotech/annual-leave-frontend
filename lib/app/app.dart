@@ -1,0 +1,113 @@
+import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/core/services/fcm_service.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
+import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
+import 'package:annual_leave_frontend/features/admin/views/ADM001_M01.dart';
+import 'package:annual_leave_frontend/features/admin/views/ADM002_M01.dart';
+import 'package:annual_leave_frontend/features/admin/views/ADM003_M01.dart';
+import 'package:annual_leave_frontend/features/admin/views/ADM004_M01.dart';
+import 'package:annual_leave_frontend/features/auth/views/AUT001_M01.dart';
+import 'package:annual_leave_frontend/features/auth/views/AUT002_M01.dart';
+import 'package:annual_leave_frontend/features/auth/views/AUT003_M01.dart';
+import 'package:annual_leave_frontend/features/dashboard/views/DSH001_M01.dart';
+import 'package:annual_leave_frontend/features/employee/views/EMP001_M01.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
+//import 'package:annual_leave_frontend/features/leave/views/LVE002_M01.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE002_M02.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE003_M01.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:provider/provider.dart';
+
+final RouteObserver<PageRoute<dynamic>> routeObserver =
+    RouteObserver<PageRoute<dynamic>>();
+final GlobalKey<NavigatorState> rootNavigatorKey = GlobalKey<NavigatorState>();
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(
+          create: (_) {
+            final session = AuthSession();
+            ApiClient().setUnauthorizedHandler((expiredGeneration) async {
+              if (ApiClient().sessionGeneration != expiredGeneration) return;
+
+              // 인증 상태와 화면 전환을 Firebase 정리보다 먼저 확정한다.
+              final shouldRedirect = session.expireSession();
+              if (shouldRedirect) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  rootNavigatorKey.currentState?.pushNamedAndRemoveUntil(
+                    '/login',
+                    (_) => false,
+                  );
+                });
+              }
+
+              try {
+                await FcmService.instance.clearLocalStateAfterSessionExpiry(
+                  expectedAuthGeneration: expiredGeneration,
+                );
+              } catch (e) {
+                debugPrint('FCM 세션 만료 정리 실패: $e');
+              }
+            });
+            return session;
+          },
+        ),
+      ],
+      child: MaterialApp(
+        navigatorKey: rootNavigatorKey,
+        title: '연차 관리',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.theme,
+        locale: const Locale('ko', 'KR'),
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [Locale('ko', 'KR')],
+        home: const SplashScreen(),
+        navigatorObservers: [routeObserver],
+        routes: {
+          // 로그인 화면
+          '/login': (context) => const LoginScreen(),
+          // 사용 등록 화면
+          '/signup': (context) => const SignupScreen(),
+          // 비번찾기 화면
+          '/forgot-password': (context) => const FindAccountScreen(),
+          // 대시보드 화면
+          '/dashboard': (context) => DashboardScreen(
+                refreshSession: context.read<AuthSession>().fetchMyInfo,
+              ),
+          // 휴가 신청 화면
+          '/leave-request': (context) => const LeaveRequestScreen(),
+          // 내 휴가 신청 목록 화면
+          //'/my-leave-requests': (context) => const MyLeaveRequestsScreen(),
+          // 전직원 휴가 신청 목록 화면
+          '/all-leave-requests': (context) => const AllLeaveRequestsScreen(),
+          // 결재 대기 목록 화면
+          '/pending-approval': (context) => const PendingApprovalScreen(),
+          //사용자 등록 관리 화면
+          '/signup_manage_screen': (context) => const SignupManageScreen(),
+          //사용자 사번 조회 화면
+          '/search_employee_number_screen': (context) =>
+              const SearchEmployeeNumberScreen(),
+          //관리자별 관리팀 설정 화면
+          '/admin-settings': (context) => const AdminSettingsScreen(),
+          //부서 및 팀 관리 화면
+          '/department-team-manage': (context) =>
+              const DepartmentTeamManageScreen(),
+
+          // 내 정보 화면
+          '/my-info': (context) => const MyInfoScreen(),
+        },
+      ),
+    );
+  }
+}
