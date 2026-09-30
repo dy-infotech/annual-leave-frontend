@@ -126,18 +126,23 @@ void main() {
       expect(vm.items, hasLength(1));
     });
 
-    test('isCancelable - 대기 상태만 취소할 수 있다', () {
-      LeaveRequestListItem withStatus(String status) =>
+    test('isCancelable - 대기 또는 아직 시작하지 않은 승인 건을 취소할 수 있다', () {
+      LeaveRequestListItem item(String status, String startDate) =>
           LeaveRequestListItem.fromJson(
               fixtureJson('leave/leave_request_list_item.json')
-                ..['status'] = status);
+                ..['status'] = status
+                ..['startDate'] = startDate
+                ..['endDate'] = startDate);
+      final now = DateTime(2026, 9, 30);
 
-      expect(MyLeaveRequestsViewModel.isCancelable(withStatus('PENDING')),
-          isTrue);
-      expect(MyLeaveRequestsViewModel.isCancelable(withStatus('APPROVED')),
-          isFalse);
-      expect(MyLeaveRequestsViewModel.isCancelable(withStatus('REJECTED')),
-          isFalse);
+      expect(MyLeaveRequestsViewModel.isCancelable(
+          item('PENDING', '2026-09-01'), now: now), isTrue);
+      expect(MyLeaveRequestsViewModel.isCancelable(
+          item('APPROVED', '2026-10-01'), now: now), isTrue);
+      expect(MyLeaveRequestsViewModel.isCancelable(
+          item('APPROVED', '2026-09-30'), now: now), isFalse);
+      expect(MyLeaveRequestsViewModel.isCancelable(
+          item('REJECTED', '2026-10-01'), now: now), isFalse);
     });
   });
 }

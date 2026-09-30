@@ -113,18 +113,23 @@ void main() {
       expect(fake.allLeaveRequestQueries, hasLength(2));
     });
 
-    test('isCancelable - 본인의 대기 건만 취소할 수 있다', () {
-      final mine = LeaveRequestListItem.fromJson(
-          fixtureJson('leave/leave_request_list_item.json'));
+    test('isCancelable - 본인의 대기 또는 미래 승인 건만 취소할 수 있다', () {
+      LeaveRequestListItem item(String status, String startDate) =>
+          LeaveRequestListItem.fromJson(
+              fixtureJson('leave/leave_request_list_item.json')
+                ..['status'] = status
+                ..['startDate'] = startDate
+                ..['endDate'] = startDate);
+      final now = DateTime(2026, 9, 30);
 
-      expect(AllLeaveRequestsViewModel.isCancelable(mine, 'A0001'), isTrue);
-      expect(AllLeaveRequestsViewModel.isCancelable(mine, 'B0002'), isFalse);
-      expect(AllLeaveRequestsViewModel.isCancelable(mine, null), isFalse);
-
-      final approved = LeaveRequestListItem.fromJson(
-          fixtureJson('leave/leave_request_list_item.json')
-            ..['status'] = 'APPROVED');
-      expect(AllLeaveRequestsViewModel.isCancelable(approved, 'A0001'), isFalse);
+      expect(AllLeaveRequestsViewModel.isCancelable(
+          item('PENDING', '2026-09-01'), 'A0001', now: now), isTrue);
+      expect(AllLeaveRequestsViewModel.isCancelable(
+          item('APPROVED', '2026-10-01'), 'A0001', now: now), isTrue);
+      expect(AllLeaveRequestsViewModel.isCancelable(
+          item('APPROVED', '2026-10-01'), 'B0002', now: now), isFalse);
+      expect(AllLeaveRequestsViewModel.isCancelable(
+          item('APPROVED', '2026-09-30'), 'A0001', now: now), isFalse);
     });
 
     test('조회 실패 - 예외를 잡지 않고 그대로 전파한다', () async {

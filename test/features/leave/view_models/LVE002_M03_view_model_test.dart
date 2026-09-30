@@ -53,14 +53,25 @@ void main() {
       expect(vm.statusName, '반려');
     });
 
-    test('기초 코드 응답 키가 3개 미만이면 오류 메시지를 세팅한다', () async {
+    test('접근 가능 팀이 비어 있어도 전체 선택은 정상 제공한다', () async {
       fakeCodes.codesToReturn = {'accessibleTeam': []};
       final vm = buildVm();
 
       await vm.getComData();
 
-      expect(vm.errorMessage, '기초데이터 조회에 실패했습니다.');
-      expect(vm.teamList, isEmpty);
+      expect(vm.errorMessage, isNull);
+      expect(vm.teamList, ['전체']);
+    });
+
+    test('setFilter - 전달된 상태값을 정규화해 재조회한다', () async {
+      final vm = buildVm();
+      await vm.load();
+
+      vm.setFilter('REJECTED');
+      await Future<void>.delayed(Duration.zero);
+
+      expect(vm.status, 'rejected');
+      expect(fake.adminSearchQueries.last['status'], 'rejected');
     });
 
     test('selectTeam - 팀 선택 시 해당 팀으로, 전체 선택 시 null로 조회한다', () async {

@@ -55,7 +55,7 @@ void main() {
     expect(find.text('2026.08.02'), findsOneWidget);
   });
 
-  testWidgets('결재자 미배정 - 안내 문구가 표시되고 사유 없음은 -로 표시된다', (tester) async {
+  testWidgets('결재자 미배정 - 비공개 사유와 잔여 연차는 표시하지 않는다', (tester) async {
     final json = fixtureJson('leave/leave_request_detail.json')
       ..remove('approverNumber')
       ..remove('approverName')
@@ -68,7 +68,8 @@ void main() {
 
     await pumpDetailScreen(tester);
 
-    expect(find.text('-'), findsOneWidget); // 신청 사유
+    expect(find.text('신청 사유'), findsNothing);
+    expect(find.text('잔여 연차'), findsNothing);
     expect(find.text('대기'), findsOneWidget);
 
     await tester.drag(find.byType(ListView), const Offset(0, -400));
@@ -91,7 +92,7 @@ void main() {
     expect(find.text('프로젝트 마감일과 겹칩니다'), findsOneWidget);
   });
 
-  testWidgets('반려 사유 없이 반려 - 사유 자리에 -가 표시된다', (tester) async {
+  testWidgets('반려 사유를 받지 못하면 항목 자체를 표시하지 않는다', (tester) async {
     final json = fixtureJson('leave/leave_request_detail.json')
       ..['status'] = 'REJECTED';
     fake.detailToReturn = LeaveRequestDetail.fromJson(json);
@@ -101,7 +102,7 @@ void main() {
     await tester.drag(find.byType(ListView), const Offset(0, -400));
     await tester.pump();
 
-    expect(find.text('반려 사유'), findsOneWidget);
+    expect(find.text('반려 사유'), findsNothing);
   });
 
   testWidgets('반려가 아니면 반려 사유 항목이 없다', (tester) async {

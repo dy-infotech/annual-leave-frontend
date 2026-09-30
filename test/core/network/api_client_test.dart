@@ -124,7 +124,7 @@ void main() {
         () => ApiClient().dio.get('/api/employees/me'),
       );
 
-      expect(error.message, '알 수 없는 오류가 발생했습니다.');
+      expect(error.message, '요청 처리 중 오류가 발생했습니다.');
     });
 
     test('응답 본문이 Map이 아니면 네트워크 오류 메시지를 쓴다', () async {
