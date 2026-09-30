@@ -60,9 +60,7 @@ void main() {
       expect(updated.approverName, emp.approverName);
     });
 
-    // 발견한 문제: copyWith 가 결재자 4개 필드와 isRegisted 를 파라미터로 받지만
-    // 본문에서 인자를 무시하고 this 값을 그대로 쓴다. 아래는 현재 동작 기록이다.
-    test('copyWith - 결재자 필드와 isRegisted 인자는 무시된다 (현재 동작)', () {
+    test('copyWith - 결재자 필드와 등록 상태 인자를 반영한다', () {
       final emp = Employee.fromJson(fixtureJson('admin/employee.json'));
 
       final updated = emp.copyWith(
@@ -73,11 +71,11 @@ void main() {
         isRegisted: false,
       );
 
-      expect(updated.approverNumber, 'A0002');
-      expect(updated.approverName, '김결재');
-      expect(updated.approverPosition, '부장');
-      expect(updated.approverDepartment, '경영지원부');
-      expect(updated.isRegisted, isTrue);
+      expect(updated.approverNumber, 'B0009');
+      expect(updated.approverName, '박결재');
+      expect(updated.approverPosition, '이사');
+      expect(updated.approverDepartment, '기술본부');
+      expect(updated.isRegisted, isFalse);
     });
 
     test('copyWith - 나머지 필드는 인자를 정상 반영한다', () {

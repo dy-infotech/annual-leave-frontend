@@ -71,16 +71,22 @@ void main() {
       expect(vm.selectedFireDate, isNull);
     });
 
-    // 발견한 문제: 연도 4자리만 오면 "-01-01"을 붙이는 방어 로직이 아래쪽에 있지만,
-    // 그보다 먼저 실행되는 표시용 컨트롤러 초기화가 try 밖에서 DateTime.parse 를
-    // 호출하므로 생성 자체가 실패한다. 즉 4자리 보정 분기는 도달할 수 없다.
-    test('연도 4자리만 오면 표시용 파싱에서 예외가 그대로 터진다 (현재 동작)', () {
-      expect(() => build(emp(hireDate: '2020')), throwsFormatException);
-      expect(() => build(emp(fireDate: '2024')), throwsFormatException);
+    test('연도 4자리만 오면 해당 연도 1월 1일로 정규화한다', () {
+      final vm = build(emp(hireDate: '2020', fireDate: '2024'));
+
+      expect(vm.hireDateController.text, '2020.01.01');
+      expect(vm.fireDateController.text, '2024.01.01');
+      expect(vm.selectedHireDate, DateTime(2020, 1, 1));
+      expect(vm.selectedFireDate, DateTime(2024, 1, 1));
     });
 
-    test('날짜 형식이 아닌 문자열도 생성자에서 예외가 터진다 (현재 동작)', () {
-      expect(() => build(emp(hireDate: '알수없음')), throwsFormatException);
+    test('날짜 형식이 아닌 문자열은 예외 대신 빈 값으로 처리한다', () {
+      final vm = build(emp(hireDate: '알수없음', fireDate: 'invalid'));
+
+      expect(vm.hireDateController.text, isEmpty);
+      expect(vm.fireDateController.text, isEmpty);
+      expect(vm.selectedHireDate, isNull);
+      expect(vm.selectedFireDate, isNull);
     });
 
     test('생성자는 사원 정보를 그대로 입력 상태에 옮겨 담는다', () {

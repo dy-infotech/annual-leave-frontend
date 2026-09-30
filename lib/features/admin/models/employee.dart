@@ -108,11 +108,11 @@ class Employee {
       email: email ?? this.email,
       currTotalLeaveDays: currTotalLeaveDays ?? this.currTotalLeaveDays,
       remainingLeaveDays: remainingLeaveDays ?? this.remainingLeaveDays,
-      approverNumber: this.approverNumber,
-      approverName: this.approverName,
-      approverPosition: this.approverPosition,
-      approverDepartment: this.approverDepartment,
-      isRegisted: this.isRegisted,
+      approverNumber: approverNumber ?? this.approverNumber,
+      approverName: approverName ?? this.approverName,
+      approverPosition: approverPosition ?? this.approverPosition,
+      approverDepartment: approverDepartment ?? this.approverDepartment,
+      isRegisted: isRegisted ?? this.isRegisted,
       createdAt: createdAt ?? this.createdAt,
     );
   }
