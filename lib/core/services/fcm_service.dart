@@ -1,6 +1,5 @@
 import 'dart:async' show StreamSubscription;
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart' show Options;
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:shared_preferences/shared_preferences.dart'
