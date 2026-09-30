@@ -70,7 +70,7 @@ flutter run -d chrome
 | Android(APK) | `flutter build apk` | `build/app/outputs/flutter-apk/app-release.apk` |
 | Android(AAB, 스토어용) | `flutter build appbundle` | `build/app/outputs/bundle/release/app-release.aab` |
 | iOS | `flutter build ios` | Xcode로 서명/배포 필요 |
-| Web | `flutter build web` | `build/web/` (정적 파일, Vercel 등에 배포) |
+| Web | `flutter build web` | `build/web/` (release workflow에서 사내 Web 서버에 배포) |
 
 ## 2.7 린트 / 테스트
 
@@ -79,7 +79,7 @@ flutter analyze   # flutter_lints 규칙 기반 정적 분석(커스텀 규칙 �
 flutter test       # 테스트 실행
 ```
 
-> ⚠️ **테스트 코드가 없습니다.** `flutter_test`가 devDependency로 있지만 `test/` 디렉토리 자체가 저장소에 존재하지 않습니다. `flutter test`를 실행해도 검증되는 것이 없습니다.
+현재 `test/` 아래에 model/repository/view-model/widget 및 회귀 테스트가 있으며, develop_v2.0 CI와 release 배포 workflow 모두 `flutter test`를 실행합니다. CI의 정적 분석은 기존 info/warning 정리 전까지 error를 실패 기준으로 사용합니다.
 
 ## 2.8 IDE 설정
 
