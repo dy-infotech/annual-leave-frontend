@@ -39,8 +39,7 @@ class FakeLeaveRepository implements LeaveRepository {
     String? status,
     String? startDate,
     String? endDate,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = LeaveRepository.defaultPageSize,
   }) async {
     myLeaveRequestQueries
@@ -75,8 +74,7 @@ class FakeLeaveRepository implements LeaveRepository {
     String? status,
     String? startDate,
     String? endDate,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = LeaveRepository.defaultPageSize,
   }) async {
     allLeaveRequestQueries
@@ -114,8 +112,7 @@ class FakeLeaveRepository implements LeaveRepository {
     required String? status,
     required String? team,
     String? employeeParam,
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = LeaveRepository.defaultPageSize,
   }) async {
     adminSearchQueries
@@ -146,8 +143,7 @@ class FakeLeaveRepository implements LeaveRepository {
 
   @override
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
-    String? cursorCreatedAt,
-    int? cursorRequestId,
+    int page = 0,
     int size = LeaveRepository.defaultPageSize,
   }) async {
     pendingFetchCount++;

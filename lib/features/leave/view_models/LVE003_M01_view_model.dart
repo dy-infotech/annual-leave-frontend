@@ -13,8 +13,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
-  String? _cursorCreatedAt;
-  int? _cursorRequestId;
+  int _nextPage = 0;
   String? _errorMessage;
   final Set<int> _processingIds = {};
   int _requestSeq = 0;
@@ -53,14 +52,14 @@ class PendingApprovalViewModel extends ChangeNotifier {
     _isLoading = true;
     _isLoadingMore = false;
     _hasMore = true;
-    _cursorCreatedAt = null;
-    _cursorRequestId = null;
+    _nextPage = 0;
     _errorMessage = null;
     _selectedRequestId = null;
     _notify();
 
     try {
       final page = await _repository.fetchPendingLeaveRequestsPage(
+        page: 0,
         size: _pageSize,
       );
       if (_disposed || seq != _requestSeq) return;
@@ -79,17 +78,13 @@ class PendingApprovalViewModel extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
-    final cursorCreatedAt = _cursorCreatedAt;
-    final cursorRequestId = _cursorRequestId;
-    if (cursorCreatedAt == null || cursorRequestId == null) return;
-
+    final pageNumber = _nextPage;
     final seq = _requestSeq;
     _isLoadingMore = true;
     _notify();
     try {
       final page = await _repository.fetchPendingLeaveRequestsPage(
-        cursorCreatedAt: cursorCreatedAt,
-        cursorRequestId: cursorRequestId,
+        page: pageNumber,
         size: _pageSize,
       );
       if (_disposed || seq != _requestSeq) return;
@@ -110,10 +105,9 @@ class PendingApprovalViewModel extends ChangeNotifier {
 
   void _applyPageCursor(List<PendingLeaveRequest> page) {
     _hasMore = page.length == _pageSize;
-    if (page.isEmpty) return;
-    final last = page.last;
-    _cursorCreatedAt = last.createdAt;
-    _cursorRequestId = last.requestId;
+    if (page.isNotEmpty) {
+      _nextPage++;
+    }
   }
 
   Future<bool> approve(int requestId) async {
