@@ -9,6 +9,12 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:flutter_lints/flutter.yaml
 
+analyzer:
+  exclude:
+    # iOS 빌드 시 SwiftPM이 받아 놓는 패키지 소스(자체 테스트/예제 포함)가
+    # 분석 대상에 잡히지 않도록 빌드 산출물 전체를 제외한다.
+    - build/**
+
 linter:
   # The lint rules applied to this project can be customized in the
   # section below to disable rules from the `package:flutter_lints/flutter.yaml`
@@ -21,6 +27,8 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
+    # 화면 파일명은 대문자 화면 코드 체계(docs/screen-codes.md)를 따르므로 비활성화
+    file_names: false
     # avoid_print: false  # Uncomment to disable the `avoid_print` rule
     # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
 

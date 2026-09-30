@@ -1,0 +1,21 @@
+{
+  "employeeId": 5,
+  "employeeNumber": "A0001",
+  "name": "홍길동",
+  "position": "과장",
+  "department": "경영지원부",
+  "team": "SI사업팀",
+  "teamList": ["SI사업팀", "BI사업팀"],
+  "hireDate": "2020-01-01",
+  "fireDate": null,
+  "role": "EMPLOYEE",
+  "email": "hong@example.com",
+  "currTotalLeaveDays": 15,
+  "remainingLeaveDays": 11.5,
+  "approverNumber": "A0002",
+  "approverName": "김결재",
+  "approverPosition": "부장",
+  "approverDepartment": "경영지원부",
+  "isRegisted": true,
+  "createdAt": "2026-01-01"
+}

@@ -1,0 +1,376 @@
+// LVE002_M03: 관리자 휴가 검색 화면
+import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
+import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
+import 'package:annual_leave_frontend/features/leave/views/LVE002_D01.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
+import 'package:annual_leave_frontend/features/leave/view_models/LVE002_M03_view_model.dart';
+import 'package:annual_leave_frontend/core/theme/app_theme.dart';
+import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
+import 'package:annual_leave_frontend/app/app.dart';
+import 'package:intl/intl.dart';
+
+class AdminSearchLeaveRequestsScreen extends StatelessWidget {
+  final String? status;
+  final String? filter;
+
+  /// 미지정 시 실제 API를 호출한다. 테스트에서 페이크를 주입한다.
+  final LeaveRepository? repository;
+  final CommonCodeRepository? commonCodeRepository;
+
+  const AdminSearchLeaveRequestsScreen(
+      {super.key,
+      this.status,
+      this.filter,
+      this.repository,
+      this.commonCodeRepository});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (_) => AdminSearchLeaveRequestsViewModel(
+        initialFilter: filter,
+        repository: repository,
+        commonCodeRepository: commonCodeRepository,
+      )..load(),
+      child: const _AdminSearchLeaveRequestsView(),
+    );
+  }
+}
+
+class _AdminSearchLeaveRequestsView extends StatefulWidget {
+  const _AdminSearchLeaveRequestsView();
+
+  @override
+  State<_AdminSearchLeaveRequestsView> createState() =>
+      _AdminSearchLeaveRequestsViewState();
+}
+
+class _AdminSearchLeaveRequestsViewState
+    extends State<_AdminSearchLeaveRequestsView> with RouteAware {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    routeObserver.unsubscribe(this);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final vm = context.watch<AdminSearchLeaveRequestsViewModel>();
+    final statusName = vm.statusName;
+
+    //로그인 사용자 직급 "사장"여부 확인
+    /* final auth = context.watch<AuthSession>();
+    final info = auth.employeeInfo;
+    bool isCeo = false;
+    if(auth.isAdmin && info?.position == "사장"){
+      isCeo = true;
+    } */
+
+    return Scaffold(
+      appBar: AppBar(title: Text('$statusName 목록')),
+      drawer: const AppDrawer(),
+      body: Column(
+        children: [
+          // 사장인 경우만 팀 콤보 표시
+          //if (isCeo)
+            SizedBox(
+              height: 50,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // 팀 선택 콤보박스
+                    Expanded(
+                      flex: 1, // 💡 앞서 매칭해 둔 가로 폭 비율(13) 반영
+                      child: SizedBox(
+                        height: 35, // 💡 등록 상태 박스와 동일한 세로 규격 제한 유지
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: vm.selectedTeam,
+                          style: const TextStyle(
+                              fontSize: 13, color: Colors.black),
+                          icon: const Icon(Icons.arrow_drop_down,
+                              color: Colors.grey),
+                          alignment: Alignment.centerLeft,
+
+                          // 💡 [핵심 추가] 아웃라인 테두리 왼쪽 위에 '팀' 라벨 텍스트를 강제 배치합니다.
+                          decoration: InputDecoration(
+                            labelText: '팀',
+                            labelStyle: const TextStyle(
+                                fontSize: 12, color: Colors.grey),
+                            isDense: true,
+
+                            // 🔥 [높이 정렬 고정] 상하 패딩을 '등록 상태' 박스와 똑같은 '9.5'로 일치시켜
+                            // 화면에서 두 콤보박스의 가로선 높이가 자석처럼 완벽한 일직선을 이루게 만듭니다.
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 9.5),
+
+                            // 💡 테두리 곡률(Radius: 8) 및 색상 디자인 통일
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide:
+                                  BorderSide(color: Colors.grey.shade400),
+                            ),
+                          ),
+                          onChanged: (String? newValue) {
+                            if (newValue != null) {
+                              vm.selectTeam(newValue);
+                            }
+                          },
+                          items: (vm.teamList.isEmpty)
+                              ? [
+                                  const DropdownMenuItem<String>(
+                                    value: '전체',
+                                    child: Text('전체'),
+                                  )
+                                ]
+                              : vm.teamList.map((String team) {
+                                  return DropdownMenuItem<String>(
+                                    value: team,
+                                    child: Text(team,
+                                        overflow: TextOverflow.ellipsis),
+                                  );
+                                }).toList(),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(width: 10),
+                    // 검색 조건
+                    Expanded(
+                      child: SizedBox(
+                        height: 35,
+                        child: TextField(
+                          controller: vm.searchEmployeeController,
+                          textInputAction: TextInputAction.search,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.black,
+                          ),
+                          onSubmitted: (_) => vm.fetch(),
+                          decoration: InputDecoration(
+                            labelText: '사번 or 성명',
+                            labelStyle: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                            isDense: true,
+
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 9.5,
+                            ),
+
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade400,
+                              ),
+                            ),
+
+                            suffixIcon: InkWell(
+                              onTap: vm.fetch,
+                              child: Container(
+                                width: 36,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF1F3A5F),
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(8),
+                                    bottomRight: Radius.circular(8),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.search,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          Padding(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+            child: Row(
+              //mainAxisAlignment: MainAxisAlignment.start,
+              // 1. 메인 축 정렬을 우측 정렬로 설정합니다.
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // 💡 실제 리스트 데이터인 items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
+
+                Text(
+                  '${vm.items.length}건',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
+                    fontWeight: FontWeight.w700, // 숫자를 두껍게 처리하여 가독성을 높입니다.
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: vm.isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(color: AppColors.slate))
+                : vm.items.isEmpty
+                    ? const Center(
+                        child: Text('조회된 내역이 없습니다.',
+                            style: TextStyle(color: AppColors.textMuted)))
+                    : Theme(
+                        data: Theme.of(context).copyWith(
+                          scrollbarTheme: ScrollbarThemeData(
+                            thumbColor: WidgetStatePropertyAll(
+                              Colors.black.withValues(alpha: 0.3),
+                            ),
+                            thickness: WidgetStatePropertyAll(5),
+                            radius: const Radius.circular(8),
+                          ),
+                        ),
+                        child: Scrollbar(
+                          controller: _scrollController,
+                          interactive: true,
+                          child: ListView.builder(
+                            controller: _scrollController, // 추가
+                            padding: const EdgeInsets.fromLTRB(20,5,20,20),
+                            itemCount: vm.items.length,
+                            itemBuilder: (context, index) {
+                              final item = vm.items[index];
+                              final leaveTypeNm = LeaveType.getLabel(item.leaveType);
+                              return InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => LeaveRequestDetailScreen(
+                                        requestId: item.requestId,
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  padding:
+                                      const EdgeInsets.fromLTRB(16, 10, 16, 10),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppColors.divider),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                              '${item.employeeName} ${item.position}',
+                                              style: const TextStyle(
+                                                  fontWeight: FontWeight.w700,
+                                                  fontSize: 14.5)),
+                                          // 2. 이름과 부서 사이의 좁은 가로 간격
+                                          const SizedBox(width: 8),
+                                          // 3. 부서명
+                                          Text(
+                                            item.department,
+                                            style: const TextStyle(
+                                              color: AppColors.textMuted,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      //두번째 Row (가로스크롤 적용)
+                                      Align(
+                                        alignment: Alignment.centerLeft,
+                                        child: SingleChildScrollView(
+                                          scrollDirection: Axis.horizontal,
+                                          child: Row(
+                                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                                            textBaseline: TextBaseline.alphabetic,
+                                            children: [
+                                              Text(
+                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.startDate))}'
+                                                ' ~ '
+                                                '${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.endDate))}',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '(${item.useDays}일) [$leaveTypeNm]',
+                                                style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.textMuted,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      Row(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.baseline,
+                                          textBaseline: TextBaseline.alphabetic,
+                                          children: [
+                                            const SizedBox(height: 10),
+                                            Text(
+                                                '신청일 : ${DateFormat('yyyy.MM.dd').format(DateTime.parse(item.requestedAt))}',
+                                                style: const TextStyle(
+                                                    color: AppColors.textMuted,
+                                                    fontSize: 12,
+                                                    fontWeight: FontWeight.w600)),
+                                          ])
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}

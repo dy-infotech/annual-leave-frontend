@@ -1,6 +1,6 @@
 # 부서 및 팀 관리 — API 명세
 
-`부서 및 팀 관리` 화면(`lib/screens/department_team_manage_screen.dart`)이 호출하는 API 정의서다.
+`부서 및 팀 관리` 화면(`lib/screens/ADM003_M01.dart`)이 호출하는 API 정의서다.
 백엔드 `feature/department-team-admin-api` 브랜치(PR #57) 기준으로 확정된 스펙이며,
 프론트엔드 호출 코드는 `lib/services/department_team_api.dart` 에 모여 있다.
 
@@ -73,8 +73,10 @@
 ### `POST /api/admin/teams` — 팀 등록
 
 v2 프론트는 생성 요청마다 `Idempotency-Key` 헤더를 보낸다. 같은 키와 같은 요청 본문을
-재전송하면 최초 생성된 `teamId`를 다시 반환하며 추가 INSERT를 하지 않는다.
-같은 키를 다른 생성 내용에 재사용하면 409를 반환한다. 헤더 생략은 구 프론트 호환용으로 허용한다.
+재전송하면 최초 생성 결과로 수렴해야 하며 추가 INSERT를 만들지 않는다.
+같은 키를 다른 생성 내용에 재사용하면 서버는 충돌로 처리한다. 프론트는 같은 폼 내용의
+재시도에는 같은 키를 재사용하고, 입력 내용이 바뀌면 새 키를 발급한다.
+
 
 | 필드 | 타입 | 제약 |
 |---|---|---|
