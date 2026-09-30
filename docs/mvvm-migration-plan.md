@@ -186,8 +186,8 @@ VM 6개, 특성화 테스트 6개, `leave_status_badge`/`date_range_dialog` 이�
    생성자 주입으로 전환. 기존 테스트 시나리오 무수정 통과가 게이트.
 2. ADM004_M01 사번 조회, ADM004_D01 사원 상세
 3. ADM001 관리팀 설정
-4. ADM002 등록 관리 (`AuthProvider.adminAuthRegister` 호출을
-   `signup_manage_repository`로 이동. AuthProvider 본체는 아직 유지)
+4. ADM002 등록 관리: `SignupManageRepository`로 API 호출을 분리하고
+   ViewModel이 repository를 주입받는 구조로 전환 완료.
 
 산출물: `admin_employee_repository.dart`, `signup_manage_repository.dart`,
 `department_team_repository.dart`, VM 5개, 특성화 테스트,
