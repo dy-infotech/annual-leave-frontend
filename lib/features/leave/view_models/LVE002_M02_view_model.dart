@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
@@ -16,12 +18,13 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
 
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
-  String? _statusFilter; // null = 전체
+  String? _statusFilter;
   DateTimeRange? _dateRange;
-  String _buttonLabel = '전체'; //로드 시 기본 버튼 라벨
+  String _buttonLabel = '전체';
   final Set<int> _processingIds = {};
-  // 오늘 날짜 구하기
   final DateTime _today = DateTime.now();
+  int _requestSeq = 0;
+  bool _disposed = false;
 
   List<LeaveRequestListItem> get items => _items;
   bool get isLoading => _isLoading;
@@ -30,108 +33,97 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   String get buttonLabel => _buttonLabel;
   bool isProcessing(int requestId) => _processingIds.contains(requestId);
 
-  /// 화면 진입 시 1회 호출한다.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> load() async {
-    if (initialStatus != null) {
-      _statusFilter = initialStatus;
-
-      if (initialFilter != null) {
-        _buttonLabel = initialFilter! == 'my' ? "내 신청" : "전체";
-      }
-      setFilter(initialStatus);
+    _statusFilter = initialStatus;
+    if (initialFilter != null) {
+      _buttonLabel = initialFilter == 'my' ? '내 신청' : '전체';
     }
-
     await fetch();
   }
 
   Future<void> fetch() async {
+    final seq = ++_requestSeq;
     _isLoading = true;
-    notifyListeners();
+    _notify();
     try {
-      // 기본 당해년도 조회 날짜 세팅
-      int year = _today.year;
-      DateTime firstDayOfYear = DateTime(year, 1, 1);
-      DateTime lastDayOfYear = DateTime(year, 12, 31);
-
-      String startDate = formatDate(firstDayOfYear);
-      String endDate = formatDate(lastDayOfYear);
+      final year = _today.year;
+      var startDate = formatDate(DateTime(year, 1, 1));
+      var endDate = formatDate(DateTime(year, 12, 31));
 
       if (_dateRange != null) {
         startDate = formatDate(_dateRange!.start);
         endDate = formatDate(_dateRange!.end);
       }
 
-      final items = _buttonLabel == "내 신청"
+      final items = _buttonLabel == '내 신청'
           ? await _repository.fetchMyLeaveRequests(
               status: _statusFilter, startDate: startDate, endDate: endDate)
           : await _repository.fetchAllLeaveRequests(
               status: _statusFilter, startDate: startDate, endDate: endDate);
+      if (_disposed || seq != _requestSeq) return;
       _items = items;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
   void setFilter(String? status) {
     _statusFilter = status;
-    notifyListeners();
-    fetch();
+    _notify();
+    unawaited(fetch());
   }
 
-  /// 조회 범위 라디오(전체/내 신청) 변경. 현재 상태 필터를 유지한 채 재조회한다.
   void setButtonLabel(String label) {
     _buttonLabel = label;
-    setFilter(_statusFilter);
+    _notify();
+    unawaited(fetch());
   }
 
-  /// 기간이 실제로 바뀐 경우에만 반영하고 재조회한다.
   void setDateRange(DateTimeRange picked) {
     if (picked == _dateRange) return;
     _dateRange = picked;
-    notifyListeners();
-    fetch();
+    _notify();
+    unawaited(fetch());
   }
 
   void clearDateRange() {
     _dateRange = null;
-    notifyListeners();
-    fetch();
+    _notify();
+    unawaited(fetch());
   }
 
-  /// 신청 취소. 성공 여부를 돌려주며, 성공 시 목록을 재조회한다.
   Future<bool> cancel(int requestId) async {
     _processingIds.add(requestId);
-    notifyListeners();
+    _notify();
     try {
       await _repository.cancelLeaveRequest(requestId);
       await fetch();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     } finally {
       _processingIds.remove(requestId);
-      notifyListeners();
+      _notify();
     }
   }
 
-  static bool isCancelable(LeaveRequestListItem item, userEmployeeNumber) {
-    if (item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber) {
-      return true;
-    }
-
-    return false;
-
-    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
-
-    final startDate = DateTime.parse(item.startDate);
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-
-    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly); */
-  }
+  static bool isCancelable(
+          LeaveRequestListItem item, String? userEmployeeNumber) =>
+      item.status == 'PENDING' && item.employeeNumber == userEmployeeNumber;
 
   static String formatDate(DateTime date) =>
-      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}'; //yyyy-mm-dd
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
@@ -12,9 +14,11 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
 
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
-  String? _statusFilter; // null = 전체
+  String? _statusFilter;
   DateTimeRange? _dateRange;
   final Set<int> _processingIds = {};
+  int _requestSeq = 0;
+  bool _disposed = false;
 
   List<LeaveRequestListItem> get items => _items;
   bool get isLoading => _isLoading;
@@ -22,80 +26,77 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   DateTimeRange? get dateRange => _dateRange;
   bool isProcessing(int requestId) => _processingIds.contains(requestId);
 
-  /// 화면 진입 시 1회 호출한다.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> load() async {
-    if (initialStatus != null) {
-      _statusFilter = initialStatus;
-      setFilter(initialStatus);
-    }
+    _statusFilter = initialStatus;
     await _fetch();
   }
 
   Future<void> _fetch() async {
+    final seq = ++_requestSeq;
     _isLoading = true;
-    notifyListeners();
+    _notify();
     try {
       final items = await _repository.fetchMyLeaveRequests(
         status: _statusFilter,
         startDate: _dateRange != null ? formatDate(_dateRange!.start) : null,
         endDate: _dateRange != null ? formatDate(_dateRange!.end) : null,
       );
+      if (_disposed || seq != _requestSeq) return;
       _items = items;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
   void setFilter(String? status) {
     _statusFilter = status;
-    notifyListeners();
-    _fetch();
+    _notify();
+    unawaited(_fetch());
   }
 
   void setDateRange(DateTimeRange range) {
     _dateRange = range;
-    notifyListeners();
-    _fetch();
+    _notify();
+    unawaited(_fetch());
   }
 
   void clearDateRange() {
     _dateRange = null;
-    notifyListeners();
-    _fetch();
+    _notify();
+    unawaited(_fetch());
   }
 
-  /// 신청 취소. 성공 여부를 돌려주며, 성공 시 목록을 재조회한다.
   Future<bool> cancel(int requestId) async {
     _processingIds.add(requestId);
-    notifyListeners();
+    _notify();
     try {
       await _repository.cancelLeaveRequest(requestId);
       await _fetch();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     } finally {
       _processingIds.remove(requestId);
-      notifyListeners();
+      _notify();
     }
   }
 
-  static bool isCancelable(LeaveRequestListItem item) {
-    if (item.status == 'PENDING') return true;
-
-    return false;
-
-    /*if (item.status != 'PENDING' && item.status != 'APPROVED') return false;
-
-    final startDate = DateTime.parse(item.startDate);
-    final today = DateTime.now();
-    final todayDateOnly = DateTime(today.year, today.month, today.day);
-
-    // 휴가 시작일이 오늘이거나 이미 지났으면 취소 불가
-    return startDate.isAfter(todayDateOnly); */
-  }
+  static bool isCancelable(LeaveRequestListItem item) =>
+      item.status == 'PENDING';
 
   static String formatDate(DateTime date) =>
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
 }

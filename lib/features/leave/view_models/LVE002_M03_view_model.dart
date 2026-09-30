@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
@@ -19,11 +21,12 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   List<LeaveRequestListItem> _items = [];
   String? _errorMessage;
   bool _isLoading = true;
-  String? _status; // 진행 상태 (null = 전체)
-  String? _selectedTeam = '전체'; // 선택된 팀 (null = 전체)
-  final List<String> _teamList = []; //팀
+  String? _status;
+  String? _selectedTeam = '전체';
+  final List<String> _teamList = [];
+  int _requestSeq = 0;
+  bool _disposed = false;
 
-  /// 사번/성명 검색어. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
   final TextEditingController searchEmployeeController =
       TextEditingController();
 
@@ -33,68 +36,80 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   String? get status => _status;
   String? get selectedTeam => _selectedTeam;
   List<String> get teamList => _teamList;
-  String get statusName => _status == 'approved' ? "승인" : "반려";
+  String get statusName => _status == 'rejected' ? '반려' : '승인';
 
-  /// 화면 진입 시 1회 호출한다.
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
+
   Future<void> load() async {
     if (initialFilter != null) {
-      setFilter(initialFilter);
+      _status = initialFilter == 'admin_rejected' ? 'rejected' : 'approved';
     }
-
-    getComData();
-
+    await getComData();
     await fetch();
   }
 
   Future<void> getComData() async {
-    //기초데이터 조회: 팀목록
-    final data = await _commonCodeRepository.fetchCommonCodes();
-
-    if (data.length >= 3) {
-      _teamList.clear();
-      _teamList.add('전체'); //전체 item 추가
-      _teamList.addAll(List<String>.from(data['accessibleTeam']));
-    } else {
-      // 데이터가 이상할 때 대비한 예외처리
-      _errorMessage = '기초데이터 조회에 실패했습니다.';
+    try {
+      final data = await _commonCodeRepository.fetchCommonCodes();
+      if (_disposed) return;
+      final rawTeams = data['accessibleTeam'];
+      if (rawTeams is List) {
+        _teamList
+          ..clear()
+          ..add('전체')
+          ..addAll(rawTeams.map((team) => team.toString()));
+        _errorMessage = null;
+      } else {
+        _errorMessage = '기초데이터 조회에 실패했습니다.';
+      }
+    } catch (_) {
+      if (!_disposed) _errorMessage = '기초데이터 조회에 실패했습니다.';
     }
-    notifyListeners();
+    _notify();
   }
 
   Future<void> fetch() async {
+    final seq = ++_requestSeq;
     _isLoading = true;
-    notifyListeners();
+    _errorMessage = null;
+    _notify();
     try {
       final items = await _repository.searchAdminLeaveRequests(
         status: _status,
         team: _selectedTeam == '전체' ? null : _selectedTeam,
-        employeeParam: searchEmployeeController.text.isNotEmpty
-            ? searchEmployeeController.text
+        employeeParam: searchEmployeeController.text.trim().isNotEmpty
+            ? searchEmployeeController.text.trim()
             : null,
       );
+      if (_disposed || seq != _requestSeq) return;
       _items = items;
-    } catch (e) {
+    } catch (_) {
+      if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
-  void setFilter(String? status) {
-    _status = initialFilter! == 'admin_approved' ? "approved" : "rejected";
-
-    fetch();
+  void setFilter(String? filter) {
+    _status = filter == 'admin_rejected' ? 'rejected' : 'approved';
+    unawaited(fetch());
   }
 
   void selectTeam(String newValue) {
     _selectedTeam = newValue;
-    notifyListeners();
-    fetch();
+    _notify();
+    unawaited(fetch());
   }
 
   @override
   void dispose() {
+    _disposed = true;
     searchEmployeeController.dispose();
     super.dispose();
   }

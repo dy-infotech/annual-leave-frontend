@@ -13,8 +13,8 @@ class PendingApprovalViewModel extends ChangeNotifier {
   bool _isLoading = true;
   String? _errorMessage;
   final Set<int> _processingIds = {};
-
-  // 단건 선택 상태 (아무것도 선택되지 않았을 때는 null)
+  int _requestSeq = 0;
+  bool _disposed = false;
   int? _selectedRequestId;
 
   List<PendingLeaveRequest> get requests => _requests;
@@ -25,50 +25,62 @@ class PendingApprovalViewModel extends ChangeNotifier {
   bool get isProcessing => _processingIds.isNotEmpty;
 
   PendingLeaveRequest? get selectedRequest {
-    if (_selectedRequestId == null) return null;
-    return _requests.firstWhere((req) => req.requestId == _selectedRequestId);
+    final id = _selectedRequestId;
+    if (id == null) return null;
+    for (final request in _requests) {
+      if (request.requestId == id) return request;
+    }
+    return null;
+  }
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
   }
 
   void select(int requestId) {
     _selectedRequestId = requestId;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> fetch() async {
+    final seq = ++_requestSeq;
     _isLoading = true;
     _errorMessage = null;
-    _selectedRequestId = null; // 목록 새로고침 시 선택 상태 초기화
-    notifyListeners();
+    _selectedRequestId = null;
+    _notify();
     try {
-      _requests = await _repository.fetchPendingLeaveRequests();
-    } catch (e) {
+      final requests = await _repository.fetchPendingLeaveRequests();
+      if (_disposed || seq != _requestSeq) return;
+      _requests = requests;
+    } catch (_) {
+      if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        _notify();
+      }
     }
   }
 
-  /// 승인 처리. 성공 여부를 돌려주며, 성공 시 목록을 재조회한다.
   Future<bool> approve(int requestId) async {
     _processingIds.add(requestId);
-    notifyListeners();
+    _notify();
     try {
       await _repository.approveLeaveRequest(requestId);
       await fetch();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     } finally {
       _processingIds.remove(requestId);
-      notifyListeners();
+      _notify();
     }
   }
 
-  /// 반려 처리. 사유가 빈 문자열이면 null로 전송한다.
   Future<bool> reject(int requestId, String reason) async {
     _processingIds.add(requestId);
-    notifyListeners();
+    _notify();
     try {
       await _repository.rejectLeaveRequest(
         requestId,
@@ -76,11 +88,17 @@ class PendingApprovalViewModel extends ChangeNotifier {
       );
       await fetch();
       return true;
-    } catch (e) {
+    } catch (_) {
       return false;
     } finally {
       _processingIds.remove(requestId);
-      notifyListeners();
+      _notify();
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
   }
 }
