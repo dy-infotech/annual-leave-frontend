@@ -26,12 +26,16 @@ class DashboardViewModel extends ChangeNotifier {
   DashboardData? _data;
   bool _isLoading = false;
   String? _errorMessage;
+  bool _disposed = false;
+  int _requestSeq = 0;
 
   DashboardData? get data => _data;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   Future<void> fetchDashboard() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -39,17 +43,30 @@ class DashboardViewModel extends ChangeNotifier {
     try {
       // Backend 권한은 요청 시점 조직 상태를 사용하므로 메뉴 snapshot도 함께 갱신한다.
       await _refreshSession();
-      _data = await _repository.fetchDashboard();
+      if (_disposed || seq != _requestSeq) return;
+      final data = await _repository.fetchDashboard();
+      if (_disposed || seq != _requestSeq) return;
+      _data = data;
     } catch (e) {
-      _errorMessage = '대시보드 정보를 불러오지 못했습니다.';
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = '대시보드 정보를 불러오지 못했습니다.';
+      }
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
 
-      // 관리자 대시보드 조회에 성공한 경우에만 FCM 등록/구독 수행 (기존 동작 유지)
-      if (data?.allEmployeeRequestSummary != null) {
-        await _registerFcm();
+        if (data?.allEmployeeRequestSummary != null) {
+          await _registerFcm();
+        }
       }
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _requestSeq++;
+    super.dispose();
   }
 }

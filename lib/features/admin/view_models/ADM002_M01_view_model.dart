@@ -25,6 +25,8 @@ class SignupManageViewModel extends ChangeNotifier {
 
   DateTime? selectedDate; // 선택된 날짜
   bool _isLoading = false;
+  bool _disposed = false;
+  int _requestSeq = 0;
   String? _errorMessage; //공통에러
   String? _employeeNumberError; //사번에러
   String? _employeeNameError; //사용자명에러
@@ -76,10 +78,13 @@ class SignupManageViewModel extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
     _isLoading = true;
     notifyListeners();
     try {
       final data = await _commonCodeRepository.fetchCommonCodes();
+      if (_disposed || seq != _requestSeq) return;
 
       if (data.length >= 3) {
         DateTime today = DateTime.now();
@@ -119,8 +124,10 @@ class SignupManageViewModel extends ChangeNotifier {
       }
       notifyListeners();
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
@@ -173,6 +180,7 @@ class SignupManageViewModel extends ChangeNotifier {
 
   /// 사용자 등록. 성공 여부를 돌려준다.
   Future<bool> register() async {
+    if (_disposed || _isLoading) return false;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -196,7 +204,7 @@ class SignupManageViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -254,6 +262,8 @@ class SignupManageViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _requestSeq++;
     employeeNumberController.dispose();
     employeeNameController.dispose();
     emailController.dispose();

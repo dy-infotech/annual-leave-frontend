@@ -26,6 +26,8 @@ class LoginViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isRememberMe = false;
+  bool _disposed = false;
+  int _requestSeq = 0;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -43,7 +45,10 @@ class LoginViewModel extends ChangeNotifier {
 
   // 로컬 저장소에서 계정 정보(사번 + 비밀번호) 불러오기
   Future<void> loadSavedAccountInfo() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
     final prefs = await SharedPreferences.getInstance();
+    if (_disposed || seq != _requestSeq) return;
     _isRememberMe = prefs.getBool('isRememberMe') ?? false;
     if (_isRememberMe) {
       // 일반 설정에서 사번 로드
@@ -52,9 +57,10 @@ class LoginViewModel extends ChangeNotifier {
       // 암호화 공간에서 비밀번호 꺼내오기
       final savedPassword =
           await _secureStorage.read(key: 'savedPassword') ?? '';
+      if (_disposed || seq != _requestSeq) return;
       passwordController.text = savedPassword;
     }
-    notifyListeners();
+    if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
   // 로그인 성공 시 계정 정보(사번 + 암호화 비밀번호) 저장 처리
@@ -78,6 +84,7 @@ class LoginViewModel extends ChangeNotifier {
 
   /// 로그인. 성공하면 true를 돌려준다. (화면은 대시보드로 이동)
   Future<bool> login() async {
+    if (_disposed || _isLoading) return false;
     if (employeeNumberController.text.isEmpty ||
         passwordController.text.isEmpty) {
       _errorMessage = '사번과 비밀번호를 입력해주세요.';
@@ -85,6 +92,7 @@ class LoginViewModel extends ChangeNotifier {
       return false;
     }
 
+    final seq = ++_requestSeq;
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -94,6 +102,8 @@ class LoginViewModel extends ChangeNotifier {
         employeeNumberController.text.trim(),
         passwordController.text,
       );
+
+      if (_disposed || seq != _requestSeq) return false;
 
       // 계정 기억하기는 로그인 자체와 분리된 부가 기능이다.
       // 저장소 실패가 이미 확정된 인증 세션까지 실패로 보이게 만들지 않는다.
@@ -111,16 +121,22 @@ class LoginViewModel extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = e.toString();
+      }
       return false;
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _requestSeq++;
     employeeNumberController.dispose();
     passwordController.dispose();
     super.dispose();

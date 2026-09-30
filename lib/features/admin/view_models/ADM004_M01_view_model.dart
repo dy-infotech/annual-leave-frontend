@@ -16,6 +16,8 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
 
   List<Employee> _items = [];
   bool _isLoading = true;
+  bool _disposed = false;
+  int _requestSeq = 0;
 
   // 등록 상태 검색 조건 ('ALL', 'REGISTERED', 'UNREGISTERED')
   String _selectedStatus = 'ALL';
@@ -34,12 +36,14 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   String get selectedTeamFilter => _selectedTeamFilter;
 
   void setStatus(String status) {
+    if (_disposed) return;
     _selectedStatus = status;
     notifyListeners();
     fetch();
   }
 
   void setTeamFilter(String team) {
+    if (_disposed) return;
     _selectedTeamFilter = team;
     notifyListeners();
     fetch();
@@ -47,8 +51,10 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
 
   /// 기초 코드에서 팀 목록 조회. (현재 화면 진입 시에는 사용하지 않음, 기존 코드 유지)
   Future<void> fetchCommonTeams() async {
+    final seq = ++_requestSeq;
     try {
       final data = await _commonCodeRepository.fetchCommonCodes();
+      if (_disposed || seq != _requestSeq) return;
       final List<String> fetchedTeams =
           List<String>.from(data['accessibleTeam'] ?? data['team'] ?? []);
 
@@ -62,16 +68,22 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   }
 
   Future<void> fetch() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
+    final keyword = searchParamController.text.trim();
+    final status = _selectedStatus;
+    final teamFilter = _selectedTeamFilter;
+
     _isLoading = true;
     notifyListeners();
     try {
-      // 서버로 사원 정보 요청 발송 (검색창에 글자가 있을 때만 파라미터 전달)
       final List<Employee> allFetchedItems = await _repository.fetchEmployees(
-        searchParam: searchParamController.text.trim(),
+        searchParam: keyword,
       );
+      if (_disposed || seq != _requestSeq) return;
 
       // 검색 조건이 없을 때(최초 로드 시), 전체 사원 데이터에서 전사 팀 리스트를 동적으로 추출하여 드롭다운을 채웁니다.
-      if (searchParamController.text.trim().isEmpty) {
+      if (keyword.isEmpty) {
         final List<String> extractedTeams = allFetchedItems
             .map((emp) => emp.team.trim())
             .where((team) => team.isNotEmpty)
@@ -88,33 +100,37 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
       List<Employee> processedItems = allFetchedItems;
 
       // 팀 필터링 적용 (기준 문자열 공백 제거 비교)
-      if (_selectedTeamFilter != '전체') {
+      if (teamFilter != '전체') {
         processedItems = processedItems
             .where((emp) => emp.team.replaceAll(' ', '').contains(
-                _selectedTeamFilter.replaceAll(' 팀', '').replaceAll(' ', '')))
+                teamFilter.replaceAll(' 팀', '').replaceAll(' ', '')))
             .toList();
       }
 
       // 등록 / 미등록 조건 상태 필터링 연동
-      if (_selectedStatus == 'ALL') {
+      if (status == 'ALL') {
         _items = processedItems;
-      } else if (_selectedStatus == 'REGISTERED') {
+      } else if (status == 'REGISTERED') {
         _items =
             processedItems.where((item) => item.isRegisted == true).toList();
-      } else if (_selectedStatus == 'UNREGISTERED') {
+      } else if (status == 'UNREGISTERED') {
         _items =
             processedItems.where((item) => item.isRegisted != true).toList();
       }
     } catch (e) {
       print('사원 리스트 조회 실패: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
+    _requestSeq++;
     searchParamController.dispose();
     super.dispose();
   }

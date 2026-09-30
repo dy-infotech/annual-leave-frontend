@@ -14,12 +14,14 @@ class SignupViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+  bool _disposed = false;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   /// 사용 등록. 성공하면 true를 돌려준다.
   Future<bool> signUp() async {
+    if (_disposed || _isLoading) return false;
     if (employeeNumberController.text.isEmpty ||
         passwordController.text.isEmpty) {
       _errorMessage = '사번과 비밀번호를 입력해 주세요.';
@@ -49,12 +51,13 @@ class SignupViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
     employeeNumberController.dispose();
     passwordController.dispose();
     passwordConfirmController.dispose();

@@ -22,6 +22,7 @@ class FindAccountViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _resetRequested = false;
+  bool _disposed = false;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -35,6 +36,7 @@ class FindAccountViewModel extends ChangeNotifier {
 
   /// 아이디 찾기 메일 발송. 성공하면 true를 돌려준다.
   Future<bool> findId() async {
+    if (_disposed || _isLoading) return false;
     if (nameController.text.isEmpty || emailForIdController.text.isEmpty) {
       _errorMessage = '성함과 이메일을 모두 입력해 주세요.';
       notifyListeners();
@@ -57,12 +59,13 @@ class FindAccountViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   /// 비밀번호 재설정 메일 발송. 성공하면 true를 돌려준다.
   Future<bool> sendPasswordResetEmail() async {
+    if (_disposed || _isLoading) return false;
     if (employeeNoController.text.isEmpty ||
         emailForPwController.text.isEmpty) {
       _errorMessage = '사번과 이메일을 모두 입력해 주세요.';
@@ -87,11 +90,12 @@ class FindAccountViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   Future<bool> confirmPasswordReset() async {
+    if (_disposed || _isLoading) return false;
     if (resetTokenController.text.trim().isEmpty ||
         newPasswordController.text.isEmpty ||
         confirmPasswordController.text.isEmpty) {
@@ -120,12 +124,13 @@ class FindAccountViewModel extends ChangeNotifier {
       return false;
     } finally {
       _isLoading = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
   }
 
   @override
   void dispose() {
+    _disposed = true;
     nameController.dispose();
     emailForIdController.dispose();
     employeeNoController.dispose();

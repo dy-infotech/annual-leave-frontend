@@ -43,6 +43,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
   String _useDaysText = '0';
   bool _isSubmitting = false;
   String? _errorMessage;
+  bool _disposed = false;
+  int _requestSeq = 0;
 
   /// 사유 입력값. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
   final TextEditingController reasonController = TextEditingController();
@@ -97,6 +99,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   /// 화면 진입 시 1회 호출한다.
   Future<void> load() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
     try {
       await _authProvider.fetchMyInfo();
     } catch (_) {
@@ -104,23 +108,29 @@ class LeaveRequestViewModel extends ChangeNotifier {
     }
 
     try {
-      _applyLeavePeriod(await _repository.fetchMyLeavePeriod());
+      final period = await _repository.fetchMyLeavePeriod();
+      if (_disposed || seq != _requestSeq) return;
+      _applyLeavePeriod(period);
     } catch (_) {
       // 서버 기간 조회가 실패하면 초기 fallback(현재 회계연도)을 유지한다.
     }
 
     try {
       // 캘린더에 별표를 표시하기 위한 내 휴가 신청 목록 조회
-      _myRequests = await _repository.fetchMyLeaveRequests();
+      final requests = await _repository.fetchMyLeaveRequests();
+      if (_disposed || seq != _requestSeq) return;
+      _myRequests = requests;
     } catch (_) {
       // 기존 provider와 동일하게 조회 실패 시 빈 목록을 유지한다.
     }
     try {
-      _holidays = await _holidayRepository.fetchPublicHolidays();
+      final holidays = await _holidayRepository.fetchPublicHolidays();
+      if (_disposed || seq != _requestSeq) return;
+      _holidays = holidays;
     } catch (_) {
       // 공휴일 조회 실패 시 공휴일 없이 동작한다. (기존 provider와 동일)
     }
-    notifyListeners();
+    if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
   /// 날짜 선택 처리. 종료일(또는 반차 단일일)이 확정되면 true를 돌려준다.
@@ -269,11 +279,13 @@ class LeaveRequestViewModel extends ChangeNotifier {
   /// 현재 선택된 기간이 기존 대기/승인 신청과 겹치는지 확인한다.
   /// refresh가 true면 목록을 다시 조회한 뒤 판정한다.
   Future<bool> hasOverlapForSelection({bool refresh = false}) async {
-    if (_startDate == null) return false;
+    if (_disposed || _startDate == null) return false;
 
     if (refresh) {
       try {
-        _myRequests = await _repository.fetchMyLeaveRequests();
+        final requests = await _repository.fetchMyLeaveRequests();
+        if (_disposed) return false;
+        _myRequests = requests;
         notifyListeners();
       } catch (_) {
         // 조회 실패 시 기존 목록 기준으로 판정한다.
@@ -300,6 +312,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   /// 휴가 신청 제출. 성공 시 데이터를 갱신하고 선택 상태를 초기화한다.
   Future<bool> submit() async {
+    if (_disposed || _isSubmitting) return false;
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
@@ -320,8 +333,10 @@ class LeaveRequestViewModel extends ChangeNotifier {
       }
     } finally {
       _isSubmitting = false;
-      notifyListeners();
+      if (!_disposed) notifyListeners();
     }
+
+    if (_disposed) return true;
 
     // 데이터 갱신
     try {
@@ -379,6 +394,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
+    _requestSeq++;
     reasonController.dispose();
     super.dispose();
   }
