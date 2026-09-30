@@ -18,7 +18,7 @@ info 수준 analyzer 항목은 비치명적으로 두지만 warning/error는 CI�
 
 `.github/workflows/deploy.yml`은 `release` push 또는 수동 실행으로 동작합니다. 배포 전에 다시 의존성 설치, 정적 분석, 전체 테스트, `flutter build web --release`를 수행합니다.
 
-빌드 산출물은 먼저 서버의 `/tmp/flutter-deploy`에 업로드합니다. 서버에서는 다음 순서로 전환합니다.
+빌드 산출물은 먼저 서버의 `/tmp/flutter-deploy-<run_id>-<run_attempt>`에 업로드합니다. 실행/재실행마다 고유 staging 경로를 사용해 이전 실패 산출물과 새 빌드가 섞이지 않게 합니다. 서버에서는 다음 순서로 전환합니다.
 
 1. `/opt/annual-leave/front/web.next`에 신규 산출물을 staging
 2. `index.html` 존재 여부와 파일 유무 검증

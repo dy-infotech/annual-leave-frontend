@@ -1,4 +1,8 @@
-# MVVM 마이그레이션 계획 (절충안)
+# MVVM 마이그레이션 기록 (완료)
+
+> **상태: 완료된 역사 문서입니다.** 아래 단계별 계획과 과거 경로/Provider 이름은 마이그레이션 당시의 의사결정을 보존하기 위한 기록이며 현재 작업 backlog가 아닙니다. 현재 구조의 정본은 [03. 앱 아키텍처](03-app-architecture.md), [05. 데이터 모델 및 API 연동](05-data-models-api-integration.md), [06. 인증/보안](06-auth-security.md)을 사용하세요.
+>
+> 현재 코드는 feature-first MVVM, 기능별 Repository/ViewModel, 루트 `AuthSession` 단일 전역 상태 구조로 전환 완료되었습니다. `lib/screens`, `lib/providers`, `lib/services` 같은 경로가 아래 계획 본문에 나오면 **과거 이동 전 경로**를 뜻합니다.
 
 ## 확정 아키텍처
 

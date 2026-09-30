@@ -71,12 +71,13 @@
 - 현재 연차기간은 Frontend가 날짜를 하드코딩하지 않고 Backend `/my/period` 응답을 기준으로 사용합니다.
 - 관리자별 관리팀 변경은 `expectedManagedTeams`와 최종 `managedTeams`를 함께 보내는 CAS 계약입니다.
 - 팀 생성은 별도 `/api/admin/teams` 계약을 사용하며 사원 등록 요청이 암묵적으로 새 팀을 만들지 않습니다.
+- 팀 생성의 `projectManagerId`는 선택값입니다. 담당자 없이 팀만 먼저 생성할 수 있고, 담당자를 지정한 경우에만 상위 결재선이 생성됩니다.
 
 ## 5.4 권한 경계
 
 UI에서 관리자 메뉴를 숨기는 것은 편의 기능입니다. 실제 권한은 Backend가 판정합니다.
 
-Backend의 `/api/admin/**`는 JWT에 저장된 로그인 시점 role만 믿지 않고 각 관리자 controller에서 현재 TeamManager/직급 상태를 다시 검증합니다. 따라서 Frontend가 보관한 role이나 화면 route 자체를 보안 경계로 간주하면 안 됩니다.
+Backend의 `/api/admin/**`는 Spring Security에서 인증 여부를 확인한 뒤 `AdminAuthorizationInterceptor`가 `CurrentAuthorityService`로 현재 TeamManager/재직 상태를 중앙 검증합니다. 부서/팀처럼 인사권이 필요한 API는 `@RequirePersonnelAuthority`가 추가 적용됩니다. 따라서 Frontend가 보관한 role이나 화면 route 자체를 보안 경계로 간주하면 안 됩니다.
 
 `GET /api/leave-requests/all`은 현재 일반 인증 사용자도 조회할 수 있는 요약 목록 API입니다. 휴가 사유와 개인 연차 snapshot은 이 목록 DTO에 포함되지 않으며 상세의 민감 필드는 별도 권한 정책으로 보호됩니다.
 

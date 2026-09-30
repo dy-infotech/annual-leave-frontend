@@ -1,126 +1,113 @@
 # 03. 앱 아키텍처
 
-## 3.1 디렉토리 구조
+## 3.1 현재 구조
 
-```
+Frontend는 feature-first MVVM 구조입니다.
+
+```text
 lib/
-├── main.dart                # MaterialApp, 라우트 테이블, 전역 Provider 등록, SplashScreen
-├── config/
-│   └── api_config.dart      # 플랫폼별 baseUrl 하드코딩
-├── models/                  # 요청/응답 모델 (수동 fromJson/toJson)
-│   ├── auth_models.dart
-│   ├── dashboard_models.dart
-│   ├── employee.dart
-│   ├── leave_request_models.dart
-│   ├── public_holiday.dart
-│   └── enums/
-│       ├── LeaveState.dart
-│       ├── LeaveType.dart
-│       └── RoleType.dart
-├── providers/                # 상태관리 (ChangeNotifier)
-│   ├── auth_provider.dart
-│   ├── dashboard_provider.dart
-│   ├── leave_request_list_provider.dart
-│   └── public_holiday_provider.dart
-├── screens/                  # 화면(페이지) — 각 파일이 라우트 하나에 대응
-│   ├── login_screen.dart
-│   ├── signup_screen.dart
-│   ├── forgotPasswordScreen.dart
-│   ├── dashboard_screen.dart
-│   ├── leave_request_screen.dart
-│   ├── all_leave_requests_screen.dart
-│   ├── my_leave_requests_screen.dart   # 미사용(라우트 미등록, 아래 참조)
-│   ├── pending_approval_screen.dart
-│   ├── signup_manage_screen.dart
-│   ├── search_employee_number_screen.dart
-│   └── my_info_screen.dart
-├── services/
-│   └── api_client.dart       # dio 싱글턴 + JWT 인터셉터
-├── theme/
-│   └── app_theme.dart        # AppColors 팔레트 + Material3 ThemeData
-└── widgets/                  # 재사용 위젯
-    ├── app_drawer.dart
-    ├── leave_status_badge.dart
-    └── registe_status_badge.dart
+├── main.dart
+├── app/
+│   └── app.dart                 # MaterialApp, route, AuthSession 등록
+├── core/
+│   ├── config/                  # ApiConfig
+│   ├── error/                   # Failure / Result
+│   ├── network/                 # ApiClient(Dio)
+│   ├── services/                # FcmService
+│   ├── theme/
+│   └── widgets/
+└── features/
+    ├── auth/
+    ├── dashboard/
+    ├── employee/
+    ├── leave/
+    └── admin/
+        └── {models,repositories,view_models,views,...}
 ```
 
-`lib/memo/`(memo1, memo2)는 확장자 없는 스크래치 파일로, 실제 코드에서 import되지 않는 **미사용 레거시**입니다(문서화 대상 아님, 정리 후보).
+기능별 HTTP 호출은 `features/*/repositories/`에 모여 있고 화면 상태와 화면 로직은 ViewModel(`ChangeNotifier`)이 담당합니다. 화면은 ViewModel을 생성해 사용하며 직접 Dio 계약을 구성하지 않습니다.
 
-## 3.2 레이어링
+## 3.2 상태와 호출 흐름
 
+```text
+View
+  ↓
+ViewModel(ChangeNotifier)
+  ↓
+Repository
+  ↓
+ApiClient(Dio singleton)
+  ↓
+Backend /api/**
 ```
-Screen(Widget) → Provider(ChangeNotifier) → ApiClient(dio) → 백엔드 /api/**
-                      ↑                           ↓
-                 notifyListeners()          Authorization 헤더 자동 첨부
-```
 
-- **Screen**: `StatefulWidget` + `TextEditingController`/`setState`로 폼과 로컬 UI 상태를 직접 관리.
-- **Provider**: `ChangeNotifier` 기반. `main.dart`에서 `MultiProvider`로 4개를 루트에 등록:
-  - `AuthSession` — 로그인 여부, 현재 role/name, 내 정보(`Employee`)를 보관하고 인증 API는 `AuthRepository`에 위임.
-  - `DashboardProvider` — 대시보드 데이터.
-  - `LeaveRequestListProvider` — 내 연차 신청 목록(중복 신청 검사에도 재사용).
-  - `PublicHolidayProvider` — 올해/내년 공휴일.
-- **ApiClient**: `lib/core/network/api_client.dart`의 Dio 싱글턴이 JWT 첨부, 공통 오류 메시지, 인증된 401 세션 만료 처리를 담당합니다. 기능별 HTTP 호출은 `features/*/repositories/`로 분리되어 있으며 ViewModel은 Repository를 통해 서버와 통신합니다. 상세 매핑은 [05. 데이터 모델 및 API 연동](05-data-models-api-integration.md) 참조.
+- 앱 루트에 등록되는 전역 `ChangeNotifier`는 **`AuthSession` 하나**입니다.
+- Dashboard/Leave/Admin 등의 상태는 화면 단위 ViewModel에서 관리합니다.
+- `ApiClient`는 JWT 첨부, 서버 오류 message 보존, 인증된 401의 세션 만료 트리거를 담당합니다.
+- `FcmService`는 앱 수명주기의 FCM token/listener를 담당합니다.
+- 일부 순수 검증은 UseCase(`SubmitLeaveRequest`)로 분리되어 있습니다.
+- React Query/SWR류의 서버 상태 캐시는 없으며 필요한 시점에 Repository를 통해 다시 조회합니다.
 
-> React Query/SWR류의 서버 상태 캐싱은 없습니다. 화면에 진입할 때마다 Provider의 fetch 메서드를 수동 호출해 다시 불러옵니다.
+## 3.3 앱 루트와 라우팅
 
-## 3.3 라우팅
+`lib/app/app.dart`가 `MaterialApp`, `rootNavigatorKey`, `routeObserver`, named route를 정의합니다. 최초 화면은 `SplashScreen`입니다.
 
-`lib/main.dart`(54~77행) `MaterialApp.routes`에 named route로 등록되어 있습니다. 최초 진입점은 `home: const SplashScreen()`이며, 별도 라우트 이름은 없습니다.
-
-| 라우트 | 화면 | 접근 |
+| 라우트 | 화면 | 비고 |
 |---|---|---|
-| (`home`) | `SplashScreen` | 자동 로그인 시도 후 `/dashboard` 또는 `/login`으로 분기 |
-| `/login` | `LoginScreen` | 공개 |
-| `/signup` | `SignupScreen` | 공개(관리자가 미리 등록한 사번으로 가입) |
-| `/forgot-password` | `FindAccountScreen`(`forgotPasswordScreen.dart`) | 공개, 탭으로 아이디 찾기/비밀번호 찾기 전환 |
-| `/dashboard` | `DashboardScreen` | 로그인 필요 |
-| `/leave-request` | `LeaveRequestScreen` | 로그인 필요 |
-| `/all-leave-requests` | `AllLeaveRequestsScreen` | 로그인 필요(관리자 제한 없음 — [05 §5.4](05-data-models-api-integration.md#54-알려진-불일치-크로스-레포-검증-결과) 참조) |
-| `/pending-approval` | `PendingApprovalScreen` | 드로어에서는 관리자에게만 노출(라우트 자체 가드는 없음) |
-| `/signup_manage_screen` | `SignupManageScreen` | 위와 동일 |
-| `/search_employee_number_screen` | `SearchEmployeeNumberScreen` | 위와 동일 |
-| `/my-info` | `MyInfoScreen` | 로그인 필요 |
+| home | `SplashScreen` | 자동 로그인 후 login/dashboard 분기 |
+| `/login` | `AUT001_M01` | 공개 |
+| `/signup` | `AUT002_M01` | 공개 |
+| `/forgot-password` | `AUT003_M01` | 공개 |
+| `/dashboard` | `DSH001_M01` | 인증 |
+| `/leave-request` | `LVE001_M01` | 인증 |
+| `/all-leave-requests` | `LVE002_M02` | 인증 |
+| `/pending-approval` | `LVE003_M01` | 관리자 UX 메뉴, 실제 인가는 Backend |
+| `/admin-settings` | `ADM001_M01` | 관리자 UX 메뉴 |
+| `/signup_manage_screen` | `ADM002_M01` | 관리자 UX 메뉴 |
+| `/department-team-manage` | `ADM003_M01` | 인사권 필요 |
+| `/search_employee_number_screen` | `ADM004_M01` | 관리자 UX 메뉴 |
+| `/my-info` | `EMP001_M01` | 인증 |
 
-**미사용 화면**: `my_leave_requests_screen.dart`(`MyLeaveRequestsScreen`)는 파일은 존재하지만 `main.dart`의 import(16, 66행)와 라우트 등록이 모두 주석 처리되어 있습니다. `all_leave_requests_screen.dart`로 기능이 대체된 것으로 보이며, 삭제 후보입니다.
+`LVE002_M01` 내 신청 전용 화면 파일은 남아 있지만 named route에는 등록되어 있지 않습니다. 현재 내 신청 기능은 `LVE002_M02`의 "내 신청" 모드가 제공합니다.
 
-```mermaid
-graph LR
-    Splash["SplashScreen<br/>(home)"] -->|tryAutoLogin 성공| Dashboard["/dashboard"]
-    Splash -->|실패| Login["/login"]
-    Login --> Signup["/signup"]
-    Login --> Forgot["/forgot-password"]
-    Login --> Dashboard
-    Dashboard --> LeaveReq["/leave-request"]
-    Dashboard --> AllReq["/all-leave-requests"]
-    Dashboard -->|관리자 메뉴| Pending["/pending-approval"]
-    Dashboard -->|관리자 메뉴| SignupManage["/signup_manage_screen"]
-    Dashboard -->|관리자 메뉴| SearchEmp["/search_employee_number_screen"]
-    Dashboard --> MyInfo["/my-info"]
-```
+## 3.4 인증 상태
 
-## 3.4 공통 위젯
+`AuthSession`은 다음만 보관합니다.
 
-| 위젯 | 파일 | 역할 |
-|---|---|---|
-| `AppDrawer` | `widgets/app_drawer.dart` | 모든 화면이 공유하는 사이드 네비게이션. 로그인 사용자 정보 표시, `auth.isAdmin`에 따라 관리자 메뉴 3개를 조건부로 추가, 로그아웃 처리 |
-| `LeaveStatusBadge` | `widgets/leave_status_badge.dart` | 휴가 상태(PENDING/APPROVED/REJECTED/CANCELLED)를 색상 뱃지로 표시(Dart 3 `switch` 패턴) |
-| `RegisteStatusBadge` | `widgets/registe_status_badge.dart` | 직원의 앱 가입(등록) 여부 뱃지 |
+- 로그인 여부
+- 현재 role/name
+- `Employee employeeInfo`
 
-별도의 공용 컴포넌트 폴더 없이, 각 화면 파일 하단에 private 위젯(`_StatRow`, `_InfoRow` 등)을 로컬로 정의하는 패턴이 반복됩니다 — React의 "파일 내 서브컴포넌트"와 유사합니다.
+로그인 확정 시 `POST /api/auth/signin` 뒤 `GET /api/employees/me`까지 성공해야 합니다. 최종 role/name은 signin snapshot이 아니라 **`/me` 응답을 정본**으로 사용합니다.
 
-**공통 레이아웃(Shell)은 없습니다.** 각 화면이 개별적으로 `Scaffold(appBar: ..., drawer: const AppDrawer(), body: ...)`를 반복 구현합니다.
+UI의 `isAdmin`은 메뉴 표시용이며 보안 경계가 아닙니다. 실제 관리자/인사권/결재권은 Backend가 현재 조직 상태로 다시 검증합니다.
 
-## 3.5 화면 재진입 시 자동 새로고침
+## 3.5 Repository 경계
 
-`main.dart`(22행)에 전역 `RouteObserver<PageRoute> routeObserver`를 두고, `DashboardScreen`이 `RouteAware`를 구현하여(`didChangeDependencies`에서 구독, `didPopNext`에서 재조회) 다른 화면(승인 처리, 연차 신청 등)에서 대시보드로 돌아올 때 자동으로 데이터를 다시 불러옵니다.
+대표 Repository는 다음과 같습니다.
 
-## 3.6 테마
+- `AuthRepository`
+- `DashboardRepository`
+- `LeaveRepository`, `PublicHolidayRepository`
+- `EmployeeRepository`
+- `AdminEmployeeRepository`
+- `SignupManageRepository`
+- `CommonCodeRepository`
+- `DepartmentTeamRepository`
 
-`lib/theme/app_theme.dart`의 `AppColors`가 색상 팔레트를 정의합니다: `slate`(주 색상), `sage`(승인/잔여/긍정), `amber`(대기), `coral`(반려/경고/오류), `background`/`surface`/`textPrimary`/`textMuted`/`divider`. Material3 `ColorScheme.fromSeed(seedColor: slate)` 기반으로 커스텀, 폰트는 `google_fonts`의 Noto Sans KR.
+Endpoint 변경 시 View나 Provider를 찾는 것이 아니라 해당 Repository와 모델, ViewModel 테스트를 우선 확인합니다.
 
-## 3.7 주의점 / 제안
+## 3.6 비동기/UI 안정성
 
-- **서비스 레이어 미통합**: 엔드포인트 호출이 Provider와 화면에 산재되어 있어 API 변경 시 영향 범위 파악이 어렵습니다. `lib/services/`에 기능별 API 함수를 모으는 리팩터링을 권장([05 §5.3](05-data-models-api-integration.md) 참조).
-- **미사용 화면 정리**: `my_leave_requests_screen.dart` 삭제 여부 확인 필요.
-- **`lib/memo/`**: 실제 사용되지 않는 스크래치 코드로 저장소에서 제거를 검토.
+- 검색/목록 화면은 request sequence를 사용해 늦게 도착한 이전 응답이 최신 검색 결과를 덮지 않게 합니다.
+- ViewModel은 dispose 이후 `notifyListeners()`를 피하도록 상태를 관리합니다.
+- 휴가 신청 기간은 Backend `/api/leave-requests/my/period` 응답을 정본으로 사용합니다.
+- 인증된 요청의 401은 `AuthSession`을 먼저 만료시키고 로그인 화면으로 복귀한 뒤 FCM 로컬 상태를 best-effort로 정리합니다.
+
+## 3.7 유지보수 원칙
+
+- HTTP 계약은 Repository에 둡니다.
+- 화면별 상태/동작은 ViewModel에 둡니다.
+- 로그인/현재 사용자 상태만 `AuthSession`에 둡니다.
+- UI role/route를 보안 경계로 사용하지 않습니다.
+- Backend DTO/권한/상태 계약이 바뀌면 Repository 테스트와 관련 문서를 같은 변경에서 갱신합니다.

@@ -1,121 +1,159 @@
-# 부서 및 팀 관리 — API 명세
+# 부서 및 팀 관리 — develop_v2.0 API 명세
 
-`부서 및 팀 관리` 화면(`lib/screens/ADM003_M01.dart`)이 호출하는 API 정의서다.
-백엔드 `feature/department-team-admin-api` 브랜치(PR #57) 기준으로 확정된 스펙이며,
-프론트엔드 호출 코드는 `lib/services/department_team_api.dart` 에 모여 있다.
+Frontend 구현:
 
-## 공통 사항
+- 화면: `lib/features/admin/views/ADM003_M01.dart`
+- ViewModel: `lib/features/admin/view_models/ADM003_M01_view_model.dart`
+- Repository: `lib/features/admin/repositories/department_team_repository.dart`
+- 모델: `lib/features/admin/models/department_team_models.dart`
 
-- 인증: `Authorization: Bearer {JWT}`, 요청 바디는 `Content-Type: application/json`
-- 권한: 전 엔드포인트 **대표이사(사장)만** 호출 가능. 그 외 계정은 `403`
-- 소프트 딜리트: 삭제된(비활성) 부서/팀은 조회 응답에 나타나지 않음
-- 에러 응답: `{ "error": "...", "message": "...", "path": "...", "status": 400, "timestamp": "..." }`
-  — `message` 를 그대로 사용자에게 노출하면 된다 (`ApiClient` 인터셉터가 `DioException.message` 로 옮겨 둠)
+Backend 실제 계약은 `develop_v2.0`의 `AdminDepartmentController`, `AdminTeamController`, `DepartmentDto`, `TeamDto`가 정본입니다.
 
-| 상태 | 공통 의미 |
+## 공통 권한 / 오류
+
+- 인증: `Authorization: Bearer {JWT}`
+- `/api/admin/**`는 Backend `AdminAuthorizationInterceptor`가 현재 관리자 상태를 확인합니다.
+- 부서/팀 컨트롤러는 `@RequirePersonnelAuthority` 대상이므로 현재 인사권도 필요합니다.
+- Frontend 메뉴/role은 UX일 뿐 최종 인가 근거가 아닙니다.
+- 서버 오류의 `message`는 `ApiClient`가 `DioException.message`에 보존합니다.
+
+일반적인 상태:
+
+| 상태 | 의미 |
 |---|---|
-| 403 | 대표이사가 아님 — `"인사권을 가진 관리자가 아닙니다."` |
-| 404 | 대상(부서/팀/사원) 없음 |
-| 409 | 이름 중복 (부서명/팀명 UNIQUE) |
-| 400 | 검증 실패 — `message` 에 사유가 담김 |
+| 400 | 요청값/조직 정책 검증 실패 |
+| 401 | 인증 실패/만료 |
+| 403 | 현재 관리자/인사권 부족 |
+| 404 | 대상 부서/팀/사원 없음 |
+| 409 | 중복 이름, idempotency 충돌, 동시 상태 충돌 |
 
 ## 부서
 
-### `GET /api/admin/departments` — 전체 부서 조회
+### GET `/api/admin/departments`
 
-```jsonc
-[
-  { "departmentId": 1, "departmentName": "SI사업팀", "enabled": true },
-  { "departmentId": 2, "departmentName": "대표이사", "enabled": true }
-]
+활성 부서 목록을 조회합니다.
+
+응답 한 건:
+
+```json
+{
+  "departmentId": 1,
+  "departmentName": "SI사업팀",
+  "enabled": true
+}
 ```
 
-### `POST /api/admin/departments` — 부서 등록
+### POST `/api/admin/departments`
 
-요청: `{ "departmentName": "신규사업팀" }` (필수, 50자 이하, 앞뒤 공백은 서버가 제거)
-응답 200: `{ "departmentId": 3 }`
-에러 409: 이미 존재하는 부서명입니다.
+```json
+{ "departmentName": "신규사업팀" }
+```
 
-### `PUT /api/admin/departments/{departmentId}` — 부서명 변경
+- 필수
+- 최대 50자
+- 성공 시 `departmentId` 반환
 
-요청: `{ "departmentName": "수정된부서명" }` (필수, 50자 이하)
-에러 400: 대표이사 부서명은 변경할 수 없습니다. / 409: 이미 존재하는 부서명입니다.
+### PUT `/api/admin/departments/{departmentId}`
 
-### `DELETE /api/admin/departments/{departmentId}` — 부서 소프트 딜리트
+```json
+{ "departmentName": "변경된부서명" }
+```
 
-이미 삭제된 부서에 다시 호출해도 200 (멱등).
-에러 400: 대표이사 부서는 삭제할 수 없습니다. /
-소속된 활성 팀이 있는 부서는 삭제할 수 없습니다. 팀을 먼저 정리해주세요.
+대표이사 보호 정책, 이름 중복, 활성 조직 제약을 Backend가 검증합니다.
+
+### DELETE `/api/admin/departments/{departmentId}`
+
+소프트 삭제입니다. 활성 팀이 남아 있는 등 조직 제약을 Backend가 검증합니다.
 
 ## 팀
 
-### `GET /api/admin/teams` — 전체 팀 조회 (소속 부서·담당자·상위 팀 포함)
+### GET `/api/admin/teams`
 
-```jsonc
-[
-  {
-    "teamId": 1,
-    "teamName": "스마트팩토리구축사업",
-    "enabled": true,
-    "departmentId": 1,
-    "departmentName": "SI사업팀",
-    "parentTeamId": 2,
-    "parentTeamName": "대표이사",
-    "managers": [
-      { "employeeId": 4, "employeeNumber": "A2020001", "name": "이호영", "position": "이사" }
-    ]
-  }
-]
+응답에는 팀/부서/상위 팀과 복수 관리자 목록이 포함됩니다.
+
+```json
+{
+  "teamId": 2,
+  "teamName": "스마트팩토리구축사업",
+  "enabled": true,
+  "departmentId": 1,
+  "departmentName": "SI사업팀",
+  "parentTeamId": 1,
+  "parentTeamName": "대표이사",
+  "managers": [
+    {
+      "employeeId": 4,
+      "employeeNumber": "A2020001",
+      "name": "이호영",
+      "position": "이사",
+      "active": true
+    }
+  ]
+}
 ```
 
-대표이사 팀(루트)은 상위 팀이 자기 자신이다 (`parentTeamId == teamId`).
+담당자가 없는 팀은 `managers: []`이며 TeamManager row가 없으므로 상위 결재선 정보도 없을 수 있습니다.
 
-### `POST /api/admin/teams` — 팀 등록
+### POST `/api/admin/teams`
 
-v2 프론트는 생성 요청마다 `Idempotency-Key` 헤더를 보낸다. 같은 키와 같은 요청 본문을
-재전송하면 최초 생성 결과로 수렴해야 하며 추가 INSERT를 만들지 않는다.
-같은 키를 다른 생성 내용에 재사용하면 서버는 충돌로 처리한다. 프론트는 같은 폼 내용의
-재시도에는 같은 키를 재사용하고, 입력 내용이 바뀌면 새 키를 발급한다.
+요청 필드:
 
-
-| 필드 | 타입 | 제약 |
+| 필드 | 필수 | 설명 |
 |---|---|---|
-| `teamName` | string | 필수, 30자 이하 |
-| `projectManagerId` | number | 필수 — 담당자(PM)로 지정할 사원 id (`employeeId`) |
-| `departmentId` | number | 필수 — 소속 부서 (부서:팀 = 1:N) |
-| `parentTeamId` | number | 옵션 — 미지정 시 대표이사 팀이 상위 팀 |
+| `teamName` | O | 최대 30자 |
+| `departmentId` | O | 활성 부서 ID |
+| `projectManagerId` | X | 담당자 없이 팀만 먼저 생성 가능 |
+| `parentTeamId` | X | 담당자를 함께 지정할 때만 사용 |
 
-응답 200: `{ "teamId": 5 }`
-에러 400: 소속 부서가 존재하지 않습니다. / 비활성화된 부서에는 팀을 등록할 수 없습니다. /
-상위 팀이 존재하지 않습니다. · 404: 담당자로 지정할 사원이 존재하지 않습니다. · 409: 이미 존재하는 팀명입니다.
+담당자 없이 생성:
 
-### `PUT /api/admin/teams/{teamId}` — 팀 수정
+```json
+{
+  "teamName": "품질관리팀",
+  "departmentId": 2
+}
+```
 
-모든 필드가 옵션이며, 보내지 않은(null) 필드는 기존 값을 유지한다.
+담당자와 함께 생성:
+
+```json
+{
+  "teamName": "품질관리팀",
+  "departmentId": 2,
+  "projectManagerId": 15,
+  "parentTeamId": 1
+}
+```
+
+- `projectManagerId == null`인데 `parentTeamId`만 지정하면 400입니다.
+- 담당자를 지정하고 `parentTeamId`를 생략하면 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
+- Frontend는 생성 요청에 `Idempotency-Key`를 보냅니다. 같은 키+같은 요청은 같은 생성 결과로 수렴하고, 같은 키를 다른 요청에 재사용하면 409입니다.
+
+### PUT `/api/admin/teams/{teamId}`
+
+모든 필드는 선택입니다.
 
 | 필드 | 동작 |
 |---|---|
-| `teamName` | 팀명 변경 (30자 이하) |
-| `projectManagerId` | 담당자 교체 — 기존 담당자 전원이 이 사원 1명으로 교체됨 |
-| `departmentId` | 소속 부서 변경 — 소속 사원 전원의 부서도 함께 변경됨 |
-| `parentTeamId` | 상위 팀 변경 (결재선 변경) |
+| `teamName` | 팀명 변경 |
+| `departmentId` | 부서 변경 및 소속 직원 부서 정합성 갱신 |
+| `projectManagerId` | 기존 담당자들을 지정한 1명으로 교체 |
+| `parentTeamId` | 현재 TeamManager들의 상위 결재선 변경 |
 
-에러 400: 자기 자신을 상위 팀으로 지정할 수 없습니다. / 해당 팀의 하위 팀은 상위 팀으로 지정할 수 없습니다. /
-상위 팀·부서 부재, 비활성 부서 · 404: 팀/사원 없음 · 409: 이미 존재하는 팀명입니다.
+관리자 없는 팀에 최초 담당자를 지정하면서 `parentTeamId`를 생략하면 대표이사 팀이 기본 상위 팀이 됩니다.
 
-### `DELETE /api/admin/teams/{teamId}` — 팀 소프트 딜리트
+### DELETE `/api/admin/teams/{teamId}`
 
-담당자(결재선) 정보도 함께 제거. 재호출 시 200 (멱등).
-에러 400: 하위 팀이 있는 팀은 삭제할 수 없습니다. / 소속 사원이 있는 팀은 삭제할 수 없습니다.
+소프트 삭제입니다. 하위 팀/소속 직원 등 삭제 불가 조건은 Backend가 검증합니다.
 
-## 연동 참고
+## 담당자 선택
 
-- 담당자 선택: `GET /api/admin/employees/all` (사원 목록) 사용.
-  **주의:** `projectManagerId` 는 숫자 `employeeId` 인데, 이 응답에 `employeeId` 필드가
-  포함되어야 담당자 지정이 가능하다 (`EmployeeDto.EmployeeResponse` 에 추가 필요).
-  프론트는 `employeeId` 가 없으면 저장을 막고 안내 문구를 보여준다.
-- 부서 선택: `GET /api/admin/departments` 사용
-- 대표이사 부서는 이름 기준(`대표이사`)으로 식별되어 수정·삭제가 거부된다.
-  화면도 같은 규칙으로 메뉴를 숨긴다 (`kCeoName`).
-- 기존 `POST /api/admin/auth/common`(부서·팀 동시 등록)은 이 API들로 대체 예정 —
-  신규 화면에서는 사용하지 않는다.
+담당자 검색은 `GET /api/admin/employees/all`을 사용합니다. 현재 응답의 `Employee` 모델에는 `employeeId`가 포함되어 있어 `projectManagerId`로 바로 사용할 수 있습니다.
+
+Frontend는 입사 전/퇴사 처리된 직원을 담당자로 선택하지 않도록 1차 필터링하고, Backend가 최종 검증합니다.
+
+## 사용자 등록과의 관계
+
+`POST /api/admin/auth/register`는 존재하는 팀만 사용합니다. 사원 등록 요청이 새 팀을 암묵적으로 만들지 않습니다.
+
+`GET /api/admin/auth/common`은 등록/수정 화면의 접근 가능한 부서·팀·직급 공통데이터 용도로 계속 사용하며, 부서/팀 CRUD API를 대체하는 endpoint가 아닙니다.

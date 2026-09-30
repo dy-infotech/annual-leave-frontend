@@ -6,7 +6,7 @@
 |---|---|
 | Flutter SDK | stable 채널(`.metadata` 참고), Dart `>=3.5.0 <4.0.0` |
 | 플랫폼 도구 | Android Studio/Xcode(각 플랫폼 빌드 시), Chrome(Web 실행 시) |
-| 백엔드 | 로컬 또는 배포된 `annual-leave-backend` 인스턴스([백엔드 02. 개발 환경](../../annual-leave-backend/docs/02-dev-environment.md) 참조) |
+| 백엔드 | 로컬 또는 배포된 `annual-leave-backend` 인스턴스([Backend develop_v2.0 README](https://github.com/dy-infotech/annual-leave-backend/blob/develop_v2.0/README.md) 참조) |
 
 ## 2.2 초기 셋업
 
@@ -21,7 +21,7 @@ flutter pub run flutter_launcher_icons
 
 ## 2.3 로컬 백엔드에 연결하기 (baseUrl 전환)
 
-**환경변수가 아니라 코드 직접 수정**이 필요합니다. `lib/config/api_config.dart`를 열어 플랫폼별 `return` 문의 주석을 교체하세요.
+**환경변수가 아니라 코드 직접 수정**이 필요합니다. `lib/core/config/api_config.dart`를 열어 플랫폼별 `return` 문의 주석을 교체하세요.
 
 ```dart
 static String get baseUrl {
@@ -79,7 +79,7 @@ flutter analyze   # flutter_lints 규칙 기반 정적 분석(커스텀 규칙 �
 flutter test       # 테스트 실행
 ```
 
-현재 `test/` 아래에 model/repository/view-model/widget 및 회귀 테스트가 있으며, develop_v2.0 CI와 release 배포 workflow 모두 `flutter test`를 실행합니다. CI의 정적 분석은 기존 info/warning 정리 전까지 error를 실패 기준으로 사용합니다.
+현재 `test/` 아래에 model/repository/view-model/widget 및 회귀 테스트가 있으며, develop_v2.0 CI와 release 배포 workflow 모두 `flutter test`를 실행합니다. CI는 `flutter analyze --no-fatal-infos`를 사용하므로 info는 비치명적이지만 warning/error는 실패로 처리됩니다. CI에서는 이어서 `flutter build web --release`까지 검증합니다.
 
 ## 2.8 IDE 설정
 
@@ -90,4 +90,4 @@ flutter test       # 테스트 실행
 
 - baseUrl이 코드에 하드코딩되어 있어 **환경별 빌드(`--dart-define` 또는 flavor)** 도입을 검토하면 로컬/운영 전환 실수를 줄일 수 있습니다.
 - `.env`/`flutter_dotenv` 죽은 설정은 혼란을 줄 수 있으므로 정리(제거 또는 실제 연결) 필요.
-- 테스트 부재 — 최소한 모델의 `fromJson`/`toJson` 단위 테스트부터 도입 권장.
+- 테스트/빌드 게이트는 이미 CI에 포함되어 있습니다. 신규 계약 변경 시 대응 repository/view-model 회귀 테스트를 함께 추가하세요.

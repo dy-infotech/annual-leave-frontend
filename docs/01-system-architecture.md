@@ -5,7 +5,7 @@
 `annual_leave_frontend`는 연차 관리 앱의 클라이언트로, **Flutter(Dart) 크로스플랫폼 앱**입니다. 단일 코드베이스(`lib/`)로 **Android, iOS, Web** 세 플랫폼을 빌드합니다(React/Next.js 웹 프론트엔드가 아님).
 
 - **역할**: 백엔드(`annual-leave-backend`, Spring Boot) REST API의 UI 클라이언트. 뷰 렌더링·상태 보관·폼 검증을 담당하며, 비즈니스 로직(연차 계산, 승인 규칙 등)은 전부 백엔드에 위임합니다.
-- **백엔드 관계**: JWT Bearer 인증으로 `/api/**`를 호출합니다. 엔드포인트 상세는 [백엔드 08-api-conventions.md](../../annual-leave-backend/docs/08-api-conventions.md) 참조.
+- **백엔드 관계**: JWT Bearer 인증으로 `/api/**`를 호출합니다. 엔드포인트 상세는 [Backend develop_v2.0 README](https://github.com/dy-infotech/annual-leave-backend/blob/develop_v2.0/README.md) 참조.
 
 ## 1.2 시스템 구성도
 
