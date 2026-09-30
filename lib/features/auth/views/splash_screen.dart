@@ -32,6 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
       }
     }
 
+    if (!mounted) return;
     Navigator.pushReplacementNamed(
       context,
       auth.isLoggedIn ? '/dashboard' : '/login',

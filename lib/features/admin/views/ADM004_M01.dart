@@ -332,8 +332,7 @@ class _SearchEmployeeNumberViewState extends State<_SearchEmployeeNumberView>
                               _vm.setTeamFilter(newValue);
                             }
                           },
-                          items: (_vm.filterTeamList == null ||
-                                  _vm.filterTeamList.isEmpty)
+                          items: _vm.filterTeamList.isEmpty
                               ? [
                                   const DropdownMenuItem<String>(
                                     value: '전체',

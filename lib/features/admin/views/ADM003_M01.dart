@@ -77,6 +77,7 @@ class _DepartmentTeamManageViewState extends State<_DepartmentTeamManageView>
 
   Future<void> _refreshAfterOrganizationWrite() async {
     await _vm.refreshAll();
+    if (!mounted) return;
     try {
       await context.read<AuthSession>().fetchMyInfo();
     } catch (e) {

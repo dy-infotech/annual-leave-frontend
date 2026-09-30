@@ -248,7 +248,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
           '${current.name} ${current.position} ${current.employeeNumber}';
       _notify();
 
-      return fetchEmployeeTeams();
+      return await fetchEmployeeTeams();
     } catch (e) {
       debugPrint('선택 직원 서버 상태 재조회 실패: $e');
       return false;

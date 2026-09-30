@@ -93,8 +93,7 @@ class _SignupManageViewState extends State<_SignupManageView> {
 
     //final RoleType currentUserRole = RoleType.admin; // 현재 접속자의 역할 (관리자)
 
-    String userPosition = info != null ? info.position : '';
-    // if (auth.isAdmin && userPosition == "사장" && !_vm.teamList.contains('기타')) {
+    // if (auth.isAdmin && info?.position == "사장" && !_vm.teamList.contains('기타')) {
     //   //신규 팀 정보 생성 시 필요
     //   // 관리자이고 사장일 때만 "기타" 추가
     //   _vm.teamList.add('기타');
