@@ -145,17 +145,19 @@ class AppDrawer extends StatelessWidget {
               label: '로그아웃',
               color: AppColors.coral,
               onTap: () async {
-                Navigator.pop(context);
+                // Drawer는 pop 직후 dispose될 수 있으므로, async 작업 전에
+                // 화면 전환에 사용할 root navigator와 세션 객체를 확보한다.
+                final navigator = Navigator.of(context, rootNavigator: true);
                 final authProvider = context.read<AuthSession>();
 
+                Navigator.pop(context);
+
                 await FcmService.instance.unregisterToken();
-                await FcmService.instance.closeSubscription();
                 await authProvider.logout();
 
-                if (!context.mounted) return;
+                if (!navigator.mounted) return;
 
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
+                navigator.pushNamedAndRemoveUntil(
                   '/login',
                   (_) => false,
                 );
