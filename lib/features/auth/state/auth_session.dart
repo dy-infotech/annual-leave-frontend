@@ -24,7 +24,10 @@ class AuthSession extends ChangeNotifier {
   Employee? get employeeInfo => _employeeInfo;
 
   Future<void> fetchMyInfo() async {
-    _employeeInfo = await _repository.fetchMyInfo();
+    final info = await _repository.fetchMyInfo();
+    _employeeInfo = info;
+    _role = info.role;
+    _name = info.name;
     notifyListeners();
   }
 

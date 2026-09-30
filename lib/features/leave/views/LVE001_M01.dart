@@ -572,8 +572,8 @@ class _LeaveRequestViewState extends State<_LeaveRequestView> {
                 locale: 'ko_KR',
                 rowHeight: 42,
                 daysOfWeekHeight: 22,
-                firstDay: DateTime(DateTime.now().year, 1, 1),
-                lastDay: DateTime(DateTime.now().year, 12, 31),
+                firstDay: vm.calendarFirstDay,
+                lastDay: vm.calendarLastDay,
                 focusedDay: vm.focusedDay,
                 enabledDayPredicate: vm.isSelectableDay,
                 headerStyle: const HeaderStyle(

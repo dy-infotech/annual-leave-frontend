@@ -7,11 +7,16 @@ import 'package:annual_leave_frontend/features/leave/repositories/leave_reposito
 /// errorToThrow가 설정되면 해당 예외를 던진다.
 class FakeLeaveRepository implements LeaveRepository {
   LeaveRequestDetail? detailToReturn;
+  LeavePeriod leavePeriodToReturn = LeavePeriod(
+    startDate: DateTime(DateTime.now().year, 1, 1),
+    endDate: DateTime(DateTime.now().year, 12, 31),
+  );
   List<LeaveRequestListItem> myLeaveRequestsToReturn = [];
   Object? errorToThrow;
   Object? cancelErrorToThrow;
 
   final List<int> fetchedDetailIds = [];
+  int leavePeriodFetchCount = 0;
   final List<Map<String, String?>> myLeaveRequestQueries = [];
   final List<int> cancelledIds = [];
 
@@ -20,6 +25,13 @@ class FakeLeaveRepository implements LeaveRepository {
     fetchedDetailIds.add(requestId);
     if (errorToThrow != null) throw errorToThrow!;
     return detailToReturn!;
+  }
+
+  @override
+  Future<LeavePeriod> fetchMyLeavePeriod() async {
+    leavePeriodFetchCount++;
+    if (errorToThrow != null) throw errorToThrow!;
+    return leavePeriodToReturn;
   }
 
   @override

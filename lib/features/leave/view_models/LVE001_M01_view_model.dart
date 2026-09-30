@@ -31,6 +31,12 @@ class LeaveRequestViewModel extends ChangeNotifier {
   final SubmitLeaveRequest _submitLeaveRequest;
 
   DateTime focusedDay = DateTime.now();
+
+  // /my/period 조회 실패 시에만 현재 회계연도를 fallback으로 사용한다.
+  // 정상 응답이 있으면 정책 종류와 무관하게 서버가 준 범위가 정본이다.
+  DateTime _leavePeriodStart = DateTime(DateTime.now().year, 1, 1);
+  DateTime _leavePeriodEnd = DateTime(DateTime.now().year, 12, 31);
+
   LeaveType _selectedLeaveType = LeaveType.full;
   DateTime? _startDate;
   DateTime? _endDate;
@@ -50,6 +56,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
   String get useDaysText => _useDaysText;
   bool get isSubmitting => _isSubmitting;
   String? get errorMessage => _errorMessage;
+  DateTime get calendarFirstDay => _leavePeriodStart;
+  DateTime get calendarLastDay => _leavePeriodEnd;
 
   double get useDays => double.tryParse(_useDaysText) ?? 0;
 
@@ -68,12 +76,37 @@ class LeaveRequestViewModel extends ChangeNotifier {
   double get remainingLeaveDays =>
       _authProvider.employeeInfo?.remainingLeaveDays ?? 0;
 
+  static DateTime _dateOnly(DateTime value) =>
+      DateTime(value.year, value.month, value.day);
+
+  void _applyLeavePeriod(LeavePeriod period) {
+    final start = _dateOnly(period.startDate);
+    final end = _dateOnly(period.endDate);
+    if (end.isBefore(start)) return;
+
+    _leavePeriodStart = start;
+    _leavePeriodEnd = end;
+
+    final focused = _dateOnly(focusedDay);
+    if (focused.isBefore(start)) {
+      focusedDay = start;
+    } else if (focused.isAfter(end)) {
+      focusedDay = end;
+    }
+  }
+
   /// 화면 진입 시 1회 호출한다.
   Future<void> load() async {
     try {
       await _authProvider.fetchMyInfo();
     } catch (_) {
       // 내 정보 갱신 실패 시 기존 세션 정보를 유지한다.
+    }
+
+    try {
+      _applyLeavePeriod(await _repository.fetchMyLeavePeriod());
+    } catch (_) {
+      // 서버 기간 조회가 실패하면 초기 fallback(현재 회계연도)을 유지한다.
     }
 
     try {
@@ -199,9 +232,10 @@ class LeaveRequestViewModel extends ChangeNotifier {
   }
 
   bool isSelectableDay(DateTime day) {
-    final now = DateTime.now();
     final date = DateTime(day.year, day.month, day.day);
-    if (date.year != now.year) return false;
+    if (date.isBefore(_leavePeriodStart) || date.isAfter(_leavePeriodEnd)) {
+      return false;
+    }
     if (date.weekday == DateTime.saturday ||
         date.weekday == DateTime.sunday ||
         isHoliday(date)) {

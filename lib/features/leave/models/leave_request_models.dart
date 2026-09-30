@@ -1,3 +1,22 @@
+// 서버가 현재 사용자에게 적용 중이라고 판단한 연차기간.
+// 프론트는 회계연도/입사일 기준을 추론하지 않고 이 범위를 정본으로 사용한다.
+class LeavePeriod {
+  final DateTime startDate;
+  final DateTime endDate;
+
+  LeavePeriod({
+    required this.startDate,
+    required this.endDate,
+  });
+
+  factory LeavePeriod.fromJson(Map<String, dynamic> json) {
+    return LeavePeriod(
+      startDate: DateTime.parse(json['startDate']),
+      endDate: DateTime.parse(json['endDate']),
+    );
+  }
+}
+
 // 휴가 신청 모델
 class LeaveRequestCreate {
   final String leaveType;

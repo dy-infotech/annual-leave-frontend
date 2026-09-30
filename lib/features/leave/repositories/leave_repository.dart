@@ -17,6 +17,15 @@ class LeaveRepository {
     return LeaveRequestDetail.fromJson(response.data);
   }
 
+  /// 현재 적용 중인 내 연차기간 조회. GET /api/leave-requests/my/period
+  ///
+  /// 서버 정책이 회계연도/입사일 기준 중 무엇인지 프론트가 하드코딩하지 않고
+  /// startDate/endDate 자체를 선택 가능 기간의 정본으로 사용한다.
+  Future<LeavePeriod> fetchMyLeavePeriod() async {
+    final response = await _dio.get('/api/leave-requests/my/period');
+    return LeavePeriod.fromJson(Map<String, dynamic>.from(response.data));
+  }
+
   /// 내 휴가 신청 목록 조회. GET /api/leave-requests/my
   ///
   /// 조건이 하나도 없으면 쿼리 파라미터 없이 호출한다. (기존 화면과 동일)
