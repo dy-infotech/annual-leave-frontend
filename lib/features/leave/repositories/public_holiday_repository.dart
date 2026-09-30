@@ -58,9 +58,13 @@ class PublicHolidayRepository {
       _dio.get('/api/leave-requests/next-year-special-days'),
     ]);
 
-    final result = [
-      ...(responses[0].data as List).map(PublicHoliday.fromJson),
-      ...(responses[1].data as List).map(PublicHoliday.fromJson),
+    final result = <PublicHoliday>[
+      ...(responses[0].data as List).map(
+        (json) => PublicHoliday.fromJson(Map<String, dynamic>.from(json as Map)),
+      ),
+      ...(responses[1].data as List).map(
+        (json) => PublicHoliday.fromJson(Map<String, dynamic>.from(json as Map)),
+      ),
     ];
 
     // 조회 도중 해가 바뀌었다면 다음 호출이 다시 동기화하도록 캐시하지 않는다.
