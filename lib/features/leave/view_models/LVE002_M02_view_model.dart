@@ -4,7 +4,6 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
 
-/// 전직원 휴가 신청 목록 화면(LVE002_M02)의 ViewModel.
 class AllLeaveRequestsViewModel extends ChangeNotifier {
   AllLeaveRequestsViewModel({
     this.initialStatus,
@@ -16,8 +15,14 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   final String? initialFilter;
   final LeaveRepository _repository;
 
+  static const int _pageSize = LeaveRepository.defaultPageSize;
+
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _cursorCreatedAt;
+  int? _cursorRequestId;
   String? _statusFilter;
   DateTimeRange? _dateRange;
   String _buttonLabel = '전체';
@@ -28,6 +33,8 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
 
   List<LeaveRequestListItem> get items => _items;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get statusFilter => _statusFilter;
   DateTimeRange? get dateRange => _dateRange;
   String get buttonLabel => _buttonLabel;
@@ -45,33 +52,96 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     await fetch();
   }
 
+  Future<List<LeaveRequestListItem>> _fetchPage({
+    required String? cursorCreatedAt,
+    required int? cursorRequestId,
+  }) {
+    final year = _today.year;
+    var startDate = formatDate(DateTime(year, 1, 1));
+    var endDate = formatDate(DateTime(year, 12, 31));
+    if (_dateRange != null) {
+      startDate = formatDate(_dateRange!.start);
+      endDate = formatDate(_dateRange!.end);
+    }
+
+    return _buttonLabel == '내 신청'
+        ? _repository.fetchMyLeaveRequestsPage(
+            status: _statusFilter,
+            startDate: startDate,
+            endDate: endDate,
+            cursorCreatedAt: cursorCreatedAt,
+            cursorRequestId: cursorRequestId,
+            size: _pageSize,
+          )
+        : _repository.fetchAllLeaveRequestsPage(
+            status: _statusFilter,
+            startDate: startDate,
+            endDate: endDate,
+            cursorCreatedAt: cursorCreatedAt,
+            cursorRequestId: cursorRequestId,
+            size: _pageSize,
+          );
+  }
+
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
+    _isLoadingMore = false;
+    _hasMore = true;
+    _cursorCreatedAt = null;
+    _cursorRequestId = null;
     _notify();
+
     try {
-      final year = _today.year;
-      var startDate = formatDate(DateTime(year, 1, 1));
-      var endDate = formatDate(DateTime(year, 12, 31));
-
-      if (_dateRange != null) {
-        startDate = formatDate(_dateRange!.start);
-        endDate = formatDate(_dateRange!.end);
-      }
-
-      final items = _buttonLabel == '내 신청'
-          ? await _repository.fetchMyLeaveRequests(
-              status: _statusFilter, startDate: startDate, endDate: endDate)
-          : await _repository.fetchAllLeaveRequests(
-              status: _statusFilter, startDate: startDate, endDate: endDate);
+      final page = await _fetchPage(
+        cursorCreatedAt: null,
+        cursorRequestId: null,
+      );
       if (_disposed || seq != _requestSeq) return;
-      _items = items;
+      _items = page;
+      _applyPageCursor(page);
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
         _notify();
       }
     }
+  }
+
+  Future<void> loadMore() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+
+    final seq = _requestSeq;
+    final cursorCreatedAt = _cursorCreatedAt;
+    final cursorRequestId = _cursorRequestId;
+    if (cursorCreatedAt == null || cursorRequestId == null) return;
+
+    _isLoadingMore = true;
+    _notify();
+    try {
+      final page = await _fetchPage(
+        cursorCreatedAt: cursorCreatedAt,
+        cursorRequestId: cursorRequestId,
+      );
+      if (_disposed || seq != _requestSeq) return;
+
+      final existingIds = _items.map((item) => item.requestId).toSet();
+      _items.addAll(page.where((item) => existingIds.add(item.requestId)));
+      _applyPageCursor(page);
+    } finally {
+      if (!_disposed && seq == _requestSeq) {
+        _isLoadingMore = false;
+        _notify();
+      }
+    }
+  }
+
+  void _applyPageCursor(List<LeaveRequestListItem> page) {
+    _hasMore = page.length == _pageSize;
+    if (page.isEmpty) return;
+    final last = page.last;
+    _cursorCreatedAt = last.requestedAt;
+    _cursorRequestId = last.requestId;
   }
 
   void setFilter(String? status) {
@@ -119,7 +189,8 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     String? userEmployeeNumber, {
     DateTime? now,
   }) {
-    if (userEmployeeNumber == null || item.employeeNumber != userEmployeeNumber) {
+    if (userEmployeeNumber == null ||
+        item.employeeNumber != userEmployeeNumber) {
       return false;
     }
     if (item.status == 'PENDING') return true;
@@ -138,6 +209,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _requestSeq++;
     super.dispose();
   }
 }

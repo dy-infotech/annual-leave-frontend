@@ -5,7 +5,6 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
 
-/// 관리자 휴가 검색 화면(LVE002_M03)의 ViewModel.
 class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   AdminSearchLeaveRequestsViewModel({
     this.initialStatus,
@@ -20,9 +19,15 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   final LeaveRepository _repository;
   final CommonCodeRepository _commonCodeRepository;
 
+  static const int _pageSize = LeaveRepository.defaultPageSize;
+
   List<LeaveRequestListItem> _items = [];
   String? _errorMessage;
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _cursorCreatedAt;
+  int? _cursorRequestId;
   String? _status;
   String? _selectedTeam = '전체';
   final List<String> _teamList = [];
@@ -34,6 +39,8 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
 
   List<LeaveRequestListItem> get items => _items;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get errorMessage => _errorMessage;
   String? get status => _status;
   String? get selectedTeam => _selectedTeam;
@@ -79,21 +86,39 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     _notify();
   }
 
+  Future<List<LeaveRequestListItem>> _fetchPage({
+    required String? cursorCreatedAt,
+    required int? cursorRequestId,
+  }) {
+    final employeeParam = searchEmployeeController.text.trim();
+    return _repository.searchAdminLeaveRequestsPage(
+      status: _status,
+      team: _selectedTeam == '전체' ? null : _selectedTeam,
+      employeeParam: employeeParam.isEmpty ? null : employeeParam,
+      cursorCreatedAt: cursorCreatedAt,
+      cursorRequestId: cursorRequestId,
+      size: _pageSize,
+    );
+  }
+
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
+    _isLoadingMore = false;
+    _hasMore = true;
+    _cursorCreatedAt = null;
+    _cursorRequestId = null;
     _errorMessage = null;
     _notify();
+
     try {
-      final items = await _repository.searchAdminLeaveRequests(
-        status: _status,
-        team: _selectedTeam == '전체' ? null : _selectedTeam,
-        employeeParam: searchEmployeeController.text.trim().isNotEmpty
-            ? searchEmployeeController.text.trim()
-            : null,
+      final page = await _fetchPage(
+        cursorCreatedAt: null,
+        cursorRequestId: null,
       );
       if (_disposed || seq != _requestSeq) return;
-      _items = items;
+      _items = page;
+      _applyPageCursor(page);
     } catch (_) {
       if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
@@ -103,6 +128,44 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
         _notify();
       }
     }
+  }
+
+  Future<void> loadMore() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    final cursorCreatedAt = _cursorCreatedAt;
+    final cursorRequestId = _cursorRequestId;
+    if (cursorCreatedAt == null || cursorRequestId == null) return;
+
+    final seq = _requestSeq;
+    _isLoadingMore = true;
+    _notify();
+    try {
+      final page = await _fetchPage(
+        cursorCreatedAt: cursorCreatedAt,
+        cursorRequestId: cursorRequestId,
+      );
+      if (_disposed || seq != _requestSeq) return;
+      final existingIds = _items.map((item) => item.requestId).toSet();
+      _items.addAll(page.where((item) => existingIds.add(item.requestId)));
+      _applyPageCursor(page);
+    } catch (_) {
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = '추가 목록을 불러오지 못했습니다.';
+      }
+    } finally {
+      if (!_disposed && seq == _requestSeq) {
+        _isLoadingMore = false;
+        _notify();
+      }
+    }
+  }
+
+  void _applyPageCursor(List<LeaveRequestListItem> page) {
+    _hasMore = page.length == _pageSize;
+    if (page.isEmpty) return;
+    final last = page.last;
+    _cursorCreatedAt = last.requestedAt;
+    _cursorRequestId = last.requestId;
   }
 
   void setFilter(String? status) {
@@ -122,6 +185,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _requestSeq++;
     searchEmployeeController.dispose();
     super.dispose();
   }

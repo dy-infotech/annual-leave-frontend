@@ -35,6 +35,21 @@ class FakeLeaveRepository implements LeaveRepository {
   }
 
   @override
+  Future<List<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
+    String? status,
+    String? startDate,
+    String? endDate,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
+    int size = LeaveRepository.defaultPageSize,
+  }) async {
+    myLeaveRequestQueries
+        .add({'status': status, 'startDate': startDate, 'endDate': endDate});
+    if (errorToThrow != null) throw errorToThrow!;
+    return myLeaveRequestsToReturn;
+  }
+
+  @override
   Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
     String? status,
     String? startDate,
@@ -54,6 +69,21 @@ class FakeLeaveRepository implements LeaveRepository {
 
   List<LeaveRequestListItem> allLeaveRequestsToReturn = [];
   final List<Map<String, String?>> allLeaveRequestQueries = [];
+
+  @override
+  Future<List<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+    String? status,
+    String? startDate,
+    String? endDate,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
+    int size = LeaveRepository.defaultPageSize,
+  }) async {
+    allLeaveRequestQueries
+        .add({'status': status, 'startDate': startDate, 'endDate': endDate});
+    if (errorToThrow != null) throw errorToThrow!;
+    return allLeaveRequestsToReturn;
+  }
 
   @override
   Future<List<LeaveRequestListItem>> fetchAllLeaveRequests({
@@ -80,6 +110,21 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, String?>> adminSearchQueries = [];
 
   @override
+  Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
+    required String? status,
+    required String? team,
+    String? employeeParam,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
+    int size = LeaveRepository.defaultPageSize,
+  }) async {
+    adminSearchQueries
+        .add({'status': status, 'team': team, 'employeeParam': employeeParam});
+    if (errorToThrow != null) throw errorToThrow!;
+    return adminSearchResultsToReturn;
+  }
+
+  @override
   Future<List<LeaveRequestListItem>> searchAdminLeaveRequests({
     required String? status,
     required String? team,
@@ -98,6 +143,17 @@ class FakeLeaveRepository implements LeaveRepository {
   int pendingFetchCount = 0;
   final List<int> approvedIds = [];
   final List<Map<String, String?>> rejections = [];
+
+  @override
+  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
+    String? cursorCreatedAt,
+    int? cursorRequestId,
+    int size = LeaveRepository.defaultPageSize,
+  }) async {
+    pendingFetchCount++;
+    if (errorToThrow != null) throw errorToThrow!;
+    return pendingRequestsToReturn;
+  }
 
   @override
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
