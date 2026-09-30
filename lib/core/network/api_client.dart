@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -10,6 +12,14 @@ class ApiClient {
   late final Dio dio;
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'jwt_token';
+  final StreamController<void> _unauthorizedController =
+      StreamController<void>.broadcast();
+  bool _unauthorizedNotified = false;
+
+  Stream<void> get unauthorizedEvents => _unauthorizedController.stream;
+
+  bool _isPublicAuthPath(String path) =>
+      path.startsWith('/api/auth/') && path != '/api/auth/logout';
   Future<void> Function()? _unauthorizedHandler;
   bool _handlingUnauthorized = false;
 
@@ -70,9 +80,11 @@ class ApiClient {
     // 요청마다, 저장된 JWT를 자동으로 Authorization 헤더에 할당
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
-        final token = await _storage.read(key: _tokenKey);
-        if (token != null) {
-          options.headers['Authorization'] = 'Bearer $token';
+        if (!_isPublicAuthPath(options.path)) {
+          final token = await _storage.read(key: _tokenKey);
+          if (token != null) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
         }
         return handler.next(options);
       },
@@ -96,6 +108,7 @@ class ApiClient {
   }
 
   Future<void> saveToken(String token) async {
+    _unauthorizedNotified = false;
     await _storage.write(key: _tokenKey, value: token);
   }
 
