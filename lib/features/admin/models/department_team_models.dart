@@ -35,12 +35,14 @@ class TeamManager {
   final String employeeNumber;
   final String name;
   final String position;
+  final bool active;
 
   TeamManager({
     required this.employeeId,
     required this.employeeNumber,
     required this.name,
     required this.position,
+    this.active = true,
   });
 
   factory TeamManager.fromJson(Map<String, dynamic> json) => TeamManager(
@@ -48,6 +50,7 @@ class TeamManager {
         employeeNumber: json['employeeNumber'] ?? '',
         name: json['name'] ?? '',
         position: json['position'] ?? '',
+        active: json['active'] ?? true,
       );
 
   /// '홍길동 부장' 형태의 표시용 문자열.

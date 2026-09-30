@@ -103,7 +103,8 @@ class _EmployeeDetailViewState extends State<_EmployeeDetailView> {
       appBar: AppBar(
         title: const Text('사용자 정보 상세'),
         actions: [
-          _vm.isSaving
+          if (authProvider.employeeInfo?.isCeo ?? false)
+            _vm.isSaving
               ? const Padding(
                   padding: EdgeInsets.symmetric(horizontal: 16.0),
                   child: Center(

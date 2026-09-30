@@ -979,7 +979,7 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
     return widget.teams
         .where((team) =>
             team.enabled &&
-            team.managers.isNotEmpty &&
+            team.managers.any((manager) => manager.active) &&
             !excluded.contains(team.teamId))
         .toList();
   }
