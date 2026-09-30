@@ -74,8 +74,8 @@
 
 - 부서와 팀의 조회/생성/수정/삭제를 담당합니다.
 - `/api/admin/departments`, `/api/admin/teams` 계약을 사용합니다.
-- 담당자 없이 팀만 먼저 생성할 수 있습니다. 이 경우 TeamManager 결재선은 아직 생성되지 않습니다.
-- 담당자를 함께 지정하면서 상위 팀을 생략하면 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
+- 신규 팀 생성 시 담당자 1명은 필수입니다. 담당자 없는 팀 생성은 Frontend와 Backend에서 모두 거부합니다.
+- 상위 팀을 생략하면 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
 - 이 영역은 Backend의 현재 인사권 검증 대상입니다.
 
 ## 4.11 SearchEmployeeNumberScreen (`/search_employee_number_screen`)

@@ -71,7 +71,7 @@
 - 현재 연차기간은 Frontend가 날짜를 하드코딩하지 않고 Backend `/my/period` 응답을 기준으로 사용합니다.
 - 관리자별 관리팀 변경은 `expectedManagedTeams`와 최종 `managedTeams`를 함께 보내는 CAS 계약입니다.
 - 팀 생성은 별도 `/api/admin/teams` 계약을 사용하며 사원 등록 요청이 암묵적으로 새 팀을 만들지 않습니다.
-- 팀 생성의 `projectManagerId`는 선택값입니다. 담당자 없이 팀만 먼저 생성할 수 있고, 담당자를 지정한 경우에만 상위 결재선이 생성됩니다.
+- 팀 생성의 `projectManagerId`는 필수입니다. 신규 팀은 반드시 담당자 1명과 함께 생성하며, `parentTeamId`만 생략할 수 있습니다. 이 경우 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
 
 ## 5.4 권한 경계
 

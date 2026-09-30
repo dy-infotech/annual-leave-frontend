@@ -92,7 +92,7 @@ Backend 실제 계약은 `develop_v2.0`의 `AdminDepartmentController`, `AdminTe
 }
 ```
 
-담당자가 없는 팀은 `managers: []`이며 TeamManager row가 없으므로 상위 결재선 정보도 없을 수 있습니다.
+과거 데이터나 복구 과정에서 담당자가 없는 팀이 조회될 수는 있지만, 신규 팀 생성 API는 담당자 없는 요청을 허용하지 않습니다.
 
 ### POST `/api/admin/teams`
 
@@ -102,19 +102,10 @@ Backend 실제 계약은 `develop_v2.0`의 `AdminDepartmentController`, `AdminTe
 |---|---|---|
 | `teamName` | O | 최대 30자 |
 | `departmentId` | O | 활성 부서 ID |
-| `projectManagerId` | X | 담당자 없이 팀만 먼저 생성 가능 |
-| `parentTeamId` | X | 담당자를 함께 지정할 때만 사용 |
+| `projectManagerId` | O | 담당자로 지정할 재직 사원 ID |
+| `parentTeamId` | X | 생략 시 대표이사 팀을 기본 상위 팀으로 사용 |
 
-담당자 없이 생성:
-
-```json
-{
-  "teamName": "품질관리팀",
-  "departmentId": 2
-}
-```
-
-담당자와 함께 생성:
+생성 요청:
 
 ```json
 {
@@ -125,8 +116,8 @@ Backend 실제 계약은 `develop_v2.0`의 `AdminDepartmentController`, `AdminTe
 }
 ```
 
-- `projectManagerId == null`인데 `parentTeamId`만 지정하면 400입니다.
-- 담당자를 지정하고 `parentTeamId`를 생략하면 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
+- `projectManagerId`가 없으면 400입니다.
+- `parentTeamId`를 생략하면 Backend가 대표이사 팀을 기본 상위 팀으로 사용합니다.
 - Frontend는 생성 요청에 `Idempotency-Key`를 보냅니다. 같은 키+같은 요청은 같은 생성 결과로 수렴하고, 같은 키를 다른 요청에 재사용하면 409입니다.
 
 ### PUT `/api/admin/teams/{teamId}`

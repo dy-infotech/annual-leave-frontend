@@ -135,23 +135,22 @@ class DepartmentSaveRequest {
 /// parentTeamId 미지정 시 백엔드가 대표이사 팀을 상위 팀으로 설정한다.
 class TeamCreateRequest {
   final String teamName;
-  final int? projectManagerId;
+  final int projectManagerId;
   final int departmentId;
   final int? parentTeamId;
 
   TeamCreateRequest({
     required this.teamName,
-    this.projectManagerId,
+    required this.projectManagerId,
     required this.departmentId,
     this.parentTeamId,
   });
 
   Map<String, dynamic> toJson() => {
         'teamName': teamName,
+        'projectManagerId': projectManagerId,
         'departmentId': departmentId,
-        if (projectManagerId != null) 'projectManagerId': projectManagerId,
-        if (projectManagerId != null && parentTeamId != null)
-          'parentTeamId': parentTeamId,
+        if (parentTeamId != null) 'parentTeamId': parentTeamId,
       };
 }
 
