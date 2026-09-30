@@ -112,8 +112,8 @@ class _LeaveRequestDetailView extends StatelessWidget {
           if (d.prevTotalLeaveDays != null || d.currTotalLeaveDays != null)
             _row(
               '잔여 연차',
-              '신청 전 \${_formatLeaveDays(d.prevTotalLeaveDays)}일'
-                  ' → 신청 후 \${_formatLeaveDays(d.currTotalLeaveDays)}일',
+              '신청 전 ${_formatLeaveDays(d.prevTotalLeaveDays)}일'
+                  ' → 신청 후 ${_formatLeaveDays(d.currTotalLeaveDays)}일',
             ),
           // 상태는 배지로
           Padding(
