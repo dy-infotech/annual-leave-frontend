@@ -654,18 +654,16 @@ void main() {
       sessionMarker = 'session-b';
       explicitLogoutMarker = '0';
 
-      var logoutCalled = false;
       dioAdapter.onPost(
         '/api/auth/logout',
-        (server) {
-          logoutCalled = true;
-          return server.reply(204, null);
-        },
+        (server) => server.reply(204, null),
       );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
 
       await ApiClient().logoutSession();
 
-      expect(logoutCalled, isFalse);
+      expect(counter.fetchCount, 0);
       expect(storedToken, _otherAccessToken);
       expect(sessionMarker, 'session-b');
       expect(explicitLogoutMarker, '0');
