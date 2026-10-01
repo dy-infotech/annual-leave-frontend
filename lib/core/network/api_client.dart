@@ -14,6 +14,7 @@ class ApiClient {
   factory ApiClient() => _instance;
 
   static const _tokenKey = 'annual_leave_access_token';
+  static const _explicitLogoutKey = 'annual_leave_explicit_logout';
   static const _authGenerationKey = 'authGeneration';
   static const _authRetriedKey = 'authRetried';
   static const _refreshSkew = Duration(seconds: 45);
@@ -23,6 +24,7 @@ class ApiClient {
 
   UnauthorizedHandler? _unauthorizedHandler;
   bool _sessionExpired = false;
+  bool _explicitlyLoggedOut = false;
   int _authGeneration = 0;
   Future<void> _tokenMutation = Future<void>.value();
   Future<LoginResponse?>? _refreshInFlight;
@@ -116,6 +118,12 @@ class ApiClient {
       await barrier;
 
       if (_isAuthenticationRequest(options)) {
+        options.headers.remove('Authorization');
+        options.extra.remove(_authGenerationKey);
+        return;
+      }
+
+      if (_explicitlyLoggedOut) {
         options.headers.remove('Authorization');
         options.extra.remove(_authGenerationKey);
         return;
@@ -247,6 +255,13 @@ class ApiClient {
   Future<LoginResponse?> restoreSession() async {
     await _tokenMutation;
     final generation = _authGeneration;
+    final explicitLogout = await _storage.read(key: _explicitLogoutKey);
+    if (explicitLogout == '1') {
+      _explicitlyLoggedOut = true;
+      return null;
+    }
+
+    _explicitlyLoggedOut = false;
     final token = await _storage.read(key: _tokenKey);
     if (token != null && !_isExpiringSoon(token)) {
       return LoginResponse.tryFromAccessToken(token);
@@ -263,16 +278,27 @@ class ApiClient {
   }
 
   Future<void> logoutSession({String? fcmToken}) async {
+    // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정한다.
+    await _markExplicitLogout();
+
+    // old refresh cookie revoke는 즉시 시작하되 화면 전환을 막지 않는다.
+    unawaited(_revokeLoggedOutSession(fcmToken: fcmToken));
+  }
+
+  Future<void> _revokeLoggedOutSession({String? fcmToken}) async {
     try {
       await dio.post(
         '/api/auth/logout',
         data: fcmToken == null ? null : {'fcmToken': fcmToken},
-        options: Options(headers: const {'X-SSO-Refresh': '1'}),
+        options: Options(
+          headers: const {
+            'X-SSO-Refresh': '1',
+            'X-SSO-Background-Logout': '1',
+          },
+        ),
       );
     } on DioException {
-      // 서버 revoke 실패와 무관하게 이 브라우저는 명시적 로그아웃 상태로 전환한다.
-    } finally {
-      await _markExplicitLogout();
+      // explicit logout 표식이 남아 있으므로 서버 revoke 실패가 자동 재로그인으로 이어지지 않는다.
     }
   }
 
@@ -280,6 +306,9 @@ class ApiClient {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
+      _explicitlyLoggedOut = false;
+      // 새 로그인은 이전 explicit-logout 표식을 먼저 해제한 뒤 새 access token을 저장한다.
+      await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.write(key: _tokenKey, value: token);
     });
   }
@@ -371,7 +400,18 @@ class ApiClient {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
-      await _storage.delete(key: _tokenKey);
+      _explicitlyLoggedOut = true;
+
+      // 표식을 먼저 남겨 access token 삭제나 background revoke가 실패해도
+      // 앱 재시작 시 HttpOnly refresh cookie로 자동 복구되지 않게 한다.
+      await _storage.write(key: _explicitLogoutKey, value: '1');
+      try {
+        await _storage.delete(key: _tokenKey);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] explicit logout token delete failed: $e');
+        }
+      }
     });
   }
 }

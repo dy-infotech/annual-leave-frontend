@@ -22,24 +22,36 @@ void main() {
   late DioAdapter dioAdapter;
   late List<MethodCall> storageCalls;
   String? storedToken;
+  String? explicitLogoutMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    explicitLogoutMarker = null;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       storageCalls.add(call);
       final args = call.arguments as Map?;
+      final key = args?['key'] as String?;
+      final explicitKey = key == 'annual_leave_explicit_logout';
       switch (call.method) {
         case 'read':
-          return storedToken;
+          return explicitKey ? explicitLogoutMarker : storedToken;
         case 'write':
-          storedToken = args?['value'] as String?;
+          if (explicitKey) {
+            explicitLogoutMarker = args?['value'] as String?;
+          } else {
+            storedToken = args?['value'] as String?;
+          }
           return null;
         case 'delete':
-          storedToken = null;
+          if (explicitKey) {
+            explicitLogoutMarker = null;
+          } else {
+            storedToken = null;
+          }
           return null;
       }
       return null;
@@ -267,11 +279,40 @@ void main() {
     });
   });
 
+  group('명시적 로그아웃', () {
+    test('로컬 세션을 먼저 종료하고 서버 revoke 실패와 무관하게 복구를 막는다', () async {
+      await ApiClient().saveToken(_validAccessToken);
+      expect(explicitLogoutMarker, '0');
+
+      // background 요청을 stub하지 않아도 logoutSession 자체는 네트워크를 기다리지 않는다.
+      await ApiClient().logoutSession(fcmToken: 'fcm-token');
+
+      expect(storedToken, isNull);
+      expect(explicitLogoutMarker, '1');
+      expect(await ApiClient().restoreSession(), isNull);
+    });
+
+    test('새 로그인 token 저장은 explicit logout 표식을 해제한다', () async {
+      await ApiClient().saveToken(_validAccessToken);
+      await ApiClient().logoutSession();
+      expect(explicitLogoutMarker, '1');
+
+      await ApiClient().saveToken('new.jwt.token');
+
+      expect(explicitLogoutMarker, '0');
+      expect(await ApiClient().getToken(), 'new.jwt.token');
+    });
+  });
+
   group('토큰 저장소', () {
     test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');
 
-      final write = storageCalls.firstWhere((call) => call.method == 'write');
+      final write = storageCalls.firstWhere((call) {
+        final args = call.arguments as Map?;
+        return call.method == 'write' &&
+            args?['key'] == 'annual_leave_access_token';
+      });
       expect((write.arguments as Map)['key'], 'annual_leave_access_token');
       expect((write.arguments as Map)['value'], 'new.jwt.token');
       expect(storedToken, 'new.jwt.token');
