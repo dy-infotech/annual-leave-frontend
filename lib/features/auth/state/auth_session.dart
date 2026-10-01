@@ -1,4 +1,5 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
