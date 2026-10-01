@@ -58,33 +58,32 @@ jobs:
             STAGING_DIR=/tmp/flutter-deploy-${{ github.run_id }}-${{ github.run_attempt }}
 
             echo "===== 신규 정적 파일 staging ====="
-            sudo rm -rf "$NEXT_DIR"
-            sudo mkdir -p "$NEXT_DIR"
-            sudo cp -a "$STAGING_DIR"/. "$NEXT_DIR"/
-            sudo test -s "$NEXT_DIR/index.html"
-            sudo chown -R www-data:www-data "$NEXT_DIR"
+            rm -rf "$NEXT_DIR"
+            mkdir -p "$NEXT_DIR"
+            cp -a "$STAGING_DIR"/. "$NEXT_DIR"/
+            test -s "$NEXT_DIR/index.html"
 
             echo "===== 기존 버전 보관 ====="
-            sudo rm -rf "$PREVIOUS_DIR"
+            rm -rf "$PREVIOUS_DIR"
             if [ -e "$CURRENT_DIR" ]; then
-              sudo mv "$CURRENT_DIR" "$PREVIOUS_DIR"
+              mv "$CURRENT_DIR" "$PREVIOUS_DIR"
             fi
 
             rollback() {
               echo "===== Frontend 롤백 ====="
-              sudo rm -rf "$CURRENT_DIR"
+              rm -rf "$CURRENT_DIR"
               if [ -e "$PREVIOUS_DIR" ]; then
-                sudo mv "$PREVIOUS_DIR" "$CURRENT_DIR"
+                mv "$PREVIOUS_DIR" "$CURRENT_DIR"
               fi
             }
             trap rollback ERR
 
             echo "===== 신규 버전 전환 ====="
-            sudo mv "$NEXT_DIR" "$CURRENT_DIR"
-            sudo test -s "$CURRENT_DIR/index.html"
-            sudo find "$CURRENT_DIR" -maxdepth 2 -type f | grep -q .
+            mv "$NEXT_DIR" "$CURRENT_DIR"
+            test -s "$CURRENT_DIR/index.html"
+            find "$CURRENT_DIR" -maxdepth 2 -type f | grep -q .
 
             trap - ERR
-            sudo rm -rf "$PREVIOUS_DIR"
+            rm -rf "$PREVIOUS_DIR"
             rm -rf "$STAGING_DIR"
             echo "===== Frontend 배포 완료 ====="
