@@ -615,7 +615,13 @@ class ApiClient {
     final sessionMarker = logout.sessionMarker;
     if (sessionMarker != null && sessionMarker.isNotEmpty) {
       if (logout.fencePersisted) {
-        // 로그아웃 상태를 먼저 저장하고 서버 세션 정리를 시도한다
+        // 저장된 로그아웃 상태를 기준으로 서버 정리를 이어서 수행한다
+        unawaited(_revokeLoggedOutSession(
+          fcmToken: fcmToken,
+          sessionMarker: sessionMarker,
+        ));
+      } else {
+        // 로그아웃 상태 저장 실패 시 서버 세션 정리를 완료한다
         await _revokeLoggedOutSession(
           fcmToken: fcmToken,
           sessionMarker: sessionMarker,
