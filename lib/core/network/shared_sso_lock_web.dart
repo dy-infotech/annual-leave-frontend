@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:html' as html;
-import 'dart:js' as js;
-import 'dart:js_util' as js_util;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 import 'dart:math';
 
 const _lockKey = 'dy_sso_cookie_mutation_lock';
@@ -49,32 +49,23 @@ void _renewLease(String owner) {
   html.window.localStorage[_lockKey] = '$owner|$renewedUntil';
 }
 
-Object? _webLockManager() {
-  final navigator = html.window.navigator;
-  if (!js_util.hasProperty(navigator, 'locks')) return null;
-  return js_util.getProperty<Object?>(navigator, 'locks');
+web.LockManager? _webLockManager() {
+  final lockManager = web.window.navigator.locks;
+  return lockManager;
 }
 
 Future<T> _withWebLock<T>(
-  Object lockManager,
+  web.LockManager lockManager,
   Future<T> Function() action,
 ) async {
   late T result;
 
-  final callback = js.allowInterop((Object? _) {
-    return js_util.futureToPromise(
-      action().then<void>((value) {
-        result = value;
-      }),
-    );
-  });
-
-  final promise = js_util.callMethod<Object?>(
-    lockManager,
-    'request',
-    <Object?>[_lockKey, callback],
-  );
-  await js_util.promiseToFuture<Object?>(promise);
+  await lockManager.request(
+    _lockKey,
+    ((web.Lock? _) async {
+      result = await action();
+    }).toJS,
+  ).toDart;
   return result;
 }
 
