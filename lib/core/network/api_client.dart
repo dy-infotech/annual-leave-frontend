@@ -434,7 +434,7 @@ class ApiClient {
     }
 
     if (currentMarker == null ||
-        currentMarker!.isEmpty ||
+        currentMarker.isEmpty ||
         currentMarker == loggedOutMarker) {
       return false;
     }
