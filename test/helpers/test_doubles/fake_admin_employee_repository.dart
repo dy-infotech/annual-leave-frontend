@@ -7,12 +7,45 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
   Object? errorToThrow;
 
   final List<String?> fetchQueries = [];
+  final List<String?> fetchTeams = [];
+  final List<bool?> fetchRegistered = [];
+  final List<Map<String, Object?>> pageRequests = [];
+  final Map<int, List<Employee>> employeesByPage = {};
 
   @override
-  Future<List<Employee>> fetchEmployees({String? searchParam}) async {
+  Future<List<Employee>> fetchEmployees({
+    String? searchParam,
+    String? team,
+    bool? registered,
+  }) async {
     fetchQueries.add(searchParam);
+    fetchTeams.add(team);
+    fetchRegistered.add(registered);
     if (errorToThrow != null) throw errorToThrow!;
     return employeesToReturn;
+  }
+
+  @override
+  Future<List<Employee>> fetchEmployeesPage({
+    String? searchParam,
+    String? team,
+    bool? registered,
+    int page = 0,
+    int size = 50,
+  }) async {
+    fetchQueries.add(searchParam);
+    fetchTeams.add(team);
+    fetchRegistered.add(registered);
+    pageRequests.add({
+      'page': page,
+      'size': size,
+      'searchParam': searchParam,
+      'team': team,
+      'registered': registered,
+    });
+    if (errorToThrow != null) throw errorToThrow!;
+    return employeesByPage[page] ??
+        (page == 0 ? employeesToReturn : <Employee>[]);
   }
 
   int? updateStatusCodeToReturn = 200;
