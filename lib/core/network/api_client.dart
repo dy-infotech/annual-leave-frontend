@@ -329,8 +329,11 @@ class ApiClient {
     final data = error.response?.data;
     if (data is Map) {
       for (final key in const ['message', 'detail']) {
-        final value = data[key]?.toString().trim();
-        if (value != null && value.isNotEmpty) return value;
+        final raw = data[key];
+        if (raw is String) {
+          final value = raw.trim();
+          if (value.isNotEmpty) return value;
+        }
       }
       return '요청 처리 중 오류가 발생했습니다.';
     }

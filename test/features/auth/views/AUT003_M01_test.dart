@@ -116,7 +116,10 @@ void main() {
     await tester.enterText(
         find.widgetWithText(TextField, '새 비밀번호 확인'), 'new-password');
     await tester.tap(find.text('비밀번호 변경'));
-    await tester.pumpAndSettle();
+    await pumpUntilFound(
+      tester,
+      find.text('비밀번호가 변경되었습니다. 다시 로그인해 주세요.'),
+    );
 
     expect(fakeAuth.confirmResetCalls, [
       {'token': 'reset-token', 'newPassword': 'new-password'},

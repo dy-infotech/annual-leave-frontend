@@ -74,7 +74,7 @@ void main() {
     await tester.enterText(find.widgetWithText(TextField, '사번'), 'a0001');
     await tester.enterText(find.widgetWithText(TextField, '비밀번호'), 'pw1234');
     await tester.tap(find.text('로그인'));
-    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('dashboard-stub'));
 
     expect(fakeAuth.loginCalls, [
       {'employeeNumber': 'A0001', 'password': 'pw1234'},

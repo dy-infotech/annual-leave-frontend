@@ -88,7 +88,7 @@ void main() {
 
   testWidgets('자동 로그인 성공 - 대시보드로 이동한다', (tester) async {
     final session = await pumpSplash(tester, loggedIn: true);
-    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('dashboard-stub'));
 
     expect(session.tryAutoLoginCount, 1);
     expect(find.text('dashboard-stub'), findsOneWidget);

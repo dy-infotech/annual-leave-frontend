@@ -5,6 +5,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+const _validAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwibmFtZSI6Iu2Zjeq4uOuPmSIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.signature';
+
 /// ApiClient 특성화 테스트.
 ///
 /// 전 화면이 보여주는 에러 메시지가 이 클래스의 onError 인터셉터에서 만들어지므로
@@ -69,7 +72,7 @@ void main() {
 
   group('JWT 인터셉터', () {
     test('저장된 토큰이 있으면 Authorization 헤더를 붙인다', () async {
-      storedToken = 'header.payload.signature';
+      storedToken = _validAccessToken;
       dioAdapter.onGet('/api/employees/me', (server) => server.reply(200, {}));
 
       final response = await ApiClient().dio.get('/api/employees/me');
@@ -194,7 +197,7 @@ void main() {
 
   group('401 응답', () {
     test('인증된 요청의 401은 토큰을 지우고 세션 만료 핸들러를 호출한다', () async {
-      storedToken = 'expired.token';
+      storedToken = _validAccessToken;
       var expiredCount = 0;
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
@@ -202,6 +205,10 @@ void main() {
       dioAdapter.onGet(
         '/api/employees/me',
         (server) => server.reply(401, {'message': '인증 정보가 유효하지 않습니다.'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(401, {'message': 'refresh session이 만료되었습니다.'}),
       );
 
       final error = await _captureDioException(
@@ -241,9 +248,13 @@ void main() {
     });
 
     test('401 응답 본문이 비어 있으면 네트워크 오류 메시지가 된다', () async {
-      storedToken = 'expired.token';
+      storedToken = _validAccessToken;
       dioAdapter.onGet(
         '/api/employees/me',
+        (server) => server.reply(401, null),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
         (server) => server.reply(401, null),
       );
 

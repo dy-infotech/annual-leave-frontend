@@ -7,6 +7,9 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../../helpers/fixture_reader.dart';
 
+const _validAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwibmFtZSI6Iu2Zjeq4uOuPmSIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.signature';
+
 /// AuthRepository 특성화 테스트.
 ///
 /// 이 리포지토리만 Dio가 아니라 ApiClient를 받으므로 실제 싱글턴을 그대로 쓰고,
@@ -111,11 +114,11 @@ void main() {
       final response = await repository.signIn('A0001', 'pw1234!');
 
       expect(writeCalls(), isEmpty);
-      expect(await repository.getToken(), isNull);
+      expect(await ApiClient().getToken(), isNull);
 
       await repository.saveToken(response.token);
       expect(writeCalls(), hasLength(1));
-      expect(await repository.getToken(), 'header.payload.signature');
+      expect(await ApiClient().getToken(), 'header.payload.signature');
     });
 
     test('로그인에 실패하면 예외가 전파되고 토큰을 저장하지 않는다', () async {
@@ -292,11 +295,19 @@ void main() {
   });
 
   group('토큰 위임', () {
-    test('getToken은 ApiClient에 저장된 토큰을 그대로 돌려준다', () async {
-      expect(await repository.getToken(), isNull);
+    test('getToken은 공통 refresh session으로 access token을 복구한다', () async {
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _validAccessToken,
+          'employeeId': 7,
+          'name': '홍길동',
+          'role': 'ADMIN',
+        }),
+      );
 
-      storedToken = 'saved.jwt.token';
-      expect(await repository.getToken(), 'saved.jwt.token');
+      expect(await repository.getToken(), _validAccessToken);
+      expect(storedToken, _validAccessToken);
     });
 
     test('clearToken은 저장된 토큰을 삭제한다', () async {
