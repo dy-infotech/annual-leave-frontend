@@ -748,6 +748,7 @@ class ApiClient {
       _authGeneration++;
       _sessionExpired = false;
       _explicitlyLoggedOut = false;
+      _preserveReplacementSessionOnNextClear = false;
       await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.delete(key: _loggedOutSessionMarkerKey);
       await _storage.write(key: _tokenKey, value: token);
@@ -1013,6 +1014,7 @@ class ApiClient {
       _boundEmployeeId = null;
       _boundSessionMarker = null;
       _explicitlyLoggedOut = true;
+      _preserveReplacementSessionOnNextClear = false;
 
       // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
       try {
