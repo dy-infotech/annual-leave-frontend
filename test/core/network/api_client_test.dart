@@ -29,7 +29,7 @@ void main() {
   String? explicitLogoutMarker;
   String? sessionMarker;
   bool failExplicitLogoutFenceWrite = false;
-  Completer<String?>? blockedAccessTokenRead;
+  Completer<void>? accessTokenReadGate;
   Completer<void>? accessTokenReadStarted;
 
   setUp(() {
@@ -38,7 +38,7 @@ void main() {
     explicitLogoutMarker = null;
     sessionMarker = 'session-a';
     failExplicitLogoutFenceWrite = false;
-    blockedAccessTokenRead = null;
+    accessTokenReadGate = null;
     accessTokenReadStarted = null;
     ApiClient().setUnauthorizedHandler(null);
 
@@ -51,11 +51,11 @@ void main() {
       final sessionKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
-          if (!explicitKey && !sessionKey && blockedAccessTokenRead != null) {
+          if (!explicitKey && !sessionKey && accessTokenReadGate != null) {
             if (accessTokenReadStarted != null && !accessTokenReadStarted!.isCompleted) {
               accessTokenReadStarted!.complete();
             }
-            return blockedAccessTokenRead!.future;
+            await accessTokenReadGate!.future;
           }
           if (explicitKey) return explicitLogoutMarker;
           if (sessionKey) return sessionMarker;
@@ -134,7 +134,7 @@ void main() {
         sessionMarker: 'session-a',
       );
 
-      blockedAccessTokenRead = Completer<String?>();
+      accessTokenReadGate = Completer<void>();
       accessTokenReadStarted = Completer<void>();
       var sentToAdapter = false;
       dioAdapter.onPost(
@@ -154,17 +154,19 @@ void main() {
       );
       await accessTokenReadStarted!.future;
 
+      final generationBeforeSwitch = ApiClient().sessionGeneration;
       await ApiClient().saveToken(
         _otherAccessToken,
         sessionMarker: 'session-b',
       );
-      blockedAccessTokenRead!.complete(_validAccessToken);
+      expect(ApiClient().sessionGeneration, isNot(generationBeforeSwitch));
+      accessTokenReadGate!.complete();
 
       final error = await pending;
       expect(error.type, DioExceptionType.cancel);
       expect(sentToAdapter, isFalse);
 
-      blockedAccessTokenRead = null;
+      accessTokenReadGate = null;
       await ApiClient().clearToken();
     });
 
