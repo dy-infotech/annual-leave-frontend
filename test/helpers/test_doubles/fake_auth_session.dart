@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 
@@ -8,6 +10,7 @@ class FakeAuthSession extends AuthSession {
   final Employee? _fakeEmployeeInfo;
 
   int fetchMyInfoCount = 0;
+  Completer<void>? fetchMyInfoCompleter;
   int logoutCount = 0;
   final List<String> updatedEmails = [];
 
@@ -20,6 +23,7 @@ class FakeAuthSession extends AuthSession {
   @override
   Future<void> fetchMyInfo() async {
     fetchMyInfoCount++;
+    await fetchMyInfoCompleter?.future;
   }
 
   @override
