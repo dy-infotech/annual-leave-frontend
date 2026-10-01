@@ -105,8 +105,14 @@ class AuthRepository {
 
   /// signin 성공 뒤 로컬 세션 확정이 실패했을 때 해당 refresh session을 폐기한다.
   /// 같은 cookie session이 재시작 뒤 자동 복구되지 않도록 marker 기반 fence도 남긴다.
-  Future<void> discardRefreshSession(String sessionMarker) =>
-      _apiClient.discardRefreshSession(sessionMarker);
+  Future<void> discardRefreshSession(
+    String sessionMarker, {
+    bool clearLocalState = true,
+  }) =>
+      _apiClient.discardRefreshSession(
+        sessionMarker,
+        clearLocalState: clearLocalState,
+      );
 
   /// 로그아웃. 서버에 refresh 토큰 폐기를 요청하고 로컬 토큰을 지운다. 서버 요청이 실패해도 로컬은 로그아웃된다.
   Future<void> logout({String? fcmToken}) =>
