@@ -55,6 +55,8 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   final _scrollController = ScrollController();
 
   static const int _pageSize = 50;
+  static const int _minimumVisibleItems = 10;
+  static const int _maxServerPages = 401;
 
   List<Employee> _items = [];
   bool _isLoading = false;
@@ -131,13 +133,35 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
     });
 
     try {
-      final page = await _fetchPage(0);
+      var page = await _fetchPage(0);
       if (!mounted || seq != _requestSeq) return;
 
+      final visible = _visibleEmployees(page);
+      var nextPage = page.isEmpty ? 0 : 1;
+      var hasMore = widget.searchFn == null && page.length == _pageSize;
+
+      // raw page에서 퇴사자/중복 제외 후 표시 항목이 거의 없으면 스크롤 자체가
+      // 생기지 않아 다음 페이지를 요청할 기회가 없다. 첫 화면에 충분한 항목이
+      // 생기거나 서버 페이지가 끝날 때까지만 이어서 채운다.
+      while (visible.length < _minimumVisibleItems &&
+          hasMore &&
+          nextPage < _maxServerPages) {
+        page = await _fetchPage(nextPage);
+        if (!mounted || seq != _requestSeq) return;
+
+        visible.addAll(_visibleEmployees(page));
+        hasMore = page.length == _pageSize;
+        if (page.isNotEmpty) {
+          nextPage++;
+        } else {
+          hasMore = false;
+        }
+      }
+
       setState(() {
-        _items = _visibleEmployees(page);
-        _hasMore = widget.searchFn == null && page.length == _pageSize;
-        if (page.isNotEmpty) _nextPage = 1;
+        _items = visible;
+        _hasMore = hasMore;
+        _nextPage = nextPage;
       });
     } catch (e) {
       debugPrint('사원 목록 조회 실패: $e');
