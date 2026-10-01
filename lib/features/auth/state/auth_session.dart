@@ -59,10 +59,19 @@ class AuthSession extends ChangeNotifier {
 
   /// 앱 시작 시 저장된 로그인 상태를 복원한다. (SplashScreen에서 호출)
   ///
-  /// 토큰을 복원(필요하면 갱신)한 뒤 /me로 내 정보를 확인한다. 실패하면 로그아웃 상태가 된다.
+  /// [enabled]가 false면 이전 access token/session marker를 로컬에서 정리하고
+  /// refresh cookie를 이용한 복원은 시도하지 않는다. true면 토큰을 복원(필요하면 갱신)한 뒤
+  /// /me로 내 정보를 확인한다. 실패하면 로그아웃 상태가 된다.
   /// 401/403은 물론 그 밖의 오류에서도 저장된 토큰을 지운다.
-  Future<void> tryAutoLogin() async {
+  Future<void> tryAutoLogin({bool enabled = true}) async {
     final generation = ++_generation;
+
+    if (!enabled) {
+      await _repository.clearToken();
+      if (_isCurrent(generation)) _resetState();
+      return;
+    }
+
     final token = await _repository.getToken();
     if (!_isCurrent(generation)) return;
     if (token == null) {
