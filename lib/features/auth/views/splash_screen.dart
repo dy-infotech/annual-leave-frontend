@@ -1,7 +1,9 @@
+import 'package:annual_leave_frontend/features/auth/auth_preferences.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// 앱 시작 화면. 저장된 로그인 상태를 복원(자동 로그인)한 뒤 대시보드 또는 로그인 화면으로 이동한다.
 ///
@@ -24,7 +26,14 @@ class _SplashScreenState extends State<SplashScreen> {
 
   Future<void> _checkLoginStatus() async {
     final auth = context.read<AuthSession>();
-    await auth.tryAutoLogin();
+    final prefs = await SharedPreferences.getInstance();
+    final autoLoginEnabled =
+        prefs.getBool(AuthPreferences.autoLoginKey) ??
+            AuthPreferences.autoLoginDefault;
+
+    if (autoLoginEnabled) {
+      await auth.tryAutoLogin();
+    }
 
     if (!mounted) return;
 
