@@ -342,9 +342,29 @@ class LeaveRequestViewModel extends ChangeNotifier {
     ].join('|');
   }
 
+  String? _validateSubmitInput() {
+    if (_startDate == null) {
+      return '날짜를 선택해주세요.';
+    }
+    if (useDays <= 0) {
+      return '사용 일수는 0보다 커야 합니다.';
+    }
+    if (needsReason && leaveReason == null) {
+      return '휴가 사유를 입력해주세요.';
+    }
+    return null;
+  }
+
   /// 휴가 신청 제출. 성공 시 데이터를 갱신하고 선택 상태를 초기화한다.
   Future<bool> submit() async {
     if (_disposed || _isSubmitting) return false;
+
+    final validationError = _validateSubmitInput();
+    if (validationError != null) {
+      _errorMessage = validationError;
+      notifyListeners();
+      return false;
+    }
 
     final seq = ++_requestSeq;
     _isSubmitting = true;
