@@ -75,6 +75,8 @@ class FcmService {
       _serializeLifecycle(_registerTokenAndListeners);
 
   Future<void> _registerTokenAndListeners() async {
+    // 이 lifecycle 작업이 시작된 계정을 첫 await 이전에 고정한다.
+    final originatingGeneration = _apiClient.sessionGeneration;
     final messaging = FirebaseMessaging.instance;
     try {
       var settings = await messaging.getNotificationSettings();
@@ -103,11 +105,16 @@ class FcmService {
         return;
       }
 
+      if (_apiClient.sessionGeneration != originatingGeneration) {
+        return;
+      }
       final prefs = await SharedPreferences.getInstance();
+      if (_apiClient.sessionGeneration != originatingGeneration) {
+        return;
+      }
       final registeredToken = prefs.getString(fcmTokenKey);
-      final currentGeneration = _apiClient.sessionGeneration;
       if (registeredToken != token ||
-          _lastSyncedAuthGeneration != currentGeneration) {
+          _lastSyncedAuthGeneration != originatingGeneration) {
         final deviceOs = kIsWeb
             ? 'Web'
             : switch (defaultTargetPlatform) {
@@ -119,7 +126,7 @@ class FcmService {
                 TargetPlatform.fuchsia => 'Fuchsia',
               };
         final authSessionMarker = await _apiClient.getSessionMarker();
-        if (_apiClient.sessionGeneration != currentGeneration) {
+        if (_apiClient.sessionGeneration != originatingGeneration) {
           // marker 조회 중 계정이 바뀌었다. 이전 lifecycle 작업이 새 계정의
           // FCM binding을 생성하지 않도록 중단하고 새 대시보드 cycle에 맡긴다.
           return;
@@ -136,14 +143,14 @@ class FcmService {
               'X-SSO-Session-Marker': authSessionMarker,
             }),
           );
-          if (_apiClient.sessionGeneration != currentGeneration) {
+          if (_apiClient.sessionGeneration != originatingGeneration) {
             return;
           }
           await prefs.setString(fcmTokenKey, token);
-          if (_apiClient.sessionGeneration != currentGeneration) {
+          if (_apiClient.sessionGeneration != originatingGeneration) {
             return;
           }
-          _lastSyncedAuthGeneration = currentGeneration;
+          _lastSyncedAuthGeneration = originatingGeneration;
         } else {
           debugPrint('FCM sync skipped: SSO session marker is unavailable');
         }
