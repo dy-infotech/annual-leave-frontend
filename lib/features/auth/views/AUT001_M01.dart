@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/auth/view_models/AUT001_M01_view_model.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -19,13 +20,16 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.holidayRepository});
+
+  final PublicHolidayRepository? holidayRepository;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => LoginViewModel(
         authSession: context.read<AuthSession>(),
+        holidayRepository: holidayRepository,
       )..loadSavedAccountInfo(),
       child: const _LoginView(),
     );

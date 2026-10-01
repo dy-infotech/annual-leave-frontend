@@ -8,6 +8,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_doubles/fake_auth_session.dart';
+import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
 
 /// 로그인 화면(AUT001_M01) 특성화 테스트.
 ///
@@ -37,7 +38,9 @@ void main() {
 
     await pumpApp(
       tester,
-      const LoginScreen(),
+      LoginScreen(
+        holidayRepository: FakePublicHolidayRepository(),
+      ),
       providers: [
         ChangeNotifierProvider<AuthSession>(create: (_) => fakeAuth),
       ],

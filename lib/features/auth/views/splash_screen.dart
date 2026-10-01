@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  const SplashScreen({super.key, this.holidayRepository});
+
+  final PublicHolidayRepository? holidayRepository;
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -26,7 +28,8 @@ class _SplashScreenState extends State<SplashScreen> {
     // 자동 로그인 성공 시, 공휴일 정보 조회
     if (auth.isLoggedIn) {
       try {
-        await PublicHolidayRepository().fetchPublicHolidays();
+        await (widget.holidayRepository ?? PublicHolidayRepository())
+            .fetchPublicHolidays();
       } catch (_) {
         // 공휴일 조회 실패가 로그인 흐름을 막지 않도록 무시 (기존 provider와 동일)
       }

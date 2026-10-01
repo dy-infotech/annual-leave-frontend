@@ -1,14 +1,12 @@
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:provider/provider.dart';
 
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
 
 /// 스플래시 화면의 자동 로그인 분기 테스트.
 ///
@@ -36,27 +34,7 @@ class _StubAuthSession extends AuthSession {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() {
-    // JWT 조회가 플랫폼 채널을 타므로 null을 돌려주도록 모킹한다.
-    const channel =
-        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => null);
-  });
-
-  setUp(() {
-    // 공휴일 저장소가 static 캐시를 쓰므로 테스트 간 간섭을 막는다.
-    PublicHolidayRepository.clearCache();
-
-    // 자동 로그인 성공 경로에서 화면이 공휴일 API를 직접 호출한다.
-    // 저장소를 주입할 수 없는 구조라 HTTP 계층에서 스텁한다.
-    final dioAdapter = DioAdapter(dio: ApiClient().dio);
-    dioAdapter
-      ..onGet('/api/leave-requests/current-year-special-days',
-          (server) => server.reply(200, []))
-      ..onGet('/api/leave-requests/next-year-special-days',
-          (server) => server.reply(200, []));
-  });
+  setUp(PublicHolidayRepository.clearCache);
 
   Future<_StubAuthSession> pumpSplash(
     WidgetTester tester, {
@@ -68,7 +46,9 @@ void main() {
 
     await pumpApp(
       tester,
-      const SplashScreen(),
+      SplashScreen(
+        holidayRepository: FakePublicHolidayRepository(),
+      ),
       providers: [ChangeNotifierProvider<AuthSession>.value(value: session)],
       routes: {
         '/dashboard': (_) => const Scaffold(body: Text('dashboard-stub')),
