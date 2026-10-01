@@ -37,8 +37,7 @@ class ApiClient {
 
   /// 보안 저장소에 액세스 토큰을 저장하는 키.
   static const _tokenKey = 'annual_leave_access_token';
-
-  /// `RequestOptions.extra`에서 요청 전송 시점의 세션 세대를 보관하는 키.
+  static const _explicitLogoutKey = 'annual_leave_explicit_logout';
   static const _authGenerationKey = 'authGeneration';
 
   /// `RequestOptions.extra`에서 401 후 재시도를 이미 했는지 표시하는 키. (무한 재시도 방지)
@@ -56,6 +55,7 @@ class ApiClient {
   /// 세션 만료 처리를 이미 했는지 여부. 만료 콜백이 중복 호출되거나,
   /// 만료 직후 늦게 끝난 갱신이 토큰을 다시 저장하는 것을 막는다. 다음 로그인에서 해제된다.
   bool _sessionExpired = false;
+  bool _explicitlyLoggedOut = false;
   int _authGeneration = 0;
   Future<void> _tokenMutation = Future<void>.value();
   Future<LoginResponse?>? _refreshInFlight;
@@ -75,8 +75,9 @@ class ApiClient {
     if (kDebugMode) {
       dio.interceptors.add(InterceptorsWrapper(
         onRequest: (options, handler) {
-          final query =
-              options.queryParameters.isEmpty ? '' : ' query=${options.queryParameters}';
+          final query = options.queryParameters.isEmpty
+              ? ''
+              : ' query=${options.queryParameters}';
           final body = options.data == null
               ? ''
               : ' body=${_redactForLog(options.data)}';
@@ -162,6 +163,12 @@ class ApiClient {
       await barrier;
 
       if (_isAuthenticationRequest(options)) {
+        options.headers.remove('Authorization');
+        options.extra.remove(_authGenerationKey);
+        return;
+      }
+
+      if (_explicitlyLoggedOut) {
         options.headers.remove('Authorization');
         options.extra.remove(_authGenerationKey);
         return;
@@ -321,6 +328,13 @@ class ApiClient {
   Future<LoginResponse?> restoreSession() async {
     await _tokenMutation;
     final generation = _authGeneration;
+    final explicitLogout = await _storage.read(key: _explicitLogoutKey);
+    if (explicitLogout == '1') {
+      _explicitlyLoggedOut = true;
+      return null;
+    }
+
+    _explicitlyLoggedOut = false;
     final token = await _storage.read(key: _tokenKey);
     if (token != null && !_isExpiringSoon(token)) {
       return LoginResponse.tryFromAccessToken(token);
@@ -339,16 +353,27 @@ class ApiClient {
   /// 명시적 로그아웃. 서버에 refresh 토큰 폐기(와 선택적으로 FCM 토큰 해제)를 요청한 뒤
   /// 이 기기의 토큰과 세션 상태를 항상 정리한다. 서버 요청이 실패해도 로컬 로그아웃은 완료된다.
   Future<void> logoutSession({String? fcmToken}) async {
+    // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정한다.
+    await _markExplicitLogout();
+
+    // old refresh cookie revoke는 즉시 시작하되 화면 전환을 막지 않는다.
+    unawaited(_revokeLoggedOutSession(fcmToken: fcmToken));
+  }
+
+  Future<void> _revokeLoggedOutSession({String? fcmToken}) async {
     try {
       await dio.post(
         '/api/auth/logout',
         data: fcmToken == null ? null : {'fcmToken': fcmToken},
-        options: Options(headers: const {'X-SSO-Refresh': '1'}),
+        options: Options(
+          headers: const {
+            'X-SSO-Refresh': '1',
+            'X-SSO-Background-Logout': '1',
+          },
+        ),
       );
     } on DioException {
-      // 서버 revoke 실패와 무관하게 이 브라우저는 명시적 로그아웃 상태로 전환한다.
-    } finally {
-      await _markExplicitLogout();
+      // explicit logout 표식이 남아 있으므로 서버 revoke 실패가 자동 재로그인으로 이어지지 않는다.
     }
   }
 
@@ -358,6 +383,9 @@ class ApiClient {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
+      _explicitlyLoggedOut = false;
+      // 새 로그인은 이전 explicit-logout 표식을 먼저 해제한 뒤 새 access token을 저장한다.
+      await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.write(key: _tokenKey, value: token);
     });
   }
@@ -463,7 +491,18 @@ class ApiClient {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
-      await _storage.delete(key: _tokenKey);
+      _explicitlyLoggedOut = true;
+
+      // 표식을 먼저 남겨 access token 삭제나 background revoke가 실패해도
+      // 앱 재시작 시 HttpOnly refresh cookie로 자동 복구되지 않게 한다.
+      await _storage.write(key: _explicitLogoutKey, value: '1');
+      try {
+        await _storage.delete(key: _tokenKey);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] explicit logout token delete failed: $e');
+        }
+      }
     });
   }
 }
