@@ -15,11 +15,15 @@ class AuthRepository {
   ///
   /// 응답 토큰 저장은 AuthSession이 세대 검증을 마친 뒤 수행한다.
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
-    final response = await _apiClient.dio.post(
-      '/api/auth/signin',
-      data: LoginRequest(employeeNumber: employeeNumber, password: password)
-          .toJson(),
-    );
+    final response = await _apiClient.runSharedSsoMutation(() {
+      return _apiClient.dio.post(
+        '/api/auth/signin',
+        data: LoginRequest(
+          employeeNumber: employeeNumber,
+          password: password,
+        ).toJson(),
+      );
+    });
     return LoginResponse.fromJson(response.data);
   }
 
