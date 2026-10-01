@@ -35,6 +35,27 @@ void main() {
       expect(vm.isLoading, isFalse);
     });
 
+    test('load - 전체 권한이 없으면 all 초기값도 내 신청으로 강제한다', () async {
+      final vm = AllLeaveRequestsViewModel(
+        initialFilter: 'all',
+        canViewAll: false,
+        repository: fake,
+      );
+
+      await vm.load();
+
+      expect(vm.buttonLabel, '내 신청');
+      expect(fake.allLeaveRequestQueries, isEmpty);
+      expect(fake.myLeaveRequestQueries, [
+        {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
+      ]);
+
+      vm.setButtonLabel('전체');
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.buttonLabel, '내 신청');
+      expect(fake.allLeaveRequestQueries, isEmpty);
+    });
+
     test('load - 초기 필터가 my면 내 신청 라벨로 my API를 조회한다', () async {
       final vm = AllLeaveRequestsViewModel(
           initialStatus: 'PENDING', initialFilter: 'my', repository: fake);
