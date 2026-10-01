@@ -964,10 +964,12 @@ class ApiClient {
           sharedMarker != null &&
           sharedMarker.isNotEmpty &&
           sharedMarker != ownedMarker &&
-          // partial signin cleanup의 override marker는 새 cookie session이고,
-          // secure storage에는 이 탭의 직전 세션 marker가 남아 있을 수 있다.
-          // 그 값까지 replacement로 오인하지 않는다.
-          (tabOwnedMarker == null || sharedMarker != tabOwnedMarker);
+          // replacement session이라고 판정하려면 이 탭이 실제로 소유하던 marker가
+          // 있어야 한다. partial signin cleanup은 아직 tab-owned marker가 없을 수
+          // 있으므로 단순 sharedMarker 불일치만으로 다른 탭 세션이라고 판단하지 않는다.
+          tabOwnedMarker != null &&
+          tabOwnedMarker.isNotEmpty &&
+          sharedMarker != tabOwnedMarker;
 
       if (subjectReplaced || markerReplaced) {
         // AuthSession은 호출 전에 자신의 화면 상태를 이미 로그아웃 처리한다.
