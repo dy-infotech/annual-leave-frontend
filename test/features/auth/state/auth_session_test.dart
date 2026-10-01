@@ -74,6 +74,17 @@ void main() {
       expect(session.employeeInfo, isNotNull);
     });
 
+    test('tryAutoLogin - 자동 로그인 해제 시 기존 로컬 토큰을 지우고 복원하지 않는다', () async {
+      fake.storedToken = 'stored.token';
+      final session = AuthSession(repository: fake);
+
+      await session.tryAutoLogin(enabled: false);
+
+      expect(session.isLoggedIn, isFalse);
+      expect(fake.storedToken, isNull);
+      expect(session.employeeInfo, isNull);
+    });
+
     test('tryAutoLogin - 내 정보 조회 실패 시 토큰을 지우고 비로그인 상태로 돌린다', () async {
       fake.storedToken = 'stored.token';
       fake.myInfoToReturn = null; // 조회 실패 유도
