@@ -84,6 +84,36 @@ void main() {
       expect(session.isLoggedIn, isFalse);
     });
 
+    test('login refresh session cleanup 실패를 숨기지 않는다', () async {
+      fake.signInResponse = LoginResponse(
+        token: 'test.token',
+        employeeId: 1,
+        name: '홍길동',
+        role: 'EMPLOYEE',
+        ssoSessionMarker: 'session-a',
+      );
+      fake.myInfoToReturn = null;
+      fake.discardRefreshSessionErrorToThrow =
+          StateError('refresh session cleanup failed');
+      final session = AuthSession(repository: fake);
+
+      await expectLater(
+        session.login('A0001', 'pw'),
+        throwsA(
+          isA<StateError>().having(
+            (error) => error.message,
+            'message',
+            'refresh session cleanup failed',
+          ),
+        ),
+      );
+
+      expect(fake.discardedSessionMarkers, ['session-a']);
+      expect(fake.storedToken, isNull);
+      expect(session.isLoggedIn, isFalse);
+      expect(session.employeeInfo, isNull);
+    });
+
     test('tryAutoLogin - 저장된 토큰이 없으면 로그인 상태가 아니다', () async {
       final session = AuthSession(repository: fake);
 
