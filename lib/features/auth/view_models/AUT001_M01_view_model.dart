@@ -1,3 +1,4 @@
+import 'package:annual_leave_frontend/features/auth/auth_preferences.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:flutter/material.dart';
@@ -6,8 +7,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 /// 로그인 화면(AUT001_M01)의 ViewModel.
 ///
-/// 입력 검증, 로그인 요청, "계정 기억하기"(사번은 SharedPreferences, 비밀번호는 보안 저장소) 저장을 담당한다.
-/// 실제 인증과 세션 상태는 [AuthSession]에 위임한다.
+/// 입력 검증, 로그인 요청, 사번 저장/자동 로그인 환경설정 저장을 담당한다.
+/// 비밀번호는 저장하지 않으며 실제 인증과 세션 상태는 [AuthSession]에 위임한다.
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel({
     required AuthSession authSession,
@@ -29,6 +30,7 @@ class LoginViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   bool _isRememberMe = false;
+  bool _isAutoLoginEnabled = AuthPreferences.autoLoginDefault;
   bool _disposed = false;
 
   /// 요청 순번. 저장 정보 불러오기나 로그인이 끝나기 전에 화면이 닫히거나 새 요청이 시작되면
@@ -38,6 +40,7 @@ class LoginViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isRememberMe => _isRememberMe;
+  bool get isAutoLoginEnabled => _isAutoLoginEnabled;
 
   void setRememberMe(bool value) {
     _isRememberMe = value;
@@ -49,16 +52,30 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setAutoLoginEnabled(bool value) {
+    _isAutoLoginEnabled = value;
+    notifyListeners();
+  }
+
+  void toggleAutoLogin() {
+    _isAutoLoginEnabled = !_isAutoLoginEnabled;
+    notifyListeners();
+  }
+
   // 로컬 저장소에서 저장된 사번만 불러온다. 비밀번호는 refresh session으로 대체하고 장기 저장하지 않는다.
   Future<void> loadSavedAccountInfo() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
     final prefs = await SharedPreferences.getInstance();
     if (_disposed || seq != _requestSeq) return;
-    _isRememberMe = prefs.getBool('isRememberMe') ?? false;
+    _isRememberMe =
+        prefs.getBool(AuthPreferences.rememberEmployeeNumberKey) ?? false;
+    _isAutoLoginEnabled =
+        prefs.getBool(AuthPreferences.autoLoginKey) ??
+            AuthPreferences.autoLoginDefault;
     if (_isRememberMe) {
       employeeNumberController.text =
-          prefs.getString('savedEmployeeNumber') ?? '';
+          prefs.getString(AuthPreferences.savedEmployeeNumberKey) ?? '';
       // 이전 버전이 저장해 둔 원문 비밀번호는 마이그레이션 시 즉시 폐기한다.
       try {
         await _secureStorage.delete(key: 'savedPassword');
@@ -70,17 +87,25 @@ class LoginViewModel extends ChangeNotifier {
     if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
-  // 로그인 성공 시 사번 저장 설정만 반영한다. 비밀번호는 저장하지 않는다.
+  // 로그인 성공 시 사번 저장 여부와 다음 실행의 자동 로그인 여부를 반영한다.
+  // 자동 로그인은 refresh session을 재사용할지 여부만 저장하며 비밀번호는 저장하지 않는다.
   Future<void> _saveAccountInfoPreference() async {
     final prefs = await SharedPreferences.getInstance();
     if (_isRememberMe) {
-      await prefs.setBool('isRememberMe', true);
+      await prefs.setBool(AuthPreferences.rememberEmployeeNumberKey, true);
       await prefs.setString(
-          'savedEmployeeNumber', employeeNumberController.text.trim());
+        AuthPreferences.savedEmployeeNumberKey,
+        employeeNumberController.text.trim(),
+      );
     } else {
-      await prefs.remove('isRememberMe');
-      await prefs.remove('savedEmployeeNumber');
+      await prefs.remove(AuthPreferences.rememberEmployeeNumberKey);
+      await prefs.remove(AuthPreferences.savedEmployeeNumberKey);
     }
+
+    await prefs.setBool(
+      AuthPreferences.autoLoginKey,
+      _isAutoLoginEnabled,
+    );
 
     // 어느 경로에서도 원문 비밀번호를 장기 저장하지 않는다.
     await _secureStorage.delete(key: 'savedPassword');
