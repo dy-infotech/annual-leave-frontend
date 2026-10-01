@@ -97,10 +97,15 @@ class FakeLeaveRepository implements LeaveRepository {
 
   Object? submitErrorToThrow;
   final List<LeaveRequestCreate> submittedRequests = [];
+  final List<String?> submittedIdempotencyKeys = [];
 
   @override
-  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
+  Future<void> submitLeaveRequest(
+    LeaveRequestCreate request, {
+    String? idempotencyKey,
+  }) async {
     submittedRequests.add(request);
+    submittedIdempotencyKeys.add(idempotencyKey);
     if (submitErrorToThrow != null) throw submitErrorToThrow!;
   }
 
