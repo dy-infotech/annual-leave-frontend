@@ -23,6 +23,32 @@ class AdminEmployeeRepository {
         .toList();
   }
 
+  Future<List<Employee>> fetchEmployeesPage({
+    String? searchParam,
+    String? team,
+    bool? registered,
+    int page = 0,
+    int size = 50,
+  }) async {
+    final normalizedSearch = searchParam?.trim();
+    final normalizedTeam = team?.trim();
+    final response = await _dio.get(
+      '/api/admin/employees/all',
+      queryParameters: {
+        if (normalizedSearch != null && normalizedSearch.isNotEmpty)
+          'searchParam': normalizedSearch,
+        if (normalizedTeam != null && normalizedTeam.isNotEmpty)
+          'team': normalizedTeam,
+        if (registered != null) 'registered': registered,
+        'page': page,
+        'size': size,
+      },
+    );
+    return (response.data as List)
+        .map((json) => Employee.fromJson(json))
+        .toList();
+  }
+
   /// 사원 정보 수정. PUT /api/admin/employees/{employeeNumber}
   ///
   /// 호출부가 상태코드로 성공 여부를 판단하므로 statusCode를 그대로 돌려준다.
