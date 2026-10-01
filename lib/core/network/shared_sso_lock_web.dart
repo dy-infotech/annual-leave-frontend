@@ -60,11 +60,15 @@ Future<T> _withWebLock<T>(
 ) async {
   late T result;
 
+  final callback = ((web.Lock? _) {
+    return action().then<void>((value) {
+      result = value;
+    }).toJS;
+  }).toJS;
+
   await lockManager.request(
     _lockKey,
-    ((web.Lock? _) async {
-      result = await action();
-    }).toJS,
+    callback,
   ).toDart;
   return result;
 }
