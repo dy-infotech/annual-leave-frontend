@@ -90,7 +90,8 @@ void main() {
     expect(fake.myLeaveRequestQueries, [
       {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
     ]);
-    expect(find.widgetWithText(Radio<String>, '전체'), findsNothing);
+    // 상태 드롭다운에도 '전체' 텍스트가 있으므로 라디오 개수로 범위 토글을 검증한다.
+    expect(find.byType(Radio<String>), findsOneWidget);
     expect(find.text('내 신청'), findsOneWidget);
   });
 
