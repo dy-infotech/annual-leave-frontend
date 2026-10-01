@@ -4,6 +4,12 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
 
+enum CancelResult {
+  failed,
+  succeeded,
+  succeededRefreshFailed,
+}
+
 /// 내 휴가 신청 목록 화면(LVE002_M01)의 ViewModel.
 class MyLeaveRequestsViewModel extends ChangeNotifier {
   MyLeaveRequestsViewModel({this.initialStatus, LeaveRepository? repository})
@@ -19,6 +25,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int _totalCount = 0;
+  String? _loadError;
   String? _cursorRequestedAt;
   int? _cursorRequestId;
   String? _statusFilter;
@@ -32,6 +39,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   int get totalCount => _totalCount;
+  String? get loadError => _loadError;
   String? get statusFilter => _statusFilter;
   DateTimeRange? get dateRange => _dateRange;
   bool isProcessing(int requestId) => _processingIds.contains(requestId);
@@ -64,18 +72,26 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     final seq = ++_requestSeq;
     _isLoading = true;
     _isLoadingMore = false;
-    _hasMore = true;
+    _items = [];
+    _hasMore = false;
     _totalCount = 0;
     _cursorRequestedAt = null;
     _cursorRequestId = null;
+    _loadError = null;
     _notify();
 
     try {
       final page = await _fetchPage();
       if (_disposed || seq != _requestSeq) return;
-      _items = page.items;
+      _items = List.of(page.items);
       _totalCount = page.totalCount;
+      _loadError = null;
       _applyPageCursor(page.items, page.hasMore);
+    } catch (_) {
+      if (!_disposed && seq == _requestSeq) {
+        _loadError = '목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
@@ -85,7 +101,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _loadError != null) return;
 
     final seq = _requestSeq;
     _isLoadingMore = true;
@@ -98,7 +114,13 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
       _items.addAll(
           page.items.where((item) => existingIds.add(item.requestId)));
       _totalCount = page.totalCount;
+      _loadError = null;
       _applyPageCursor(page.items, page.hasMore);
+    } catch (_) {
+      if (!_disposed && seq == _requestSeq) {
+        _loadError = '추가 목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoadingMore = false;
@@ -135,20 +157,29 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(_fetch());
   }
 
-  Future<bool> cancel(int requestId) async {
-    _processingIds.add(requestId);
+  Future<CancelResult> cancel(int requestId) async {
+    if (!_processingIds.add(requestId)) {
+      return CancelResult.failed;
+    }
     _notify();
     try {
-      await _repository.cancelLeaveRequest(requestId);
+      try {
+        await _repository.cancelLeaveRequest(requestId);
+      } catch (_) {
+        return CancelResult.failed;
+      }
+
       await _fetch();
-      return true;
-    } catch (_) {
-      return false;
+      return _loadError == null
+          ? CancelResult.succeeded
+          : CancelResult.succeededRefreshFailed;
     } finally {
       _processingIds.remove(requestId);
       _notify();
     }
   }
+
+  Future<void> retry() => _fetch();
 
   static bool isCancelable(
     LeaveRequestListItem item, {
@@ -170,6 +201,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _requestSeq++;
     super.dispose();
   }
 }
