@@ -647,11 +647,12 @@ class ApiClient {
   /// 명시적 로그아웃. 서버에 refresh 토큰 폐기(와 선택적으로 FCM 토큰 해제)를 요청한 뒤
   /// 이 기기의 토큰과 세션 상태를 항상 정리한다. 서버 요청이 실패해도 로컬 로그아웃은 완료된다.
   Future<void> logoutSession({String? fcmToken}) async {
-    // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정하면서,
-    // 그 직전 refresh session marker와 영속 fence 저장 성공 여부를 함께 캡처한다.
-    final logout = await _markExplicitLogout();
-    final sessionMarker = logout.sessionMarker;
+    // shared SSO mutation lock 안에서 현재 탭이 소유한 marker와 shared marker를 먼저 비교한다.
+    // 다른 탭이 이미 새 세션으로 교체했다면 그 세션의 token/fence/cookie는 건드리지 않는다.
+    final logout = await _prepareExplicitLogout();
+    if (logout.replacementDetected) return;
 
+    final sessionMarker = logout.sessionMarker;
     if (sessionMarker != null && sessionMarker.isNotEmpty) {
       if (logout.fencePersisted) {
         // 정상 경로는 UI를 막지 않는다. 영속 fence가 재시작 후 자동복구를 막는다.
@@ -697,12 +698,15 @@ class ApiClient {
       return;
     }
 
-    final discard = await _markExplicitLogout(
+    final discard = await _prepareExplicitLogout(
       sessionMarkerOverride: sessionMarker,
     );
+    // replacement session이 이미 shared storage/cookie를 차지했다면 로컬 저장소는
+    // 보존하고, 옛 marker에 대한 backend revoke만 marker-bound로 시도한다.
     await _revokeLoggedOutSession(
       sessionMarker: sessionMarker,
-      swallowFailure: discard.fencePersisted,
+      swallowFailure:
+          discard.replacementDetected || discard.fencePersisted,
     );
   }
 
@@ -906,6 +910,57 @@ class ApiClient {
     if (generation != null && generation == _authGeneration) {
       await _unauthorizedHandler?.call(generation);
     }
+  }
+
+  Future<({
+    String? sessionMarker,
+    bool fencePersisted,
+    bool replacementDetected,
+  })> _prepareExplicitLogout({String? sessionMarkerOverride}) {
+    return runSharedSsoMutation(() async {
+      final ownedMarker = sessionMarkerOverride ?? _boundSessionMarker;
+      final sharedMarker = await _storage.read(key: _sessionMarkerKey);
+      final sharedToken = await _storage.read(key: _tokenKey);
+      final sharedEmployeeId = sharedToken == null
+          ? null
+          : LoginResponse.tryFromAccessToken(sharedToken)?.employeeId;
+
+      final subjectReplaced = _boundEmployeeId != null &&
+          sharedEmployeeId != null &&
+          sharedEmployeeId != _boundEmployeeId;
+      final markerReplaced = ownedMarker != null &&
+          ownedMarker.isNotEmpty &&
+          sharedMarker != null &&
+          sharedMarker.isNotEmpty &&
+          sharedMarker != ownedMarker;
+
+      if (subjectReplaced || markerReplaced) {
+        // AuthSession은 호출 전에 자신의 화면 상태를 이미 로그아웃 처리한다.
+        // 여기서는 이 탭의 in-memory generation만 닫고, 다른 탭이 소유한
+        // shared access token/session marker/explicit logout fence는 보존한다.
+        await _mutateToken(() async {
+          _authGeneration++;
+          _sessionExpired = false;
+          _explicitlyLoggedOut = true;
+          _boundEmployeeId = null;
+          _boundSessionMarker = null;
+        });
+        return (
+          sessionMarker: ownedMarker,
+          fencePersisted: false,
+          replacementDetected: true,
+        );
+      }
+
+      final marked = await _markExplicitLogout(
+        sessionMarkerOverride: ownedMarker,
+      );
+      return (
+        sessionMarker: marked.sessionMarker,
+        fencePersisted: marked.fencePersisted,
+        replacementDetected: false,
+      );
+    });
   }
 
   /// 세션을 로컬 종료 상태로 전환한다. 명시 로그아웃뿐 아니라 signin 성공 뒤
