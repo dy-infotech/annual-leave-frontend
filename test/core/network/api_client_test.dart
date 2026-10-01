@@ -642,6 +642,35 @@ void main() {
   });
 
   group('명시 로그아웃 SSO 복구', () {
+    test('다른 탭이 shared session을 교체한 뒤 stale logout은 새 세션을 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      // 현재 탭 메모리는 A에 바인딩된 채, 다른 탭 B가 same-origin shared
+      // secure storage를 새 세션으로 교체한 상황.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      explicitLogoutMarker = '0';
+
+      var logoutCalled = false;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) {
+          logoutCalled = true;
+          return server.reply(204, null);
+        },
+      );
+
+      await ApiClient().logoutSession();
+
+      expect(logoutCalled, isFalse);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+      expect(explicitLogoutMarker, '0');
+    });
+
     test('로그아웃 뒤 다른 앱이 만든 새 shared SSO session을 다시 발견한다', () async {
       await ApiClient().saveToken(
         _validAccessToken,
