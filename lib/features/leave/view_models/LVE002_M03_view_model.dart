@@ -26,7 +26,8 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
-  int _nextPage = 0;
+  String? _cursorCreatedAt;
+  int? _cursorRequestId;
   String? _status;
   String? _selectedTeam = '전체';
   String? _appliedEmployeeParam;
@@ -86,13 +87,17 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     _notify();
   }
 
-  Future<List<LeaveRequestListItem>> _fetchPage({required int page}) {
+  Future<List<LeaveRequestListItem>> _fetchPage({
+    bool continueFromCursor = false,
+  }) {
     return _repository.searchAdminLeaveRequestsPage(
       status: _status,
       team: _selectedTeam == '전체' ? null : _selectedTeam,
       employeeParam: _appliedEmployeeParam,
-      page: page,
+      page: 0,
       size: _pageSize,
+      cursorCreatedAt: continueFromCursor ? _cursorCreatedAt : null,
+      cursorRequestId: continueFromCursor ? _cursorRequestId : null,
     );
   }
 
@@ -105,12 +110,13 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     _isLoading = true;
     _isLoadingMore = false;
     _hasMore = true;
-    _nextPage = 0;
+    _cursorCreatedAt = null;
+    _cursorRequestId = null;
     _errorMessage = null;
     _notify();
 
     try {
-      final page = await _fetchPage(page: 0);
+      final page = await _fetchPage();
       if (_disposed || seq != _requestSeq) return;
       _items = page;
       _applyPageCursor(page);
@@ -127,12 +133,11 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
 
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
-    final pageNumber = _nextPage;
-    final seq = _requestSeq;
+     final seq = _requestSeq;
     _isLoadingMore = true;
     _notify();
     try {
-      final page = await _fetchPage(page: pageNumber);
+      final page = await _fetchPage(continueFromCursor: true);
       if (_disposed || seq != _requestSeq) return;
       final existingIds = _items.map((item) => item.requestId).toSet();
       _items.addAll(page.where((item) => existingIds.add(item.requestId)));
@@ -152,7 +157,9 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   void _applyPageCursor(List<LeaveRequestListItem> page) {
     _hasMore = page.length == _pageSize;
     if (page.isNotEmpty) {
-      _nextPage++;
+      final last = page.last;
+      _cursorCreatedAt = last.requestedAt;
+      _cursorRequestId = last.requestId;
     }
   }
 
