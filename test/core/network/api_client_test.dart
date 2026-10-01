@@ -25,11 +25,13 @@ void main() {
   late List<MethodCall> storageCalls;
   String? storedToken;
   String? explicitLogoutMarker;
+  String? sessionMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
+    sessionMarker = null;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -38,12 +40,17 @@ void main() {
       final args = call.arguments as Map?;
       final key = args?['key'] as String?;
       final explicitKey = key == 'annual_leave_explicit_logout';
+      final sessionKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
-          return explicitKey ? explicitLogoutMarker : storedToken;
+          if (explicitKey) return explicitLogoutMarker;
+          if (sessionKey) return sessionMarker;
+          return storedToken;
         case 'write':
           if (explicitKey) {
             explicitLogoutMarker = args?['value'] as String?;
+          } else if (sessionKey) {
+            sessionMarker = args?['value'] as String?;
           } else {
             storedToken = args?['value'] as String?;
           }
@@ -51,6 +58,8 @@ void main() {
         case 'delete':
           if (explicitKey) {
             explicitLogoutMarker = null;
+          } else if (sessionKey) {
+            sessionMarker = null;
           } else {
             storedToken = null;
           }
