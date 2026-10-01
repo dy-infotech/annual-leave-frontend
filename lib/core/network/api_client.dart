@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:annual_leave_frontend/core/config/api_config.dart';
 import 'package:annual_leave_frontend/core/network/browser_credentials.dart';
+import 'package:annual_leave_frontend/core/network/shared_sso_lock.dart';
 import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
@@ -39,6 +40,8 @@ class ApiClient {
   static const _tokenKey = 'annual_leave_access_token';
   static const _explicitLogoutKey = 'annual_leave_explicit_logout';
   static const _sessionMarkerKey = 'annual_leave_sso_session_marker';
+  static const _loggedOutSessionMarkerKey =
+      'annual_leave_logged_out_sso_session_marker';
   static const _authGenerationKey = 'authGeneration';
 
   /// `RequestOptions.extra`에서 401 후 재시도를 이미 했는지 표시하는 키. (무한 재시도 방지)
@@ -153,6 +156,10 @@ class ApiClient {
     _unauthorizedHandler = handler;
   }
 
+  Future<T> runSharedSsoMutation<T>(Future<T> Function() action) {
+    return withSharedSsoMutation(action);
+  }
+
   /// [options]에 현재 세션의 액세스 토큰을 붙인다.
   ///
   /// 토큰 변경 작업이 진행 중이면 끝나기를 기다리고, 토큰을 읽는 동안 세션 세대가 바뀌거나
@@ -249,6 +256,15 @@ class ApiClient {
   /// 200ms 후 저장소를 다시 읽어 다른 탭이 저장한 새 토큰이 있으면 그것을 쓰고,
   /// 없으면 한 번만 더 요청한다. 401/403은 세션 만료로 처리한다.
   Future<LoginResponse?> _performRefresh(
+    int expectedGeneration,
+    String? beforeToken,
+  ) {
+    return runSharedSsoMutation(
+      () => _performRefreshLocked(expectedGeneration, beforeToken),
+    );
+  }
+
+  Future<LoginResponse?> _performRefreshLocked(
     int expectedGeneration,
     String? beforeToken,
   ) async {
@@ -361,11 +377,16 @@ class ApiClient {
   /// 갱신이 네트워크/서버 장애로 실패하고 기존 토큰도 이미 만료됐다면 DioException을 던진다.
   Future<LoginResponse?> restoreSession() async {
     await _tokenMutation;
-    final generation = _authGeneration;
+    var generation = _authGeneration;
     final explicitLogout = await _storage.read(key: _explicitLogoutKey);
     if (explicitLogout == '1') {
       _explicitlyLoggedOut = true;
-      return null;
+      final replacementActivated =
+          await _activateReplacementSsoSession(generation);
+      if (!replacementActivated) {
+        return null;
+      }
+      generation = _authGeneration;
     }
 
     _explicitlyLoggedOut = false;
@@ -382,6 +403,55 @@ class ApiClient {
       }
       rethrow;
     }
+  }
+
+  Future<bool> _activateReplacementSsoSession(
+    int expectedGeneration,
+  ) async {
+    final loggedOutMarker =
+        await _storage.read(key: _loggedOutSessionMarkerKey);
+    if (loggedOutMarker == null || loggedOutMarker.isEmpty) {
+      return false;
+    }
+
+    String? currentMarker;
+    try {
+      final response = await dio.post(
+        '/api/auth/session-marker',
+        options: Options(headers: const {'X-SSO-Refresh': '1'}),
+      );
+      final data = response.data;
+      if (data is Map) {
+        currentMarker = data['sessionMarker']?.toString();
+      }
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 401 || status == 403) {
+        return false;
+      }
+      // 명시 로그아웃 상태에서는 일시적인 probe 장애를 로그인 복구로 오인하지 않는다.
+      return false;
+    }
+
+    if (currentMarker == null ||
+        currentMarker!.isEmpty ||
+        currentMarker == loggedOutMarker) {
+      return false;
+    }
+
+    var activated = false;
+    await _mutateToken(() async {
+      if (expectedGeneration != _authGeneration) return;
+
+      _authGeneration++;
+      _sessionExpired = false;
+      _explicitlyLoggedOut = false;
+      await _storage.write(key: _explicitLogoutKey, value: '0');
+      await _storage.write(key: _sessionMarkerKey, value: currentMarker);
+      await _storage.delete(key: _loggedOutSessionMarkerKey);
+      activated = true;
+    });
+    return activated;
   }
 
   /// 명시적 로그아웃. 서버에 refresh 토큰 폐기(와 선택적으로 FCM 토큰 해제)를 요청한 뒤
@@ -405,17 +475,19 @@ class ApiClient {
     required String sessionMarker,
   }) async {
     try {
-      await dio.post(
-        '/api/auth/logout',
-        data: fcmToken == null ? null : {'fcmToken': fcmToken},
-        options: Options(
-          headers: {
-            'X-SSO-Refresh': '1',
-            'X-SSO-Background-Logout': '1',
-            'X-SSO-Session-Marker': sessionMarker,
-          },
-        ),
-      );
+      await runSharedSsoMutation(() {
+        return dio.post(
+          '/api/auth/logout',
+          data: fcmToken == null ? null : {'fcmToken': fcmToken},
+          options: Options(
+            headers: {
+              'X-SSO-Refresh': '1',
+              'X-SSO-Background-Logout': '1',
+              'X-SSO-Session-Marker': sessionMarker,
+            },
+          ),
+        );
+      });
     } on DioException {
       // explicit logout 표식이 남아 있으므로 서버 revoke 실패가 자동 재로그인으로 이어지지 않는다.
     }
@@ -432,6 +504,7 @@ class ApiClient {
       _sessionExpired = false;
       _explicitlyLoggedOut = false;
       await _storage.write(key: _explicitLogoutKey, value: '0');
+      await _storage.delete(key: _loggedOutSessionMarkerKey);
       await _storage.write(key: _tokenKey, value: token);
       if (sessionMarker == null || sessionMarker.isEmpty) {
         await _storage.delete(key: _sessionMarkerKey);
@@ -551,6 +624,12 @@ class ApiClient {
       // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
       try {
         await _storage.write(key: _explicitLogoutKey, value: '1');
+        if (sessionMarker != null && sessionMarker!.isNotEmpty) {
+          await _storage.write(
+            key: _loggedOutSessionMarkerKey,
+            value: sessionMarker,
+          );
+        }
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[AUTH] explicit logout marker write failed: $e');
