@@ -162,6 +162,9 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     int? parentTeamId,
     int? managerId,
   }) async {
+    final unchangedSingleManager = managerId != null &&
+        origin.managers.length == 1 &&
+        origin.managers.single.employeeId == managerId;
     final request = TeamUpdateRequest(
       teamName: teamName != origin.teamName ? teamName : null,
       departmentId: departmentId != origin.departmentId ? departmentId : null,
@@ -169,7 +172,9 @@ class DepartmentTeamViewModel extends ChangeNotifier {
           parentTeamId != null && parentTeamId != origin.parentTeamId
               ? parentTeamId
               : null,
-      projectManagerId: managerId,
+      // 오래된 편집 화면이 다른 탭에서 변경된 PM을 원래 값으로 되돌리지 않도록
+      // 실제 담당자 변경 의도가 있을 때만 projectManagerId를 전송한다.
+      projectManagerId: unchangedSingleManager ? null : managerId,
     );
     if (request.isEmpty) return null;
 
