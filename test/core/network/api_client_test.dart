@@ -313,6 +313,16 @@ void main() {
       storedToken = _validAccessToken;
       sessionMarker = null;
       var refreshMarker = '';
+      final captureRefreshHeader = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path == '/api/auth/refresh') {
+            refreshMarker =
+                options.headers['X-SSO-Session-Marker']?.toString() ?? '';
+          }
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.add(captureRefreshHeader);
 
       dioAdapter.onGet(
         '/api/employees/me',
@@ -325,9 +335,6 @@ void main() {
       dioAdapter.onPost(
         '/api/auth/refresh',
         (server) {
-          refreshMarker =
-              server.requestOptions.headers['X-SSO-Session-Marker']?.toString() ??
-                  '';
           server.reply(200, {
             'token': _validAccessToken,
             'employeeId': 7,
@@ -351,11 +358,15 @@ void main() {
         },
       );
 
-      final response = await ApiClient().dio.get('/api/employees/me');
+      try {
+        final response = await ApiClient().dio.get('/api/employees/me');
 
-      expect(response.statusCode, 200);
-      expect(refreshMarker, 'bootstrapped');
-      expect(sessionMarker, 'bootstrapped');
+        expect(response.statusCode, 200);
+        expect(refreshMarker, 'bootstrapped');
+        expect(sessionMarker, 'bootstrapped');
+      } finally {
+        ApiClient().dio.interceptors.remove(captureRefreshHeader);
+      }
     });
 
     test('공개 로그인 요청의 401은 기존 세션 만료로 처리하지 않는다', () async {
