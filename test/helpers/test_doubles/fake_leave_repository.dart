@@ -41,6 +41,8 @@ class FakeLeaveRepository implements LeaveRepository {
     String? endDate,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     myLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
@@ -76,6 +78,8 @@ class FakeLeaveRepository implements LeaveRepository {
     String? endDate,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     allLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
@@ -121,6 +125,8 @@ class FakeLeaveRepository implements LeaveRepository {
     String? employeeParam,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     adminSearchQueries
         .add({'status': status, 'team': team, 'employeeParam': employeeParam});
@@ -153,6 +159,8 @@ class FakeLeaveRepository implements LeaveRepository {
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     pendingFetchCount++;
     if (errorToThrow != null) throw errorToThrow!;
