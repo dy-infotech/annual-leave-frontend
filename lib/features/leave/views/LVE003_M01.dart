@@ -164,8 +164,11 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
       ),
     );
 
+    final rejectReason = controller.text.trim();
+    controller.dispose();
+
     if (confirmed == true) {
-      final result = await vm.reject(req.requestId, controller.text.trim());
+      final result = await vm.reject(req.requestId, rejectReason);
       messenger.showSnackBar(SnackBar(
         content: Text(switch (result) {
           ApprovalMutationResult.succeeded => '반려 처리되었습니다.',
