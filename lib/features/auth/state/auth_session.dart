@@ -112,7 +112,7 @@ class AuthSession extends ChangeNotifier {
     _resetState(notify: false);
 
     try {
-      final loginResponse = await _repository.runSharedSsoMutation(() async {
+      await _repository.runSharedSsoMutation(() async {
         final response = await _repository.signIn(employeeNumber, password);
         issuedSession = response;
         if (!_isCurrent(generation)) {
