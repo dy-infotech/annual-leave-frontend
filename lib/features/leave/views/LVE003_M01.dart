@@ -267,8 +267,19 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
     }
     if (vm.errorMessage != null) {
       return Center(
-          child: Text(vm.errorMessage!,
-              style: const TextStyle(color: AppColors.textMuted)));
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(vm.errorMessage!,
+                style: const TextStyle(color: AppColors.textMuted)),
+            const SizedBox(height: 8),
+            TextButton(
+              onPressed: vm.fetch,
+              child: const Text('다시 시도'),
+            ),
+          ],
+        ),
+      );
     }
     if (vm.requests.isEmpty) {
       return ListView(
