@@ -232,8 +232,14 @@ class LeaveRepository {
       if (items.isEmpty) return result;
 
       final last = items.last;
-      cursorCreatedAt = last.createdAt;
-      cursorRequestId = last.requestId;
+      final nextCursorCreatedAt = last.createdAt;
+      final nextCursorRequestId = last.requestId;
+      if (nextCursorCreatedAt == cursorCreatedAt &&
+          nextCursorRequestId == cursorRequestId) {
+        throw StateError('결재 대기 목록 cursor가 전진하지 않았습니다.');
+      }
+      cursorCreatedAt = nextCursorCreatedAt;
+      cursorRequestId = nextCursorRequestId;
     }
     throw StateError('결재 대기 목록이 cursor 조회 한도를 초과했습니다.');
   }
@@ -278,8 +284,14 @@ class LeaveRepository {
       if (items.isEmpty) return result;
 
       final last = items.last;
-      cursorCreatedAt = last.requestedAt;
-      cursorRequestId = last.requestId;
+      final nextCursorCreatedAt = last.requestedAt;
+      final nextCursorRequestId = last.requestId;
+      if (nextCursorCreatedAt == cursorCreatedAt &&
+          nextCursorRequestId == cursorRequestId) {
+        throw StateError('휴가 목록 cursor가 전진하지 않았습니다.');
+      }
+      cursorCreatedAt = nextCursorCreatedAt;
+      cursorRequestId = nextCursorRequestId;
     }
     throw StateError('휴가 목록이 cursor 조회 한도를 초과했습니다.');
   }
