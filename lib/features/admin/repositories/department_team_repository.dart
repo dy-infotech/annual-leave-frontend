@@ -16,34 +16,34 @@ class DepartmentTeamRepository {
   // ------------------------------------------------------------ 부서
 
   Future<List<Department>> fetchDepartments() async {
-    final response = await _dio.get('/api/admin/departments');
+    final response = await _dio.authenticatedGet('/api/admin/departments');
     return (response.data as List)
         .map((json) => Department.fromJson(json as Map<String, dynamic>))
         .toList();
   }
 
   Future<void> createDepartment(String departmentName) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/admin/departments',
       data: DepartmentSaveRequest(departmentName: departmentName).toJson(),
     );
   }
 
   Future<void> updateDepartment(int departmentId, String departmentName) async {
-    await _dio.put(
+    await _dio.authenticatedPut(
       '/api/admin/departments/$departmentId',
       data: DepartmentSaveRequest(departmentName: departmentName).toJson(),
     );
   }
 
   Future<void> deleteDepartment(int departmentId) async {
-    await _dio.delete('/api/admin/departments/$departmentId');
+    await _dio.authenticatedDelete('/api/admin/departments/$departmentId');
   }
 
   // ------------------------------------------------------------ 팀
 
   Future<List<Team>> fetchTeams() async {
-    final response = await _dio.get('/api/admin/teams');
+    final response = await _dio.authenticatedGet('/api/admin/teams');
     return (response.data as List)
         .map((json) => Team.fromJson(json as Map<String, dynamic>))
         .toList();
@@ -53,7 +53,7 @@ class DepartmentTeamRepository {
     TeamCreateRequest request, {
     String? idempotencyKey,
   }) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/admin/teams',
       data: request.toJson(),
       options: idempotencyKey == null
@@ -63,11 +63,11 @@ class DepartmentTeamRepository {
   }
 
   Future<void> updateTeam(int teamId, TeamUpdateRequest request) async {
-    await _dio.put('/api/admin/teams/$teamId', data: request.toJson());
+    await _dio.authenticatedPut('/api/admin/teams/$teamId', data: request.toJson());
   }
 
   Future<void> deleteTeam(int teamId) async {
-    await _dio.delete('/api/admin/teams/$teamId');
+    await _dio.authenticatedDelete('/api/admin/teams/$teamId');
   }
 
   // ------------------------------------------------------------ 사원
@@ -78,7 +78,7 @@ class DepartmentTeamRepository {
     int size = 50,
   }) async {
     final q = keyword?.trim() ?? '';
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/employees/all',
       queryParameters: {
         if (q.isNotEmpty) 'searchParam': q,
