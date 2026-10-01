@@ -26,12 +26,14 @@ void main() {
   String? storedToken;
   String? explicitLogoutMarker;
   String? sessionMarker;
+  bool failExplicitLogoutFenceWrite = false;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
     sessionMarker = 'session-a';
+    failExplicitLogoutFenceWrite = false;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -48,6 +50,9 @@ void main() {
           return storedToken;
         case 'write':
           if (explicitKey) {
+            if (failExplicitLogoutFenceWrite) {
+              throw PlatformException(code: 'write-failed');
+            }
             explicitLogoutMarker = args?['value'] as String?;
           } else if (sessionKey) {
             sessionMarker = args?['value'] as String?;
@@ -455,6 +460,48 @@ void main() {
       expect(storedToken, _validAccessToken);
     });
   });
+
+    test('logout fence 저장 실패 시 서버 revoke 완료를 기다린다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      failExplicitLogoutFenceWrite = true;
+      var logoutCalled = false;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) {
+          logoutCalled = true;
+          server.reply(204, null);
+        },
+      );
+
+      await ApiClient().logoutSession();
+
+      expect(logoutCalled, isTrue);
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+
+    test('logout fence 저장과 서버 revoke가 모두 실패하면 실패를 전파한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      failExplicitLogoutFenceWrite = true;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await expectLater(
+        ApiClient().logoutSession(),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
 
   group('토큰 저장소', () {
     test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
