@@ -18,6 +18,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  int _totalCount = 0;
   String? _cursorRequestedAt;
   int? _cursorRequestId;
   String? _statusFilter;
@@ -30,6 +31,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+  int get totalCount => _totalCount;
   String? get statusFilter => _statusFilter;
   DateTimeRange? get dateRange => _dateRange;
   bool isProcessing(int requestId) => _processingIds.contains(requestId);
@@ -43,7 +45,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     await _fetch();
   }
 
-  Future<List<LeaveRequestListItem>> _fetchPage({
+  Future<PageResult<LeaveRequestListItem>> _fetchPage({
     bool continueFromCursor = false,
   }) {
     return _repository.fetchMyLeaveRequestsPage(
@@ -63,6 +65,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     _isLoading = true;
     _isLoadingMore = false;
     _hasMore = true;
+    _totalCount = 0;
     _cursorRequestedAt = null;
     _cursorRequestId = null;
     _notify();
@@ -70,8 +73,9 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     try {
       final page = await _fetchPage();
       if (_disposed || seq != _requestSeq) return;
-      _items = page;
-      _applyPageCursor(page);
+      _items = page.items;
+      _totalCount = page.totalCount;
+      _applyPageCursor(page.items, page.hasMore);
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
@@ -91,8 +95,10 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
       if (_disposed || seq != _requestSeq) return;
 
       final existingIds = _items.map((item) => item.requestId).toSet();
-      _items.addAll(page.where((item) => existingIds.add(item.requestId)));
-      _applyPageCursor(page);
+      _items.addAll(
+          page.items.where((item) => existingIds.add(item.requestId)));
+      _totalCount = page.totalCount;
+      _applyPageCursor(page.items, page.hasMore);
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoadingMore = false;
@@ -101,8 +107,9 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
-  void _applyPageCursor(List<LeaveRequestListItem> page) {
-    _hasMore = page.length == _pageSize;
+  void _applyPageCursor(
+      List<LeaveRequestListItem> page, bool hasMore) {
+    _hasMore = hasMore;
     if (page.isNotEmpty) {
       final last = page.last;
       _cursorRequestedAt = last.requestedAt;
