@@ -105,8 +105,17 @@ class LeaveRepository {
     await _dio.delete('/api/leave-requests/$requestId');
   }
 
-  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
-    await _dio.post('/api/leave-requests', data: request.toJson());
+  Future<void> submitLeaveRequest(
+    LeaveRequestCreate request, {
+    String? idempotencyKey,
+  }) async {
+    await _dio.post(
+      '/api/leave-requests',
+      data: request.toJson(),
+      options: idempotencyKey == null
+          ? null
+          : Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
   }
 
   Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
