@@ -460,7 +460,8 @@ void main() {
           ),
         );
 
-        expect(error.response?.statusCode, 401);
+        expect(error.type, DioExceptionType.cancel);
+        expect(error.response, isNull);
         expect(mutationCalls, 1);
         expect(retriedAuthorization, isNull);
         expect(storedToken, _otherAccessToken);
