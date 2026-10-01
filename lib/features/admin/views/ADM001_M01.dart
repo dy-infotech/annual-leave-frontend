@@ -41,6 +41,17 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
   AdminSettingsViewModel get _vm => context.read<AdminSettingsViewModel>();
 
   @override
+  void initState() {
+    super.initState();
+    _employeeScrollController.addListener(() {
+      if (!_employeeScrollController.hasClients) return;
+      if (_employeeScrollController.position.extentAfter < 240) {
+        _vm.loadMoreEmployees();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     //스크롤 해제
     _employeeScrollController.dispose();
