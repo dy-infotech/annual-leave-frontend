@@ -16,12 +16,15 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     this.initialFilter,
     this.canViewAll = true,
     LeaveRepository? repository,
-  }) : _repository = repository ?? LeaveRepository();
+    DateTime Function()? now,
+  })  : _repository = repository ?? LeaveRepository(),
+        _now = now ?? DateTime.now;
 
   final String? initialStatus;
   final String? initialFilter;
   final bool canViewAll;
   final LeaveRepository _repository;
+  final DateTime Function() _now;
 
   static const int _pageSize = LeaveRepository.defaultPageSize;
 
@@ -37,7 +40,6 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   DateTimeRange? _dateRange;
   String _buttonLabel = '전체';
   final Set<int> _processingIds = {};
-  final DateTime _today = DateTime.now();
   int _requestSeq = 0;
   bool _disposed = false;
 
@@ -69,7 +71,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   Future<PageResult<LeaveRequestListItem>> _fetchPage({
     bool continueFromCursor = false,
   }) {
-    final year = _today.year;
+    final year = _now().year;
     var startDate = formatDate(DateTime(year, 1, 1));
     var endDate = formatDate(DateTime(year, 12, 31));
     if (_dateRange != null) {
