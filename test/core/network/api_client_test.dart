@@ -79,7 +79,7 @@ void main() {
 
       expect(
         response.requestOptions.headers['Authorization'],
-        'Bearer header.payload.signature',
+        'Bearer $_validAccessToken',
       );
       expect(storageCalls.map((call) => call.method), contains('read'));
       expect(
