@@ -26,7 +26,7 @@ void main() {
 
   late Map<String, String> secureStore;
   late List<String> secureMethods;
-  late bool failSecureStorageWrite;
+  late bool failSecureStorageDelete;
   late FakeAuthSession session;
   late _CountingHolidayRepository holidayRepository;
 
@@ -39,7 +39,7 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     secureStore = {};
     secureMethods = [];
-    failSecureStorageWrite = false;
+    failSecureStorageDelete = false;
 
     // 비밀번호 저장소는 플랫폼 채널을 타므로 인메모리 맵으로 대신한다.
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -50,12 +50,12 @@ void main() {
         case 'read':
           return secureStore[args['key'] as String];
         case 'write':
-          if (failSecureStorageWrite) {
-            throw PlatformException(code: 'write-failed');
-          }
           secureStore[args['key'] as String] = args['value'] as String;
           return null;
         case 'delete':
+          if (failSecureStorageDelete) {
+            throw PlatformException(code: 'delete-failed');
+          }
           secureStore.remove(args['key'] as String);
           return null;
         case 'containsKey':
@@ -91,7 +91,7 @@ void main() {
       expect(secureMethods, isEmpty);
     });
 
-    test('loadSavedAccountInfo - 저장된 사번과 암호 저장소의 비밀번호를 함께 불러온다', () async {
+    test('loadSavedAccountInfo - 저장된 사번만 불러오고 레거시 비밀번호는 삭제한다', () async {
       SharedPreferences.setMockInitialValues({
         'isRememberMe': true,
         'savedEmployeeNumber': 'A0001',
@@ -103,8 +103,9 @@ void main() {
 
       expect(vm.isRememberMe, isTrue);
       expect(vm.employeeNumberController.text, 'A0001');
-      expect(vm.passwordController.text, 'pw1234');
-      expect(secureMethods, contains('read'));
+      expect(vm.passwordController.text, isEmpty);
+      expect(secureStore.containsKey('savedPassword'), isFalse);
+      expect(secureMethods, contains('delete'));
     });
 
     test('loadSavedAccountInfo - 저장 여부는 true인데 값이 없으면 빈 문자열로 채운다', () async {
@@ -165,7 +166,7 @@ void main() {
       expect(vm.isLoading, isFalse);
     });
 
-    test('성공 + 계정 저장 체크 - 사번은 일반 저장소, 비밀번호는 암호 저장소에 넣는다', () async {
+    test('성공 + 사번 저장 체크 - 사번만 저장하고 비밀번호는 남기지 않는다', () async {
       final vm = build();
       vm.employeeNumberController.text = '  A0001  ';
       vm.passwordController.text = 'pw1234';
@@ -176,7 +177,8 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       expect(prefs.getBool('isRememberMe'), isTrue);
       expect(prefs.getString('savedEmployeeNumber'), 'A0001');
-      expect(secureStore['savedPassword'], 'pw1234');
+      expect(secureStore.containsKey('savedPassword'), isFalse);
+      expect(secureMethods, contains('delete'));
     });
 
     test('성공 + 계정 저장 해제 - 저장돼 있던 사번과 비밀번호를 모두 지운다', () async {
@@ -200,8 +202,8 @@ void main() {
       expect(secureMethods, contains('delete'));
     });
 
-    test('계정 저장소 쓰기가 실패해도 이미 성공한 로그인은 유지한다', () async {
-      failSecureStorageWrite = true;
+    test('레거시 비밀번호 삭제가 실패해도 이미 성공한 로그인은 유지한다', () async {
+      failSecureStorageDelete = true;
 
       final vm = build();
       vm.employeeNumberController.text = 'A0001';
