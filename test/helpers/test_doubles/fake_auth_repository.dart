@@ -11,6 +11,11 @@ class FakeAuthRepository implements AuthRepository {
 
   Employee? myInfoToReturn;
   String? storedToken;
+  String? storedSessionMarker;
+  Object? saveTokenErrorToThrow;
+  Object? getTokenErrorToThrow;
+  Object? discardRefreshSessionErrorToThrow;
+  final List<String> discardedSessionMarkers = [];
 
   Object? signUpErrorToThrow;
   final List<Map<String, String>> signUpCalls = [];
@@ -22,6 +27,9 @@ class FakeAuthRepository implements AuthRepository {
 
   Object? findIdErrorToThrow;
   final List<Map<String, String>> findIdCalls = [];
+
+  Object? logoutErrorToThrow;
+  int logoutCalls = 0;
 
   @override
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
@@ -62,15 +70,40 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> saveToken(String token) async {
+  Future<void> saveToken(
+    String token, {
+    String? ssoSessionMarker,
+  }) async {
+    if (saveTokenErrorToThrow != null) throw saveTokenErrorToThrow!;
     storedToken = token;
+    storedSessionMarker = ssoSessionMarker;
   }
 
   @override
-  Future<String?> getToken() async => storedToken;
+  Future<void> discardRefreshSession(String sessionMarker) async {
+    discardedSessionMarkers.add(sessionMarker);
+    if (discardRefreshSessionErrorToThrow != null) {
+      throw discardRefreshSessionErrorToThrow!;
+    }
+  }
+
+  @override
+  Future<void> logout({String? fcmToken}) async {
+    logoutCalls++;
+    if (logoutErrorToThrow != null) throw logoutErrorToThrow!;
+    storedToken = null;
+    storedSessionMarker = null;
+  }
+
+  @override
+  Future<String?> getToken() async {
+    if (getTokenErrorToThrow != null) throw getTokenErrorToThrow!;
+    return storedToken;
+  }
 
   @override
   Future<void> clearToken() async {
     storedToken = null;
+    storedSessionMarker = null;
   }
 }

@@ -1,10 +1,38 @@
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:annual_leave_frontend/features/leave/view_models/LVE002_M02_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/test_doubles/fake_leave_repository.dart';
+
+
+class _PagedAllLeaveRepository extends FakeLeaveRepository {
+  _PagedAllLeaveRepository(this.pages);
+
+  final List<PageResult<LeaveRequestListItem>> pages;
+  int _index = 0;
+
+  @override
+  Future<PageResult<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+    String? status,
+    String? startDate,
+    String? endDate,
+    int page = 0,
+    int size = LeaveRepository.defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
+  }) async {
+    allLeaveRequestQueries
+        .add({'status': status, 'startDate': startDate, 'endDate': endDate});
+    final current = pages[_index];
+    if (_index < pages.length - 1) {
+      _index++;
+    }
+    return current;
+  }
+}
 
 void main() {
   late FakeLeaveRepository fake;
@@ -33,6 +61,27 @@ void main() {
       expect(fake.myLeaveRequestQueries, isEmpty);
       expect(vm.items, hasLength(1));
       expect(vm.isLoading, isFalse);
+    });
+
+    test('load - 전체 권한이 없으면 all 초기값도 내 신청으로 강제한다', () async {
+      final vm = AllLeaveRequestsViewModel(
+        initialFilter: 'all',
+        canViewAll: false,
+        repository: fake,
+      );
+
+      await vm.load();
+
+      expect(vm.buttonLabel, '내 신청');
+      expect(fake.allLeaveRequestQueries, isEmpty);
+      expect(fake.myLeaveRequestQueries, [
+        {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
+      ]);
+
+      vm.setButtonLabel('전체');
+      await Future<void>.delayed(Duration.zero);
+      expect(vm.buttonLabel, '내 신청');
+      expect(fake.allLeaveRequestQueries, isEmpty);
     });
 
     test('load - 초기 필터가 my면 내 신청 라벨로 my API를 조회한다', () async {
@@ -100,6 +149,42 @@ void main() {
 
       expect(fake.allLeaveRequestQueries.last,
           {'status': null, 'startDate': yearStart, 'endDate': yearEnd});
+    });
+
+    test('무한스크롤은 200건을 넘어서도 서버 hasMore가 true면 계속 조회한다', () async {
+      List<LeaveRequestListItem> pageItems(int startId, int count) =>
+          List.generate(count, (index) {
+            final json = fixtureJson('leave/leave_request_list_item.json');
+            json['requestId'] = startId + index;
+            json['requestedAt'] =
+                '2026-09-${((startId + index) % 28 + 1).toString().padLeft(2, '0')}T09:00:00';
+            return LeaveRequestListItem.fromJson(json);
+          });
+
+      final paged = _PagedAllLeaveRepository([
+        PageResult(items: pageItems(1, 50), totalCount: 201, hasMore: true),
+        PageResult(items: pageItems(51, 50), totalCount: 201, hasMore: true),
+        PageResult(items: pageItems(101, 50), totalCount: 201, hasMore: true),
+        PageResult(items: pageItems(151, 50), totalCount: 201, hasMore: true),
+        PageResult(items: pageItems(201, 1), totalCount: 201, hasMore: false),
+      ]);
+      final vm = AllLeaveRequestsViewModel(repository: paged);
+
+      await vm.load();
+      await vm.loadMore();
+      await vm.loadMore();
+      await vm.loadMore();
+
+      expect(vm.items, hasLength(200));
+      expect(vm.totalCount, 201);
+      expect(vm.hasMore, isTrue);
+
+      await vm.loadMore();
+
+      expect(vm.items, hasLength(201));
+      expect(vm.totalCount, 201);
+      expect(vm.hasMore, isFalse);
+      expect(paged.allLeaveRequestQueries, hasLength(5));
     });
 
     test('cancel 성공 - true를 돌려주고 재조회한다', () async {

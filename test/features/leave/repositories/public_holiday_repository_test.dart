@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -144,6 +146,34 @@ void main() {
 
       PublicHolidayRepository.clearCache();
       await repository.fetchPublicHolidays();
+
+      expect(sentRequests, hasLength(4));
+    });
+
+    test('연도가 바뀌면 이전 연도의 in-flight 요청을 공유하지 않는다', () async {
+      stubHolidays(currentYear: [], nextYear: []);
+      final gate = Completer<void>();
+      dio.interceptors.add(
+        InterceptorsWrapper(
+          onRequest: (options, handler) async {
+            await gate.future;
+            handler.next(options);
+          },
+        ),
+      );
+
+      var now = DateTime(2026, 12, 31, 23, 59);
+      final byYear = PublicHolidayRepository(dio: dio, now: () => now);
+
+      final first = byYear.fetchPublicHolidays();
+      await Future<void>.delayed(Duration.zero);
+
+      now = DateTime(2027, 1, 1);
+      final second = byYear.fetchPublicHolidays();
+      await Future<void>.delayed(Duration.zero);
+
+      gate.complete();
+      await Future.wait([first, second]);
 
       expect(sentRequests, hasLength(4));
     });

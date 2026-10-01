@@ -1,14 +1,13 @@
-import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/auth/views/splash_screen.dart';
 import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
 
 /// 스플래시 화면의 자동 로그인 분기 테스트.
 ///
@@ -20,42 +19,27 @@ class _StubAuthSession extends AuthSession {
   final Object? errorToThrow;
 
   int tryAutoLoginCount = 0;
+  bool? lastAutoLoginEnabled;
   bool _isLoggedIn = false;
 
   @override
   bool get isLoggedIn => _isLoggedIn;
 
   @override
-  Future<void> tryAutoLogin() async {
+  Future<void> tryAutoLogin({bool enabled = true}) async {
     tryAutoLoginCount++;
+    lastAutoLoginEnabled = enabled;
     if (errorToThrow != null) throw errorToThrow!;
-    _isLoggedIn = loggedIn;
+    _isLoggedIn = enabled && loggedIn;
   }
 }
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUpAll(() {
-    // JWT 조회가 플랫폼 채널을 타므로 null을 돌려주도록 모킹한다.
-    const channel =
-        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => null);
-  });
-
   setUp(() {
-    // 공휴일 저장소가 static 캐시를 쓰므로 테스트 간 간섭을 막는다.
     PublicHolidayRepository.clearCache();
-
-    // 자동 로그인 성공 경로에서 화면이 공휴일 API를 직접 호출한다.
-    // 저장소를 주입할 수 없는 구조라 HTTP 계층에서 스텁한다.
-    final dioAdapter = DioAdapter(dio: ApiClient().dio);
-    dioAdapter
-      ..onGet('/api/leave-requests/current-year-special-days',
-          (server) => server.reply(200, []))
-      ..onGet('/api/leave-requests/next-year-special-days',
-          (server) => server.reply(200, []));
+    SharedPreferences.setMockInitialValues({});
   });
 
   Future<_StubAuthSession> pumpSplash(
@@ -68,7 +52,9 @@ void main() {
 
     await pumpApp(
       tester,
-      const SplashScreen(),
+      SplashScreen(
+        holidayRepository: FakePublicHolidayRepository(),
+      ),
       providers: [ChangeNotifierProvider<AuthSession>.value(value: session)],
       routes: {
         '/dashboard': (_) => const Scaffold(body: Text('dashboard-stub')),
@@ -88,9 +74,10 @@ void main() {
 
   testWidgets('자동 로그인 성공 - 대시보드로 이동한다', (tester) async {
     final session = await pumpSplash(tester, loggedIn: true);
-    await tester.pumpAndSettle();
+    await pumpUntilFound(tester, find.text('dashboard-stub'));
 
     expect(session.tryAutoLoginCount, 1);
+    expect(session.lastAutoLoginEnabled, isTrue);
     expect(find.text('dashboard-stub'), findsOneWidget);
     expect(find.text('login-stub'), findsNothing);
   });
@@ -100,6 +87,19 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(session.tryAutoLoginCount, 1);
+    expect(find.text('login-stub'), findsOneWidget);
+    expect(find.text('dashboard-stub'), findsNothing);
+  });
+
+  testWidgets('자동 로그인 해제 - 세션 복원을 시도하지 않고 로그인 화면으로 이동한다',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'autoLoginEnabled': false});
+
+    final session = await pumpSplash(tester, loggedIn: true);
+    await tester.pumpAndSettle();
+
+    expect(session.tryAutoLoginCount, 1);
+    expect(session.lastAutoLoginEnabled, isFalse);
     expect(find.text('login-stub'), findsOneWidget);
     expect(find.text('dashboard-stub'), findsNothing);
   });

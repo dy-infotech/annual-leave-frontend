@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart'
     show kDebugMode, kIsWeb, defaultTargetPlatform, TargetPlatform;
 
+/// 백엔드 API 주소 설정.
+///
+/// 우선순위: `--dart-define=API_BASE_URL` > (debug 빌드) 로컬 개발 서버 > (release/profile) 운영 서버.
 class ApiConfig {
   static const String _prodUrl = 'https://app.dyinfotech.com';
 
@@ -8,6 +11,7 @@ class ApiConfig {
   /// 실기기 디버깅(개발 PC 의 LAN IP), 스테이징 서버, CI 에서 사용.
   static const String _override = String.fromEnvironment('API_BASE_URL');
 
+  /// 현재 빌드가 호출할 API 서버 주소. (끝에 `/`가 없는 형태)
   static String get baseUrl {
     if (_override.isNotEmpty) return _override;
     // debug 만 로컬. release·profile 은 프로덕션.

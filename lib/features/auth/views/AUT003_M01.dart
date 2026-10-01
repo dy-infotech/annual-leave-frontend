@@ -87,10 +87,11 @@ class _FindAccountViewState extends State<_FindAccountView>
   }
 
   Future<void> _handleResetPassword() async {
-    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context, rootNavigator: true);
+    final messenger = ScaffoldMessenger.of(navigator.context);
     final ok = await _vm.confirmPasswordReset();
     if (ok && mounted) {
-      Navigator.pop(context);
+      navigator.pop();
       messenger.showSnackBar(
         const SnackBar(content: Text('비밀번호가 변경되었습니다. 다시 로그인해 주세요.')),
       );
@@ -132,7 +133,7 @@ class _FindAccountViewState extends State<_FindAccountView>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '등록된 가입 정보(성함, 이메일)를 입력하시면 \n 아이디를 빌송해 드립니다.',
+              '등록된 가입 정보(성함, 이메일)를 입력하시면 \n 아이디를 발송해 드립니다.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textPrimary),
             ),

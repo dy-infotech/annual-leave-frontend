@@ -27,10 +27,12 @@ class AllLeaveRequestsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const canViewAll = true;
     return ChangeNotifierProvider(
       create: (_) => AllLeaveRequestsViewModel(
         initialStatus: status,
         initialFilter: filter,
+        canViewAll: canViewAll,
         repository: repository,
       )..load(),
       child: const _AllLeaveRequestsView(),
@@ -118,8 +120,8 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
 
     if (confirmed == true) {
       final ok = await vm.cancel(item.requestId);
-      messenger.showSnackBar(
-          SnackBar(content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
+      messenger.showSnackBar(SnackBar(
+          content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
     }
   }
 
@@ -338,7 +340,7 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
                 // 실제 리스트 데이터인 items의 길이를 가져와 동적으로 건수를 표시 (조회건수)
 
                 Text(
-                  '${vm.items.length}건',
+                  '${vm.totalCount}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate,

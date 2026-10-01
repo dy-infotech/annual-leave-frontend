@@ -139,7 +139,7 @@ class _DepartmentTeamManageViewState extends State<_DepartmentTeamManageView>
         team: team,
         departments: vm.departments,
         teams: vm.teams,
-        searchEmployees: vm.searchEmployees,
+        searchEmployeesPage: vm.searchEmployeesPage,
         onSubmit: (data) => team == null
             ? vm.submitTeamCreate(
                 teamName: data.teamName,
@@ -922,14 +922,14 @@ class _TeamFormSheet extends StatefulWidget {
   final List<Department> departments;
   final List<Team> teams;
   final Future<String?> Function(_TeamFormData data) onSubmit;
-  final Future<List<Employee>> Function(String? keyword) searchEmployees;
+  final EmployeePageSearch searchEmployeesPage;
 
   const _TeamFormSheet({
     this.team,
     required this.departments,
     required this.teams,
     required this.onSubmit,
-    required this.searchEmployees,
+    required this.searchEmployeesPage,
   });
 
   @override
@@ -1079,13 +1079,9 @@ class _TeamFormSheetState extends State<_TeamFormSheet> {
         excludeEmployeeNumbers: [
           if (_pickedManager != null) _pickedManager!.employeeNumber,
         ],
-        searchFn: (keyword) async {
-          final employees = await widget.searchEmployees(keyword);
-          final now = DateTime.now();
-          return employees
-              .where((employee) => _canSelectAsManager(employee, now))
-              .toList();
-        },
+        searchPageFn: widget.searchEmployeesPage,
+        employeeFilter: (employee) =>
+            _canSelectAsManager(employee, DateTime.now()),
       ),
     );
     if (picked == null || !mounted) return;

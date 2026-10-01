@@ -2,6 +2,11 @@ import 'package:annual_leave_frontend/features/auth/repositories/auth_repository
 import 'package:flutter/material.dart';
 
 /// 계정 찾기 화면(AUT003_M01)의 ViewModel.
+///
+/// 세 가지 흐름을 한 화면에서 처리한다.
+/// 1) 아이디 찾기: 이름과 이메일로 사번 안내 메일을 받는다.
+/// 2) 비밀번호 재설정 메일 요청: 사번과 이메일로 재설정 토큰 메일을 받는다. 성공하면 [resetRequested]가 true가 된다.
+/// 3) 비밀번호 재설정 확정: 메일로 받은 토큰과 새 비밀번호를 서버에 제출한다.
 class FindAccountViewModel extends ChangeNotifier {
   FindAccountViewModel({AuthRepository? repository})
       : _repository = repository ?? AuthRepository();
@@ -21,6 +26,8 @@ class FindAccountViewModel extends ChangeNotifier {
 
   bool _isLoading = false;
   String? _errorMessage;
+
+  /// 비밀번호 재설정 메일 요청이 성공했는지 여부. 화면이 토큰/새 비밀번호 입력 단계를 보여주는 기준이다.
   bool _resetRequested = false;
   bool _disposed = false;
 
@@ -94,6 +101,10 @@ class FindAccountViewModel extends ChangeNotifier {
     }
   }
 
+  /// 메일로 받은 재설정 토큰과 새 비밀번호를 제출한다. 성공하면 true를 돌려준다.
+  ///
+  /// 서버 호출 전에 필수값과 새 비밀번호/확인 일치 여부를 검사한다.
+  /// 실패 사유는 토큰 오류와 만료를 구분하지 않고 하나의 문구로 보여준다.
   Future<bool> confirmPasswordReset() async {
     if (_disposed || _isLoading) return false;
     if (resetTokenController.text.trim().isEmpty ||

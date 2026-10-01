@@ -4,6 +4,12 @@ import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
+typedef EmployeePageSearch = Future<List<Employee>> Function(
+  String? keyword, {
+  required int page,
+  required int size,
+});
+
 /// 사원을 검색해서 한 명을 고르는 다이얼로그.
 ///
 /// 선택하면 [Employee] 를, 그냥 닫으면 null 을 반환한다.
@@ -22,14 +28,22 @@ class EmployeePickerDialog extends StatefulWidget {
 
   final String title;
 
-  /// 사원 검색 함수. 지정하지 않으면 관리자 사원 목록 API 를 사용한다.
+  /// 기존 전체 검색 콜백. 호환용이며 지정 시 한 번만 호출한다.
   final Future<List<Employee>> Function(String? keyword)? searchFn;
+
+  /// 페이지 검색 콜백. 지정하지 않으면 관리자 사원 목록 API의 페이지 조회를 사용한다.
+  final EmployeePageSearch? searchPageFn;
+
+  /// 페이지를 받아온 뒤 화면에 노출할 사원만 거르는 선택 조건.
+  final bool Function(Employee employee)? employeeFilter;
 
   const EmployeePickerDialog({
     super.key,
     this.excludeEmployeeNumbers = const [],
     this.title = '사원 선택',
     this.searchFn,
+    this.searchPageFn,
+    this.employeeFilter,
   });
 
   @override
@@ -40,8 +54,15 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
 
+  static const int _pageSize = 50;
+  static const int _minimumVisibleItems = 10;
+  static const int _maxServerPages = 401;
+
   List<Employee> _items = [];
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _nextPage = 0;
   String? _error;
 
   /// 요청 순번. 늦게 도착한 이전 응답이 최신 결과를 덮어쓰지 못하게 한다.
@@ -50,6 +71,12 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
   @override
   void initState() {
     super.initState();
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.extentAfter < 180) {
+        _loadMore();
+      }
+    });
     _fetch();
   }
 
@@ -60,36 +87,125 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
     super.dispose();
   }
 
-  // 1. 사원 조회 (검색어가 없으면 전체)
+  // 1. 사원 조회 (검색어가 없으면 첫 페이지)
+  Future<List<Employee>> _fetchPage(int page) async {
+    final keyword = _searchController.text.trim();
+    final pagedSearch = widget.searchPageFn;
+    if (pagedSearch != null) {
+      return pagedSearch(
+        keyword,
+        page: page,
+        size: _pageSize,
+      );
+    }
+
+    if (widget.searchFn != null) {
+      if (page > 0) return const <Employee>[];
+      return widget.searchFn!(keyword);
+    }
+
+    return DepartmentTeamRepository().searchEmployeesPage(
+      keyword,
+      page: page,
+      size: _pageSize,
+    );
+  }
+
+  List<Employee> _visibleEmployees(List<Employee> source) {
+    final filter = widget.employeeFilter;
+    return source.where((emp) {
+      if (widget.excludeEmployeeNumbers.contains(emp.employeeNumber)) {
+        return false;
+      }
+      return filter == null || filter(emp);
+    }).toList();
+  }
+
   Future<void> _fetch() async {
     if (!mounted) return;
     final seq = ++_requestSeq;
     setState(() {
       _isLoading = true;
+      _isLoadingMore = false;
+      _hasMore = true;
+      _nextPage = 0;
       _error = null;
     });
 
     try {
-      final search =
-          widget.searchFn ?? DepartmentTeamRepository().searchEmployees;
-      final fetched = (await search(_searchController.text))
-          .where((emp) =>
-              !widget.excludeEmployeeNumbers.contains(emp.employeeNumber))
-          .toList();
-
-      // 더 최신 요청이 이미 나갔다면 이 응답은 버린다.
+      var page = await _fetchPage(0);
       if (!mounted || seq != _requestSeq) return;
-      setState(() => _items = fetched);
+
+      final visible = _visibleEmployees(page);
+      var nextPage = page.isEmpty ? 0 : 1;
+      var hasMore = widget.searchFn == null && page.length == _pageSize;
+
+      // raw page에서 퇴사자/중복 제외 후 표시 항목이 거의 없으면 스크롤 자체가
+      // 생기지 않아 다음 페이지를 요청할 기회가 없다. 첫 화면에 충분한 항목이
+      // 생기거나 서버 페이지가 끝날 때까지만 이어서 채운다.
+      while (visible.length < _minimumVisibleItems &&
+          hasMore &&
+          nextPage < _maxServerPages) {
+        page = await _fetchPage(nextPage);
+        if (!mounted || seq != _requestSeq) return;
+
+        visible.addAll(_visibleEmployees(page));
+        hasMore = page.length == _pageSize;
+        if (page.isNotEmpty) {
+          nextPage++;
+        } else {
+          hasMore = false;
+        }
+      }
+
+      setState(() {
+        _items = visible;
+        _hasMore = hasMore;
+        _nextPage = nextPage;
+      });
     } catch (e) {
       debugPrint('사원 목록 조회 실패: $e');
       if (!mounted || seq != _requestSeq) return;
       setState(() {
         _items = [];
+        _hasMore = false;
         _error = '사원 목록을 불러오지 못했습니다.';
       });
     } finally {
       if (mounted && seq == _requestSeq) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (!mounted || _isLoading || _isLoadingMore || !_hasMore) return;
+
+    final seq = _requestSeq;
+    final pageNumber = _nextPage;
+    setState(() => _isLoadingMore = true);
+
+    try {
+      final page = await _fetchPage(pageNumber);
+      if (!mounted || seq != _requestSeq) return;
+
+      final existingNumbers =
+          _items.map((employee) => employee.employeeNumber).toSet();
+      final visible = _visibleEmployees(page)
+          .where((employee) => existingNumbers.add(employee.employeeNumber));
+
+      setState(() {
+        _items.addAll(visible);
+        _hasMore = page.length == _pageSize;
+        if (page.isNotEmpty) _nextPage++;
+      });
+    } catch (e) {
+      debugPrint('추가 사원 목록 조회 실패: $e');
+      if (!mounted || seq != _requestSeq) return;
+      setState(() => _error = '추가 사원 목록을 불러오지 못했습니다.');
+    } finally {
+      if (mounted && seq == _requestSeq) {
+        setState(() => _isLoadingMore = false);
       }
     }
   }
@@ -219,8 +335,25 @@ class _EmployeePickerDialogState extends State<EmployeePickerDialog> {
       child: ListView.builder(
         controller: _scrollController,
         padding: EdgeInsets.zero,
-        itemCount: _items.length,
-        itemBuilder: (context, index) => _buildEmployeeItem(_items[index]),
+        itemCount: _items.length + (_isLoadingMore ? 1 : 0),
+        itemBuilder: (context, index) {
+          if (index >= _items.length) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: AppColors.slate,
+                  ),
+                ),
+              ),
+            );
+          }
+          return _buildEmployeeItem(_items[index]);
+        },
       ),
     );
   }

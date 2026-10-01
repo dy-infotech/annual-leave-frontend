@@ -72,15 +72,41 @@ class DepartmentTeamRepository {
 
   // ------------------------------------------------------------ 사원
 
-  /// 담당자 선택용 사원 검색. 검색어는 사번 또는 성명 부분 일치.
-  Future<List<Employee>> searchEmployees(String? keyword) async {
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    int page = 0,
+    int size = 50,
+  }) async {
     final q = keyword?.trim() ?? '';
     final response = await _dio.get(
       '/api/admin/employees/all',
-      queryParameters: q.isEmpty ? null : {'searchParam': q},
+      queryParameters: {
+        if (q.isNotEmpty) 'searchParam': q,
+        'page': page,
+        'size': size,
+      },
     );
     return (response.data as List)
         .map((json) => Employee.fromJson(json))
         .toList();
+  }
+
+  /// 담당자 선택용 사원 검색. bounded page를 끝까지 수집해
+  /// backend paging 도입 전과 같은 완전한 결과 계약을 유지한다.
+  Future<List<Employee>> searchEmployees(String? keyword) async {
+    const pageSize = 100;
+    const maxPages = 201;
+    final result = <Employee>[];
+
+    for (var page = 0; page < maxPages; page++) {
+      final items = await searchEmployeesPage(
+        keyword,
+        page: page,
+        size: pageSize,
+      );
+      result.addAll(items);
+      if (items.length < pageSize) return result;
+    }
+    throw StateError('담당자 검색 결과가 조회 가능한 페이지 한도를 초과했습니다.');
   }
 }

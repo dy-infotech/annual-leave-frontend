@@ -38,14 +38,21 @@ void main() {
     return LeaveRequestListItem.fromJson(json);
   }
 
-  Future<void> pumpAllListScreen(WidgetTester tester,
-      {Employee? loginUser}) async {
+  Future<void> pumpAllListScreen(
+    WidgetTester tester, {
+    Employee? loginUser,
+    bool isAdmin = true,
+  }) async {
     await pumpApp(
       tester,
       AllLeaveRequestsScreen(repository: fake),
       providers: [
         ChangeNotifierProvider<AuthSession>(
-            create: (_) => FakeAuthSession(employeeInfo: loginUser)),
+          create: (_) => FakeAuthSession(
+            employeeInfo: loginUser,
+            isAdmin: isAdmin,
+          ),
+        ),
       ],
     );
     await tester.pumpAndSettle();
@@ -67,6 +74,24 @@ void main() {
       {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
     ]);
     expect(fake.myLeaveRequestQueries, isEmpty);
+  });
+
+  testWidgets('일반 직원도 전체 목록을 기본 조회하고 내 신청 필터를 선택할 수 있다',
+      (tester) async {
+    final me = Employee.fromJson(fixtureJson('admin/employee.json'));
+
+    await pumpAllListScreen(
+      tester,
+      loginUser: me,
+      isAdmin: false,
+    );
+
+    expect(fake.allLeaveRequestQueries, [
+      {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
+    ]);
+    expect(fake.myLeaveRequestQueries, isEmpty);
+    expect(find.byType(Radio<String>), findsNWidgets(2));
+    expect(find.text('내 신청'), findsOneWidget);
   });
 
   testWidgets('조회 - 내역이 없으면 안내 문구와 0건이 표시된다', (tester) async {

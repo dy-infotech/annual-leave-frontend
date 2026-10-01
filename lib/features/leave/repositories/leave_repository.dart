@@ -21,12 +21,14 @@ class LeaveRepository {
     return LeavePeriod.fromJson(Map<String, dynamic>.from(response.data));
   }
 
-  Future<List<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/my',
@@ -35,22 +37,26 @@ class LeaveRepository {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestedAt': cursorRequestedAt,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
-  Future<List<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/all',
@@ -59,28 +65,33 @@ class LeaveRepository {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestedAt': cursorRequestedAt,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
-  /// 캘린더/중복 검사처럼 전체 내역이 필요한 내부 호출용.
+  /// 캘린더/중복 검사처럼 범위 내 전체 내역이 필요한 내부 호출용.
+  /// OFFSET 대신 마지막 (requestedAt, requestId) cursor를 이어서 수집한다.
   Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
     String? status,
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return fetchMyLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        page: page,
+        page: 0,
+        cursorRequestedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
@@ -91,12 +102,14 @@ class LeaveRepository {
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return fetchAllLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        page: page,
+        page: 0,
+        cursorRequestedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
@@ -105,16 +118,27 @@ class LeaveRepository {
     await _dio.delete('/api/leave-requests/$requestId');
   }
 
-  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
-    await _dio.post('/api/leave-requests', data: request.toJson());
+  Future<void> submitLeaveRequest(
+    LeaveRequestCreate request, {
+    String? idempotencyKey,
+  }) async {
+    await _dio.post(
+      '/api/leave-requests',
+      data: request.toJson(),
+      options: idempotencyKey == null
+          ? null
+          : Options(headers: {'Idempotency-Key': idempotencyKey}),
+    );
   }
 
-  Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
     required String? status,
     required String? team,
     String? employeeParam,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     final normalizedStatus = status?.trim().toLowerCase();
     if (normalizedStatus != 'approved' && normalizedStatus != 'rejected') {
@@ -133,14 +157,16 @@ class LeaveRepository {
           if (normalizedEmployeeParam != null &&
               normalizedEmployeeParam.isNotEmpty)
             'employeeParam': normalizedEmployeeParam,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorCreatedAt': cursorCreatedAt,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
   Future<List<LeaveRequestListItem>> searchAdminLeaveRequests({
@@ -148,42 +174,66 @@ class LeaveRepository {
     required String? team,
     String? employeeParam,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return searchAdminLeaveRequestsPage(
         status: status,
         team: team,
         employeeParam: employeeParam,
-        page: page,
+        page: 0,
+        cursorCreatedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
 
-  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
+  Future<PageResult<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/admin/leave-requests/pending',
       queryParameters: _pageQuery(
-        const {},
+        {
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorCreatedAt': cursorCreatedAt,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
+        },
         page: page,
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => PendingLeaveRequest.fromJson(json))
-        .toList();
+    return _parsePendingPage(response.data);
   }
 
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
     final result = <PendingLeaveRequest>[];
+    String? cursorCreatedAt;
+    int? cursorRequestId;
 
-    for (var page = 0; page < _maxCursorBatches; page++) {
-      final items = await fetchPendingLeaveRequestsPage(page: page);
-      result.addAll(items);
-      if (items.length < defaultPageSize) return result;
+    for (var batch = 0; batch < _maxCursorBatches; batch++) {
+      final page = await fetchPendingLeaveRequestsPage(
+        page: 0,
+        cursorCreatedAt: cursorCreatedAt,
+        cursorRequestId: cursorRequestId,
+      );
+      result.addAll(page.items);
+      if (!page.hasMore) return result;
+      if (page.items.isEmpty) return result;
+
+      final last = page.items.last;
+      final nextCursorCreatedAt = last.createdAt;
+      final nextCursorRequestId = last.requestId;
+      if (nextCursorCreatedAt == cursorCreatedAt &&
+          nextCursorRequestId == cursorRequestId) {
+        throw StateError('결재 대기 목록 cursor가 전진하지 않았습니다.');
+      }
+      cursorCreatedAt = nextCursorCreatedAt;
+      cursorRequestId = nextCursorRequestId;
     }
-    throw StateError('결재 대기 목록이 페이지 조회 한도를 초과했습니다.');
+    throw StateError('결재 대기 목록이 cursor 조회 한도를 초과했습니다.');
   }
 
   Future<void> approveLeaveRequest(int requestId) async {
@@ -194,6 +244,32 @@ class LeaveRepository {
     await _dio.post(
       '/api/admin/leave-requests/$requestId/reject',
       data: {'rejectReason': rejectReason},
+    );
+  }
+
+  PageResult<LeaveRequestListItem> _parseLeavePage(dynamic data) {
+    final json = Map<String, dynamic>.from(data as Map);
+    final items = (json['items'] as List? ?? const [])
+        .map((item) => LeaveRequestListItem.fromJson(
+            Map<String, dynamic>.from(item as Map)))
+        .toList();
+    return PageResult(
+      items: items,
+      totalCount: (json['totalCount'] as num?)?.toInt() ?? 0,
+      hasMore: json['hasMore'] == true,
+    );
+  }
+
+  PageResult<PendingLeaveRequest> _parsePendingPage(dynamic data) {
+    final json = Map<String, dynamic>.from(data as Map);
+    final items = (json['items'] as List? ?? const [])
+        .map((item) => PendingLeaveRequest.fromJson(
+            Map<String, dynamic>.from(item as Map)))
+        .toList();
+    return PageResult(
+      items: items,
+      totalCount: (json['totalCount'] as num?)?.toInt() ?? 0,
+      hasMore: json['hasMore'] == true,
     );
   }
 
@@ -209,16 +285,32 @@ class LeaveRepository {
     };
   }
 
-  Future<List<LeaveRequestListItem>> _collectLeavePages(
-    Future<List<LeaveRequestListItem>> Function(int page) fetchPage,
+  Future<List<LeaveRequestListItem>> _collectLeaveCursorPages(
+    Future<PageResult<LeaveRequestListItem>> Function(
+      String? cursorCreatedAt,
+      int? cursorRequestId,
+    ) fetchPage,
   ) async {
     final result = <LeaveRequestListItem>[];
+    String? cursorCreatedAt;
+    int? cursorRequestId;
 
-    for (var page = 0; page < _maxCursorBatches; page++) {
-      final items = await fetchPage(page);
-      result.addAll(items);
-      if (items.length < defaultPageSize) return result;
+    for (var batch = 0; batch < _maxCursorBatches; batch++) {
+      final page = await fetchPage(cursorCreatedAt, cursorRequestId);
+      result.addAll(page.items);
+      if (!page.hasMore) return result;
+      if (page.items.isEmpty) return result;
+
+      final last = page.items.last;
+      final nextCursorCreatedAt = last.requestedAt;
+      final nextCursorRequestId = last.requestId;
+      if (nextCursorCreatedAt == cursorCreatedAt &&
+          nextCursorRequestId == cursorRequestId) {
+        throw StateError('휴가 목록 cursor가 전진하지 않았습니다.');
+      }
+      cursorCreatedAt = nextCursorCreatedAt;
+      cursorRequestId = nextCursorRequestId;
     }
-    throw StateError('휴가 목록이 페이지 조회 한도를 초과했습니다.');
+    throw StateError('휴가 목록이 cursor 조회 한도를 초과했습니다.');
   }
 }

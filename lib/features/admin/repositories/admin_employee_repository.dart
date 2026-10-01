@@ -8,15 +8,51 @@ class AdminEmployeeRepository {
 
   final Dio _dio;
 
-  /// 사원 목록 조회. GET /api/admin/employees/all
-  ///
-  /// 검색어가 비어 있으면 쿼리 파라미터 없이 전체를 조회한다. (기존 화면과 동일)
-  Future<List<Employee>> fetchEmployees({String? searchParam}) async {
+  static const int _pageSize = 100;
+  static const int _maxPages = 201;
+
+  /// 기존 화면은 전체 결과를 기대하므로 bounded 서버 page를 끝까지 수집한다.
+  /// 필터가 있으면 서버에 함께 전달해 불필요한 row 전송을 줄인다.
+  Future<List<Employee>> fetchEmployees({
+    String? searchParam,
+    String? team,
+    bool? registered,
+  }) async {
+    final result = <Employee>[];
+    for (var page = 0; page < _maxPages; page++) {
+      final items = await fetchEmployeesPage(
+        searchParam: searchParam,
+        team: team,
+        registered: registered,
+        page: page,
+        size: _pageSize,
+      );
+      result.addAll(items);
+      if (items.length < _pageSize) return result;
+    }
+    throw StateError('사원 목록이 조회 가능한 페이지 한도를 초과했습니다.');
+  }
+
+  Future<List<Employee>> fetchEmployeesPage({
+    String? searchParam,
+    String? team,
+    bool? registered,
+    int page = 0,
+    int size = 50,
+  }) async {
+    final normalizedSearch = searchParam?.trim();
+    final normalizedTeam = team?.trim();
     final response = await _dio.get(
       '/api/admin/employees/all',
-      queryParameters: searchParam == null || searchParam.isEmpty
-          ? null
-          : {'searchParam': searchParam},
+      queryParameters: {
+        if (normalizedSearch != null && normalizedSearch.isNotEmpty)
+          'searchParam': normalizedSearch,
+        if (normalizedTeam != null && normalizedTeam.isNotEmpty)
+          'team': normalizedTeam,
+        if (registered != null) 'registered': registered,
+        'page': page,
+        'size': size,
+      },
     );
     return (response.data as List)
         .map((json) => Employee.fromJson(json))

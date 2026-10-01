@@ -5,6 +5,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
 
+const _validAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwibmFtZSI6Iu2Zjeq4uOuPmSIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.signature';
+const _otherAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4IiwibmFtZSI6Ik90aGVyIiwicm9sZSI6IkVNUExPWUVFIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature';
+
 /// ApiClient 특성화 테스트.
 ///
 /// 전 화면이 보여주는 에러 메시지가 이 클래스의 onError 인터셉터에서 만들어지므로
@@ -19,24 +24,50 @@ void main() {
   late DioAdapter dioAdapter;
   late List<MethodCall> storageCalls;
   String? storedToken;
+  String? explicitLogoutMarker;
+  String? sessionMarker;
+  bool failExplicitLogoutFenceWrite = false;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    explicitLogoutMarker = null;
+    sessionMarker = 'session-a';
+    failExplicitLogoutFenceWrite = false;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       storageCalls.add(call);
       final args = call.arguments as Map?;
+      final key = args?['key'] as String?;
+      final explicitKey = key == 'annual_leave_explicit_logout';
+      final sessionKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
+          if (explicitKey) return explicitLogoutMarker;
+          if (sessionKey) return sessionMarker;
           return storedToken;
         case 'write':
-          storedToken = args?['value'] as String?;
+          if (explicitKey) {
+            if (failExplicitLogoutFenceWrite) {
+              throw PlatformException(code: 'write-failed');
+            }
+            explicitLogoutMarker = args?['value'] as String?;
+          } else if (sessionKey) {
+            sessionMarker = args?['value'] as String?;
+          } else {
+            storedToken = args?['value'] as String?;
+          }
           return null;
         case 'delete':
-          storedToken = null;
+          if (explicitKey) {
+            explicitLogoutMarker = null;
+          } else if (sessionKey) {
+            sessionMarker = null;
+          } else {
+            storedToken = null;
+          }
           return null;
       }
       return null;
@@ -69,19 +100,19 @@ void main() {
 
   group('JWT 인터셉터', () {
     test('저장된 토큰이 있으면 Authorization 헤더를 붙인다', () async {
-      storedToken = 'header.payload.signature';
+      storedToken = _validAccessToken;
       dioAdapter.onGet('/api/employees/me', (server) => server.reply(200, {}));
 
       final response = await ApiClient().dio.get('/api/employees/me');
 
       expect(
         response.requestOptions.headers['Authorization'],
-        'Bearer header.payload.signature',
+        'Bearer $_validAccessToken',
       );
       expect(storageCalls.map((call) => call.method), contains('read'));
       expect(
         (storageCalls.first.arguments as Map)['key'],
-        'jwt_token',
+        'annual_leave_access_token',
       );
     });
 
@@ -194,7 +225,7 @@ void main() {
 
   group('401 응답', () {
     test('인증된 요청의 401은 토큰을 지우고 세션 만료 핸들러를 호출한다', () async {
-      storedToken = 'expired.token';
+      storedToken = _validAccessToken;
       var expiredCount = 0;
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
@@ -202,6 +233,10 @@ void main() {
       dioAdapter.onGet(
         '/api/employees/me',
         (server) => server.reply(401, {'message': '인증 정보가 유효하지 않습니다.'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(401, {'message': 'refresh session이 만료되었습니다.'}),
       );
 
       final error = await _captureDioException(
@@ -213,6 +248,127 @@ void main() {
       expect(storedToken, isNull);
       expect(storageCalls.map((call) => call.method), contains('delete'));
       expect(expiredCount, 1);
+    });
+
+    test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _otherAccessToken,
+          'employeeId': 8,
+          'name': 'Other',
+          'role': 'EMPLOYEE',
+          'ssoSessionMarker': 'session-a',
+        }),
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(storedToken, isNull);
+      expect(expiredCount, 1);
+    });
+
+    test('refresh 409 뒤 cookie session marker가 다르면 로컬 세션만 만료한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      var expiredCount = 0;
+      var refreshCalls = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) {
+          refreshCalls++;
+          server.reply(409, {'message': 'session marker mismatch'});
+        },
+      );
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(refreshCalls, 1);
+      expect(storedToken, isNull);
+      expect(expiredCount, 1);
+    });
+
+    test('marker가 없는 기존 세션은 cookie marker를 조회한 뒤 refresh한다', () async {
+      await ApiClient().saveToken(_validAccessToken);
+      var refreshMarker = '';
+      final captureRefreshHeader = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path == '/api/auth/refresh') {
+            refreshMarker =
+                options.headers['X-SSO-Session-Marker']?.toString() ?? '';
+          }
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.add(captureRefreshHeader);
+
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'bootstrapped'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) {
+          server.reply(200, {
+            'token': _validAccessToken,
+            'employeeId': 7,
+            'name': '홍길동',
+            'role': 'ADMIN',
+            'ssoSessionMarker': 'bootstrapped',
+          });
+        },
+      );
+      // 원 요청/재시도 자체는 계속 401이어도 marker bootstrap과 refresh 수행 여부는
+      // 저장소/헤더로 독립 검증한다. (mock adapter의 동일 route 순차 응답에 의존하지 않음)
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+
+      try {
+        final error = await _captureDioException(
+          () => ApiClient().dio.get('/api/employees/me'),
+        );
+
+        expect(error.response?.statusCode, 401);
+        expect(refreshMarker, 'bootstrapped');
+        expect(sessionMarker, 'bootstrapped');
+        expect(storedToken, _validAccessToken);
+      } finally {
+        ApiClient().dio.interceptors.remove(captureRefreshHeader);
+      }
     });
 
     test('공개 로그인 요청의 401은 기존 세션 만료로 처리하지 않는다', () async {
@@ -241,9 +397,13 @@ void main() {
     });
 
     test('401 응답 본문이 비어 있으면 네트워크 오류 메시지가 된다', () async {
-      storedToken = 'expired.token';
+      storedToken = _validAccessToken;
       dioAdapter.onGet(
         '/api/employees/me',
+        (server) => server.reply(401, null),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
         (server) => server.reply(401, null),
       );
 
@@ -256,12 +416,152 @@ void main() {
     });
   });
 
+  test('restoreSession - refresh cookie가 없으면 비로그인으로 정상 처리한다', () async {
+    sessionMarker = null;
+
+    dioAdapter.onPost(
+      '/api/auth/session-marker',
+      (server) => server.reply(
+        401,
+        {'message': 'refresh token이 없습니다.'},
+      ),
+    );
+
+    final restored = await ApiClient().restoreSession();
+
+    expect(restored, isNull);
+    expect(storedToken, isNull);
+    expect(sessionMarker, isNull);
+  });
+
+  group('명시 로그아웃 SSO 복구', () {
+    test('로그아웃 뒤 다른 앱이 만든 새 shared SSO session을 다시 발견한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(204, null),
+      );
+
+      await ApiClient().logoutSession();
+
+      expect(explicitLogoutMarker, 'session:session-a');
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+
+      // 다른 시스템(resource-management)이 같은 origin의 shared refresh
+      // cookie를 새 session-b로 교체한 상황을 backend probe/refresh로 모사한다.
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _validAccessToken,
+          'employeeId': 7,
+          'name': '홍길동',
+          'role': 'ADMIN',
+          'ssoSessionMarker': 'session-b',
+        }),
+      );
+
+      final restored = await ApiClient().restoreSession();
+
+      expect(restored, isNotNull);
+      expect(restored!.employeeId, 7);
+      expect(explicitLogoutMarker, '0');
+      expect(sessionMarker, 'session-b');
+      expect(storedToken, _validAccessToken);
+    });
+  });
+
+    test('logout fence 저장 실패 시 서버 revoke 완료를 기다린다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      failExplicitLogoutFenceWrite = true;
+      var logoutCalled = false;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) {
+          logoutCalled = true;
+          server.reply(204, null);
+        },
+      );
+
+      await ApiClient().logoutSession();
+
+      expect(logoutCalled, isTrue);
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+
+    test('logout fence 저장과 서버 revoke가 모두 실패하면 실패를 전파한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      failExplicitLogoutFenceWrite = true;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await expectLater(
+        ApiClient().logoutSession(),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+
+  group('부분 로그인 refresh session 폐기', () {
+    test('서버 revoke가 실패해도 marker fence가 남는다', () async {
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await ApiClient().discardRefreshSession('session-partial');
+
+      expect(explicitLogoutMarker, 'session:session-partial');
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+
+    test('marker fence 저장과 서버 revoke가 모두 실패하면 실패를 전파한다', () async {
+      failExplicitLogoutFenceWrite = true;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await expectLater(
+        ApiClient().discardRefreshSession('session-partial'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+  });
+
   group('토큰 저장소', () {
-    test('saveToken은 jwt_token 키로 값을 저장한다', () async {
+    test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');
 
-      final write = storageCalls.firstWhere((call) => call.method == 'write');
-      expect((write.arguments as Map)['key'], 'jwt_token');
+      final write = storageCalls.firstWhere((call) {
+        final args = call.arguments as Map?;
+        return call.method == 'write' &&
+            args?['key'] == 'annual_leave_access_token';
+      });
+      expect((write.arguments as Map)['key'], 'annual_leave_access_token');
       expect((write.arguments as Map)['value'], 'new.jwt.token');
       expect(storedToken, 'new.jwt.token');
     });
@@ -273,13 +573,13 @@ void main() {
       expect(await ApiClient().getToken(), 'saved.jwt.token');
     });
 
-    test('clearToken은 jwt_token 키를 삭제한다', () async {
+    test('clearToken은 annual_leave_access_token 키를 삭제한다', () async {
       storedToken = 'saved.jwt.token';
 
       await ApiClient().clearToken();
 
       final delete = storageCalls.firstWhere((call) => call.method == 'delete');
-      expect((delete.arguments as Map)['key'], 'jwt_token');
+      expect((delete.arguments as Map)['key'], 'annual_leave_access_token');
       expect(storedToken, isNull);
     });
 

@@ -15,6 +15,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   final AdminEmployeeRepository _repository;
   final CommonCodeRepository _commonCodeRepository;
 
+  static const int _pageSize = 50;
+
   List<Employee> _employees = [];
   Employee? _selectedEmployee;
 
@@ -26,6 +28,9 @@ class AdminSettingsViewModel extends ChangeNotifier {
   String? _selectedGeneralTeam;
   String? _selectedManagedTeam;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMoreEmployees = true;
+  int _nextEmployeePage = 0;
   bool _needsReconcile = false;
   int _teamLoadSeq = 0;
   bool _disposed = false;
@@ -40,6 +45,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   String? get selectedGeneralTeam => _selectedGeneralTeam;
   String? get selectedManagedTeam => _selectedManagedTeam;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMoreEmployees => _hasMoreEmployees;
   bool get needsReconcile => _needsReconcile;
   bool get hasChanges => _changedTeams.isNotEmpty;
 
@@ -49,10 +56,16 @@ class AdminSettingsViewModel extends ChangeNotifier {
 
   Future<void> fetchEmployees() async {
     _isLoading = true;
+    _isLoadingMore = false;
+    _hasMoreEmployees = true;
+    _nextEmployeePage = 0;
     _notify();
 
     try {
-      final fetched = await _repository.fetchEmployees();
+      final fetched = await _repository.fetchEmployeesPage(
+        page: 0,
+        size: _pageSize,
+      );
       if (_disposed) return;
 
       final previousNumber = _selectedEmployee?.employeeNumber;
@@ -67,6 +80,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
       }
 
       _employees = fetched;
+      _hasMoreEmployees = fetched.length == _pageSize;
+      if (fetched.isNotEmpty) _nextEmployeePage = 1;
       _selectedEmployee = selected;
       if (selected == null) {
         _generalTeams = [];
@@ -90,6 +105,40 @@ class AdminSettingsViewModel extends ChangeNotifier {
     } finally {
       if (!_disposed) {
         _isLoading = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> loadMoreEmployees() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMoreEmployees) {
+      return;
+    }
+
+    final pageNumber = _nextEmployeePage;
+    _isLoadingMore = true;
+    _notify();
+    try {
+      final page = await _repository.fetchEmployeesPage(
+        page: pageNumber,
+        size: _pageSize,
+      );
+      if (_disposed) return;
+
+      final existingNumbers =
+          _employees.map((employee) => employee.employeeNumber).toSet();
+      _employees.addAll(
+        page.where(
+          (employee) => existingNumbers.add(employee.employeeNumber),
+        ),
+      );
+      _hasMoreEmployees = page.length == _pageSize;
+      if (page.isNotEmpty) _nextEmployeePage++;
+    } catch (e) {
+      debugPrint('추가 사원 로드 실패: $e');
+    } finally {
+      if (!_disposed) {
+        _isLoadingMore = false;
         _notify();
       }
     }
@@ -263,8 +312,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     _isLoading = true;
     _notify();
     try {
-      final reloaded =
-          await _reloadSelectedFromServer(employee.employeeNumber);
+      final reloaded = await _reloadSelectedFromServer(employee.employeeNumber);
       if (!reloaded) {
         _needsReconcile = true;
         return '서버 상태를 불러오지 못했습니다. 다시 시도해 주세요.';
@@ -328,7 +376,12 @@ class AdminSettingsViewModel extends ChangeNotifier {
             ? '다른 변경이 먼저 반영되었습니다. 서버 상태를 다시 조회해 주세요.'
             : '저장 결과를 확인하지 못했습니다. 서버 상태를 다시 조회해 주세요.';
       }
-      return e.message ?? '저장 중 오류가 발생했습니다.';
+      // return e.message ?? '저장 중 오류가 발생했습니다.';
+      // 변경 후
+      // 서버가 변경을 거부(예: 400)하면 저장된 것이 없다.
+      // 화면에서 옮겨 둔 임시 상태를 서버의 현재 상태로 되돌려 저장된 것처럼 보이지 않게 한다.
+      await _reloadSelectedFromServer(employee.employeeNumber);
+      return '저장되지 않았습니다. ${e.message ?? '저장 중 오류가 발생했습니다.'}';
     } catch (e) {
       debugPrint('권한 설정 저장 실패: $e');
       _needsReconcile = true;

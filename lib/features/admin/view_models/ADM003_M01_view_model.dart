@@ -195,6 +195,17 @@ class DepartmentTeamViewModel extends ChangeNotifier {
   Future<List<Employee>> searchEmployees(String? keyword) =>
       _repository.searchEmployees(keyword);
 
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    int page = 0,
+    int size = 50,
+  }) =>
+      _repository.searchEmployeesPage(
+        keyword,
+        page: page,
+        size: size,
+      );
+
   @override
   void dispose() {
     _disposed = true;

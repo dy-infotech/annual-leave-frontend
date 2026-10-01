@@ -33,6 +33,17 @@ void main() {
         fixtureJson('leave/leave_request_list_item.json'),
       ];
 
+  Map<String, dynamic> page(
+    List<Map<String, dynamic>> items, {
+    int? totalCount,
+    bool hasMore = false,
+  }) =>
+      {
+        'items': items,
+        'totalCount': totalCount ?? items.length,
+        'hasMore': hasMore,
+      };
+
   group('fetchLeaveRequestDetail', () {
     test('GET /api/leave-requests/{requestId}로 조회하고 상세 모델로 매핑한다', () async {
       dioAdapter.onGet(
@@ -70,7 +81,7 @@ void main() {
     test('조건이 하나도 없으면 쿼리 파라미터 없이 GET /api/leave-requests/my를 호출한다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/my',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
       );
 
       await repository.fetchMyLeaveRequests();
@@ -84,7 +95,7 @@ void main() {
     test('조건을 모두 넘기면 status/startDate/endDate가 쿼리로 실린다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/my',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
         queryParameters: {
           'status': 'PENDING',
           'startDate': '2026-01-01',
@@ -110,7 +121,7 @@ void main() {
     test('일부 조건만 넘기면 그 키만 쿼리에 실린다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/my',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
         queryParameters: {'status': 'APPROVED'},
       );
 
@@ -119,10 +130,10 @@ void main() {
       expect(lastRequest().queryParameters, {'status': 'APPROVED', 'page': 0, 'size': 50});
     });
 
-    test('배열 응답을 목록 모델로 매핑한다', () async {
+    test('페이지 응답의 items를 목록 모델로 매핑한다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/my',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
       );
 
       final items = await repository.fetchMyLeaveRequests();
@@ -134,10 +145,10 @@ void main() {
       expect(items.first.useDays, 2.0);
     });
 
-    test('빈 배열 응답은 빈 목록이 된다', () async {
+    test('빈 페이지 응답은 빈 목록이 된다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/my',
-        (server) => server.reply(200, []),
+        (server) => server.reply(200, page([])),
       );
 
       expect(await repository.fetchMyLeaveRequests(), isEmpty);
@@ -154,13 +165,37 @@ void main() {
         throwsA(isA<DioException>()),
       );
     });
+
+    test('같은 full page cursor가 반복되면 두 번째 응답에서 중단한다', () async {
+      final repeatedPage = List.generate(
+        LeaveRepository.defaultPageSize,
+        (_) => fixtureJson('leave/leave_request_list_item.json'),
+      );
+      dioAdapter.onGet(
+        '/api/leave-requests/my',
+        (server) => server.reply(200, page(repeatedPage, totalCount: 51, hasMore: true)),
+      );
+
+      await expectLater(
+        repository.fetchMyLeaveRequests(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            '휴가 목록 cursor가 전진하지 않았습니다.',
+          ),
+        ),
+      );
+
+      expect(sentRequests, hasLength(2));
+    });
   });
 
   group('fetchAllLeaveRequests', () {
     test('조건이 없으면 쿼리 파라미터 없이 GET /api/leave-requests/all을 호출한다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/all',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
       );
 
       final items = await repository.fetchAllLeaveRequests();
@@ -171,10 +206,26 @@ void main() {
       expect(items.first.requestId, 11);
     });
 
+    test('페이지 응답의 totalCount와 hasMore를 서버 값 그대로 사용한다', () async {
+      dioAdapter.onGet(
+        '/api/leave-requests/all',
+        (server) => server.reply(
+          200,
+          page(listItems(), totalCount: 437, hasMore: true),
+        ),
+      );
+
+      final result = await repository.fetchAllLeaveRequestsPage();
+
+      expect(result.items, hasLength(1));
+      expect(result.totalCount, 437);
+      expect(result.hasMore, isTrue);
+    });
+
     test('조건을 넘기면 쿼리로 실린다', () async {
       dioAdapter.onGet(
         '/api/leave-requests/all',
-        (server) => server.reply(200, []),
+        (server) => server.reply(200, page([])),
         queryParameters: {
           'status': 'REJECTED',
           'startDate': '2026-08-01',
@@ -271,6 +322,33 @@ void main() {
       });
     });
 
+    test('idempotencyKey를 넘기면 Idempotency-Key 헤더로 전송한다', () async {
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) => server.reply(201, {}),
+        data: {
+          'leaveType': 'FULL',
+          'startDate': '2026-08-10',
+          'endDate': '2026-08-11',
+          'useDays': 2.0,
+          'leaveReason': null,
+        },
+      );
+
+      await repository.submitLeaveRequest(
+        LeaveRequestCreate(
+          leaveType: 'FULL',
+          startDate: DateTime(2026, 8, 10),
+          endDate: DateTime(2026, 8, 11),
+          useDays: 2.0,
+          leaveReason: null,
+        ),
+        idempotencyKey: 'leave-command-1',
+      );
+
+      expect(lastRequest().headers['Idempotency-Key'], 'leave-command-1');
+    });
+
     test('사유가 있는 휴가는 leaveReason이 본문에 담긴다', () async {
       dioAdapter.onPost(
         '/api/leave-requests',
@@ -326,7 +404,7 @@ void main() {
     test('approved 상태는 approved 경로로 보내고 값 있는 필터만 쿼리에 싣는다', () async {
       dioAdapter.onGet(
         '/api/admin/leave-requests/approved',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
         queryParameters: {'team': 'SI사업팀'},
       );
 
@@ -342,7 +420,7 @@ void main() {
     test('team이 null이면 빈 team 쿼리를 만들지 않는다', () async {
       dioAdapter.onGet(
         '/api/admin/leave-requests/approved',
-        (server) => server.reply(200, []),
+        (server) => server.reply(200, page([])),
         queryParameters: {'page': 0, 'size': 50},
       );
 
@@ -355,7 +433,7 @@ void main() {
     test('employeeParam은 trim 후 값이 있을 때만 전송한다', () async {
       dioAdapter.onGet(
         '/api/admin/leave-requests/rejected',
-        (server) => server.reply(200, []),
+        (server) => server.reply(200, page([])),
         queryParameters: {'employeeParam': 'A0001'},
       );
 
@@ -378,10 +456,10 @@ void main() {
       );
     });
 
-    test('배열 응답을 목록 모델로 매핑한다', () async {
+    test('페이지 응답의 items를 목록 모델로 매핑한다', () async {
       dioAdapter.onGet(
         '/api/admin/leave-requests/approved',
-        (server) => server.reply(200, listItems()),
+        (server) => server.reply(200, page(listItems())),
       );
 
       final items =
@@ -411,7 +489,13 @@ void main() {
       dioAdapter.onGet(
         '/api/admin/leave-requests/pending',
         (server) => server.reply(
-            200, [fixtureJson('leave/pending_leave_request.json')]),
+          200,
+          {
+            'items': [fixtureJson('leave/pending_leave_request.json')],
+            'totalCount': 1,
+            'hasMore': false,
+          },
+        ),
       );
 
       final items = await repository.fetchPendingLeaveRequests();
@@ -436,6 +520,30 @@ void main() {
         repository.fetchPendingLeaveRequests(),
         throwsA(isA<DioException>()),
       );
+    });
+
+    test('같은 결재 대기 cursor가 반복되면 두 번째 응답에서 중단한다', () async {
+      final repeatedPage = List.generate(
+        LeaveRepository.defaultPageSize,
+        (_) => fixtureJson('leave/pending_leave_request.json'),
+      );
+      dioAdapter.onGet(
+        '/api/admin/leave-requests/pending',
+        (server) => server.reply(200, page(repeatedPage, totalCount: 51, hasMore: true)),
+      );
+
+      await expectLater(
+        repository.fetchPendingLeaveRequests(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            '결재 대기 목록 cursor가 전진하지 않았습니다.',
+          ),
+        ),
+      );
+
+      expect(sentRequests, hasLength(2));
     });
   });
 

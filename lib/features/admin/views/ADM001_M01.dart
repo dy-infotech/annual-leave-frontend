@@ -41,6 +41,17 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
   AdminSettingsViewModel get _vm => context.read<AdminSettingsViewModel>();
 
   @override
+  void initState() {
+    super.initState();
+    _employeeScrollController.addListener(() {
+      if (!_employeeScrollController.hasClients) return;
+      if (_employeeScrollController.position.extentAfter < 240) {
+        _vm.loadMoreEmployees();
+      }
+    });
+  }
+
+  @override
   void dispose() {
     //스크롤 해제
     _employeeScrollController.dispose();
@@ -52,7 +63,11 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
     final messenger = ScaffoldMessenger.of(context);
     final error = await _vm.saveChanges();
     if (error != null && mounted) {
-      messenger.showSnackBar(SnackBar(content: Text(error)));
+      //messenger.showSnackBar(SnackBar(content: Text(error)));
+      messenger.showSnackBar(SnackBar(
+        content: Text(error),
+        duration: const Duration(seconds: 8),
+      ));
     }
   }
 
@@ -79,12 +94,12 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
           : Padding(
               padding: const EdgeInsets.all(20.0),
               child: Column(
-                // 💡 Row를 Column으로 감싸서 하단 공간을 확보합니다.
+                // Row를 Column으로 감싸서 하단 공간을 확보합니다.
                 children: [
                   Expanded(
                     child: Column(
                       children: [
-                        // 📄 [왼쪽 컬럼] 사용자 (이름/아이디)
+                        // [왼쪽 컬럼] 사용자 (이름/아이디)
                         Expanded(
                           flex: 3,
                           child: _buildPanel(
@@ -117,9 +132,9 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                     child: ListTile(
                                       selected: isSelected,
                                       selectedTileColor: Colors.transparent,
-                                      dense: true, // 🔥 높이 축소
+                                      dense: true, // 높이 축소
                                       visualDensity: const VisualDensity(
-                                        vertical: -4, // 🔥 세로 간격 축소
+                                        vertical: -4, // 세로 간격 축소
                                       ),
                                       title: Row(
                                         crossAxisAlignment:
@@ -161,7 +176,8 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                       ),
                                       onTap: () {
                                         final changed = _vm.hasChanges;
-                                        final selected = _vm.selectEmployee(emp);
+                                        final selected =
+                                            _vm.selectEmployee(emp);
                                         if (!selected && mounted) {
                                           ScaffoldMessenger.of(context)
                                               .showSnackBar(
@@ -315,9 +331,9 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                                     child: Material(
                                       type: MaterialType.transparency,
                                       child: ListTile(
-                                        dense: true, // 🔥 높이 축소
+                                        dense: true, //  높이 축소
                                         visualDensity: const VisualDensity(
-                                          vertical: -4, // 🔥 세로 간격 축소
+                                          vertical: -4, //  세로 간격 축소
                                         ),
                                         selected: isSelected,
                                         selectedTileColor: Colors.green.shade50,
@@ -485,4 +501,4 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
       curve: Curves.easeInOut,
     );
   }
-} // 💡 State 클래스를 완전히 종료하는 마지막 중괄호입니다.
+} // State 클래스를 완전히 종료하는 마지막 중괄호입니다.

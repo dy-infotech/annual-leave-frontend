@@ -7,6 +7,9 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 import '../../../helpers/fixture_reader.dart';
 
+const _validAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwibmFtZSI6Iu2Zjeq4uOuPmSIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.signature';
+
 /// AuthRepository 특성화 테스트.
 ///
 /// 이 리포지토리만 Dio가 아니라 ApiClient를 받으므로 실제 싱글턴을 그대로 쓰고,
@@ -24,23 +27,44 @@ void main() {
   late List<MethodCall> storageCalls;
   late Interceptor captureInterceptor;
   String? storedToken;
+  String? explicitLogoutMarker;
+  String? storedSessionMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    explicitLogoutMarker = null;
+    storedSessionMarker = null;
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       storageCalls.add(call);
       final args = call.arguments as Map?;
+      final key = args?['key'] as String?;
+      final explicitKey = key == 'annual_leave_explicit_logout';
+      final sessionMarkerKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
+          if (explicitKey) return explicitLogoutMarker;
+          if (sessionMarkerKey) return storedSessionMarker;
           return storedToken;
         case 'write':
-          storedToken = args?['value'] as String?;
+          if (explicitKey) {
+            explicitLogoutMarker = args?['value'] as String?;
+          } else if (sessionMarkerKey) {
+            storedSessionMarker = args?['value'] as String?;
+          } else {
+            storedToken = args?['value'] as String?;
+          }
           return null;
         case 'delete':
-          storedToken = null;
+          if (explicitKey) {
+            explicitLogoutMarker = null;
+          } else if (sessionMarkerKey) {
+            storedSessionMarker = null;
+          } else {
+            storedToken = null;
+          }
           return null;
       }
       return null;
@@ -66,8 +90,11 @@ void main() {
 
   RequestOptions lastRequest() => sentRequests.last;
 
-  List<MethodCall> writeCalls() =>
-      storageCalls.where((call) => call.method == 'write').toList();
+  List<MethodCall> writeCalls() => storageCalls.where((call) {
+        final args = call.arguments as Map?;
+        return call.method == 'write' &&
+            args?['key'] == 'annual_leave_access_token';
+      }).toList();
 
   group('signIn', () {
     test('POST /api/auth/signin에 사번과 비밀번호를 실어 보낸다', () async {
@@ -111,11 +138,11 @@ void main() {
       final response = await repository.signIn('A0001', 'pw1234!');
 
       expect(writeCalls(), isEmpty);
-      expect(await repository.getToken(), isNull);
+      expect(await ApiClient().getToken(), isNull);
 
       await repository.saveToken(response.token);
       expect(writeCalls(), hasLength(1));
-      expect(await repository.getToken(), 'header.payload.signature');
+      expect(await ApiClient().getToken(), 'header.payload.signature');
     });
 
     test('로그인에 실패하면 예외가 전파되고 토큰을 저장하지 않는다', () async {
@@ -292,11 +319,25 @@ void main() {
   });
 
   group('토큰 위임', () {
-    test('getToken은 ApiClient에 저장된 토큰을 그대로 돌려준다', () async {
-      expect(await repository.getToken(), isNull);
+    test('getToken은 공통 refresh session으로 access token을 복구한다', () async {
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-a'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _validAccessToken,
+          'employeeId': 7,
+          'name': '홍길동',
+          'role': 'ADMIN',
+          'ssoSessionMarker': 'session-a',
+        }),
+      );
 
-      storedToken = 'saved.jwt.token';
-      expect(await repository.getToken(), 'saved.jwt.token');
+      expect(await repository.getToken(), _validAccessToken);
+      expect(storedToken, _validAccessToken);
+      expect(storedSessionMarker, 'session-a');
     });
 
     test('clearToken은 저장된 토큰을 삭제한다', () async {

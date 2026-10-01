@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/features/auth/view_models/AUT001_M01_view_model.dart';
+import 'package:annual_leave_frontend/features/leave/repositories/public_holiday_repository.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 
@@ -19,13 +20,16 @@ class UpperCaseTextFormatter extends TextInputFormatter {
 }
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.holidayRepository});
+
+  final PublicHolidayRepository? holidayRepository;
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (context) => LoginViewModel(
         authSession: context.read<AuthSession>(),
+        holidayRepository: holidayRepository,
       )..loadSavedAccountInfo(),
       child: const _LoginView(),
     );
@@ -150,31 +154,63 @@ class _LoginViewState extends State<_LoginView> {
 
                       const SizedBox(height: 8),
 
-                      // 🛠️ 계정 정보(사번+비번) 저장 체크박스 UI 레이아웃 영역
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.start,
+                      // 사번 저장과 자동 로그인은 서로 독립적으로 선택한다.
+                      Wrap(
+                        spacing: 20,
+                        runSpacing: 8,
                         children: [
-                          SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: Checkbox(
-                              value: _vm.isRememberMe,
-                              activeColor: AppColors.slate, // 테마 컬러 연동
-                              onChanged: (value) =>
-                                  _vm.setRememberMe(value ?? false),
+                          InkWell(
+                            onTap: _vm.toggleRememberMe,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: _vm.isRememberMe,
+                                    activeColor: AppColors.slate,
+                                    onChanged: (value) =>
+                                        _vm.setRememberMe(value ?? false),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  '사번 저장',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: AppColors.slate,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            onTap: _vm.toggleRememberMe, // 텍스트 영역 클릭 시에도 토글
-
-                            child: const Text(
-                              '계정 정보 저장', // 👈 직관적으로 인지하도록 문구 수정
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                color: AppColors.slate,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          InkWell(
+                            onTap: _vm.toggleAutoLogin,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: Checkbox(
+                                    value: _vm.isAutoLoginEnabled,
+                                    activeColor: AppColors.slate,
+                                    onChanged: (value) =>
+                                        _vm.setAutoLoginEnabled(value ?? false),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  '자동 로그인',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    color: AppColors.slate,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],

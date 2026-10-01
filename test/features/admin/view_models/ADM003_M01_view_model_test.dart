@@ -85,6 +85,16 @@ class _FakeDepartmentTeamRepository implements DepartmentTeamRepository {
   }
 
   @override
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    int page = 0,
+    int size = 50,
+  }) async {
+    employeeSearches.add(keyword);
+    return page == 0 ? employeesToReturn : <Employee>[];
+  }
+
+  @override
   Future<List<Employee>> searchEmployees(String? keyword) async {
     employeeSearches.add(keyword);
     return employeesToReturn;

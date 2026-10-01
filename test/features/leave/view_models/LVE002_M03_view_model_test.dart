@@ -19,6 +19,13 @@ void main() {
     ];
   });
 
+  List<LeaveRequestListItem> pageItems(int startId, int count) =>
+      List.generate(count, (index) {
+        final json = fixtureJson('leave/leave_request_list_item.json');
+        json['requestId'] = startId + index;
+        return LeaveRequestListItem.fromJson(json);
+      });
+
   AdminSearchLeaveRequestsViewModel buildVm(
           {String filter = 'admin_approved'}) =>
       AdminSearchLeaveRequestsViewModel(
@@ -98,6 +105,31 @@ void main() {
       vm.searchEmployeeController.text = '';
       await vm.fetch();
       expect(fake.adminSearchQueries.last['employeeParam'], isNull);
+    });
+
+    test('loadMore - 다음 페이지를 이어 붙이고 조회 시점 검색어를 유지한다', () async {
+      fake.adminSearchResultsByPage[0] = pageItems(1, 50);
+      fake.adminSearchResultsByPage[1] = pageItems(51, 1);
+      final vm = buildVm();
+
+      vm.searchEmployeeController.text = '홍길동';
+      await vm.load();
+
+      expect(vm.items, hasLength(50));
+      expect(vm.hasMore, isTrue);
+      expect(fake.adminSearchPageRequests.first, {'page': 0, 'size': 50});
+      expect(fake.adminSearchQueries.first['employeeParam'], '홍길동');
+
+      // 입력만 바꾸고 조회하지 않은 값은 현재 무한스크롤 세션에 섞이면 안 된다.
+      vm.searchEmployeeController.text = '김철수';
+      await vm.loadMore();
+
+      expect(vm.items, hasLength(51));
+      expect(vm.hasMore, isFalse);
+      expect(fake.adminSearchPageRequests.last, {'page': 0, 'size': 50});
+      expect(fake.adminSearchCursorRequests.last['cursorCreatedAt'], isNotNull);
+      expect(fake.adminSearchCursorRequests.last['cursorRequestId'], isNotNull);
+      expect(fake.adminSearchQueries.last['employeeParam'], '홍길동');
     });
 
     test('fetch 실패 - 오류 메시지가 세팅되고 로딩이 끝난다', () async {

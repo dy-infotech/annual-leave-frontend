@@ -17,9 +17,15 @@ class SubmitLeaveRequest {
   final LeaveRepository _repository;
 
   /// 휴가 신청 제출.
-  Future<Result<void>> call(LeaveRequestCreate request) async {
+  Future<Result<void>> call(
+    LeaveRequestCreate request, {
+    String? idempotencyKey,
+  }) async {
     try {
-      await _repository.submitLeaveRequest(request);
+      await _repository.submitLeaveRequest(
+        request,
+        idempotencyKey: idempotencyKey,
+      );
       return const Ok(null);
     } on DioException catch (e) {
       final message = e.message?.trim();

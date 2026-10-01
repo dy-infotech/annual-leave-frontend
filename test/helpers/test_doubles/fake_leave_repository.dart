@@ -35,17 +35,23 @@ class FakeLeaveRepository implements LeaveRepository {
   }
 
   @override
-  Future<List<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     myLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
     if (errorToThrow != null) throw errorToThrow!;
-    return myLeaveRequestsToReturn;
+    return PageResult(
+      items: myLeaveRequestsToReturn,
+      totalCount: myLeaveRequestsToReturn.length,
+      hasMore: myLeaveRequestsToReturn.length == size,
+    );
   }
 
   @override
@@ -70,17 +76,23 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, String?>> allLeaveRequestQueries = [];
 
   @override
-  Future<List<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     allLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
     if (errorToThrow != null) throw errorToThrow!;
-    return allLeaveRequestsToReturn;
+    return PageResult(
+      items: allLeaveRequestsToReturn,
+      totalCount: allLeaveRequestsToReturn.length,
+      hasMore: allLeaveRequestsToReturn.length == size,
+    );
   }
 
   @override
@@ -97,28 +109,54 @@ class FakeLeaveRepository implements LeaveRepository {
 
   Object? submitErrorToThrow;
   final List<LeaveRequestCreate> submittedRequests = [];
+  final List<String?> submittedIdempotencyKeys = [];
 
   @override
-  Future<void> submitLeaveRequest(LeaveRequestCreate request) async {
+  Future<void> submitLeaveRequest(
+    LeaveRequestCreate request, {
+    String? idempotencyKey,
+  }) async {
     submittedRequests.add(request);
+    submittedIdempotencyKeys.add(idempotencyKey);
     if (submitErrorToThrow != null) throw submitErrorToThrow!;
   }
 
   List<LeaveRequestListItem> adminSearchResultsToReturn = [];
+  final Map<int, List<LeaveRequestListItem>> adminSearchResultsByPage = {};
   final List<Map<String, String?>> adminSearchQueries = [];
+  final List<Map<String, int>> adminSearchPageRequests = [];
+  final List<Map<String, Object?>> adminSearchCursorRequests = [];
 
   @override
-  Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
     required String? status,
     required String? team,
     String? employeeParam,
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     adminSearchQueries
         .add({'status': status, 'team': team, 'employeeParam': employeeParam});
+    adminSearchPageRequests.add({'page': page, 'size': size});
+    adminSearchCursorRequests.add({
+      'cursorCreatedAt': cursorCreatedAt,
+      'cursorRequestId': cursorRequestId,
+    });
     if (errorToThrow != null) throw errorToThrow!;
-    return adminSearchResultsToReturn;
+    final logicalPage =
+        cursorCreatedAt != null && cursorRequestId != null ? 1 : page;
+    final items =
+        adminSearchResultsByPage[logicalPage] ?? adminSearchResultsToReturn;
+    return PageResult(
+      items: items,
+      totalCount: adminSearchResultsByPage.isEmpty
+          ? adminSearchResultsToReturn.length
+          : adminSearchResultsByPage.values.fold<int>(
+              0, (sum, pageItems) => sum + pageItems.length),
+      hasMore: items.length == size,
+    );
   }
 
   @override
@@ -142,13 +180,19 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, String?>> rejections = [];
 
   @override
-  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
+  Future<PageResult<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     pendingFetchCount++;
     if (errorToThrow != null) throw errorToThrow!;
-    return pendingRequestsToReturn;
+    return PageResult(
+      items: pendingRequestsToReturn,
+      totalCount: pendingRequestsToReturn.length,
+      hasMore: pendingRequestsToReturn.length == size,
+    );
   }
 
   @override

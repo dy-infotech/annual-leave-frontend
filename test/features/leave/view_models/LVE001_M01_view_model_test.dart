@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
@@ -57,6 +59,12 @@ void main() {
 
       expect(fakeAuth.fetchMyInfoCount, 1);
       expect(fake.myLeaveRequestQueries, hasLength(1));
+      final year = DateTime.now().year.toString();
+      expect(fake.myLeaveRequestQueries.single, {
+        'status': null,
+        'startDate': '$year-01-01',
+        'endDate': '$year-12-31',
+      });
     });
   });
 
@@ -816,31 +824,24 @@ void main() {
       });
     }
 
-    test('사유를 비워 두면 leaveReason이 null로 전송된다', () async {
+    test('사유 필수 휴가는 빈 사유면 제출하지 않는다', () async {
       final vm = buildVm();
       vm.setLeaveType(LeaveType.other);
       selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
 
-      // 발견한 문제: 사유가 필수인 종류인데도 VM은 빈 사유를 그대로 제출한다.
-      expect(await vm.submit(), isTrue);
-      expect(fake.submittedRequests.single.leaveReason, isNull);
+      expect(await vm.submit(), isFalse);
+      expect(vm.errorMessage, '휴가 사유를 입력해주세요.');
+      expect(fake.submittedRequests, isEmpty);
     });
 
-    test('종료일이 없으면 시작일이 종료일로 채워진다', () async {
+    test('기간이 확정되지 않아 사용일수가 0이면 제출하지 않는다', () async {
       final vm = buildVm();
       vm.selectDay(DateTime(2026, 8, 10), DateTime(2026, 8, 10)); // 시작일만 선택
 
       expect(vm.endDate, isNull);
-      // 발견한 문제: 이 상태의 useDays는 0이지만 VM은 제출을 막지 않는다.
-      // (화면에서만 useDays <= 0 을 검사한다)
-      expect(await vm.submit(), isTrue);
-      expect(fake.submittedRequests.single.toJson(), {
-        'leaveType': 'FULL',
-        'startDate': '2026-08-10',
-        'endDate': '2026-08-10',
-        'useDays': 0.0,
-        'leaveReason': null,
-      });
+      expect(await vm.submit(), isFalse);
+      expect(vm.errorMessage, '사용 일수는 0보다 커야 합니다.');
+      expect(fake.submittedRequests, isEmpty);
     });
 
     test('제출 성공 후 갱신이 실패해도 true를 돌려주고 폼을 초기화한다', () async {
@@ -887,6 +888,23 @@ void main() {
       expect(fake.submittedRequests, hasLength(1));
     });
 
+    test('신청 성공 후 화면 갱신 중에도 두 번째 제출을 막는다', () async {
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+      fakeAuth.fetchMyInfoCompleter = Completer<void>();
+
+      final first = vm.submit();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(vm.isSubmitting, isTrue);
+      expect(await vm.submit(), isFalse);
+      expect(fake.submittedRequests, hasLength(1));
+
+      fakeAuth.fetchMyInfoCompleter!.complete();
+      expect(await first, isTrue);
+      expect(vm.isSubmitting, isFalse);
+    });
+
     test('제출 실패 후 다시 제출하면 이전 오류 메시지가 지워진다', () async {
       fake.submitErrorToThrow = Exception('network');
       final vm = buildVm();
@@ -899,6 +917,39 @@ void main() {
 
       expect(ok, isTrue);
       expect(vm.errorMessage, isNull);
+    });
+
+    test('실패 후 같은 요청 재시도는 같은 Idempotency-Key를 재사용한다', () async {
+      fake.submitErrorToThrow = Exception('network');
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+
+      expect(await vm.submit(), isFalse);
+      final firstKey = fake.submittedIdempotencyKeys.single;
+      expect(firstKey, isNotNull);
+      expect(firstKey, isNotEmpty);
+
+      fake.submitErrorToThrow = null;
+      expect(await vm.submit(), isTrue);
+
+      expect(fake.submittedIdempotencyKeys, hasLength(2));
+      expect(fake.submittedIdempotencyKeys[1], firstKey);
+    });
+
+    test('실패 뒤 신청 내용이 바뀌면 새 Idempotency-Key를 사용한다', () async {
+      fake.submitErrorToThrow = Exception('network');
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+
+      expect(await vm.submit(), isFalse);
+      final firstKey = fake.submittedIdempotencyKeys.single;
+
+      vm.reasonController.text = '변경된 사유';
+      fake.submitErrorToThrow = null;
+      expect(await vm.submit(), isTrue);
+
+      expect(fake.submittedIdempotencyKeys, hasLength(2));
+      expect(fake.submittedIdempotencyKeys[1], isNot(firstKey));
     });
   });
 

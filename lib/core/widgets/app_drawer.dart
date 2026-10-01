@@ -6,9 +6,16 @@ import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 
+/// 모든 화면이 공유하는 좌측 메뉴(Drawer).
+///
+/// 상단에 내 이름/직급/팀/사번을, 가운데에 이동 메뉴를, 하단에 로그아웃을 보여준다.
+/// 메뉴 노출은 `AuthSession.employeeInfo`의 role/직급으로만 결정하는 UX용 분기이며 보안 경계가 아니다.
+/// 실제 접근 권한은 서버가 요청마다 다시 검증한다.
 class AppDrawer extends StatelessWidget {
   const AppDrawer({super.key});
 
+  /// 메뉴를 닫고 [routeName]으로 이동한다. 이미 그 화면이면 이동하지 않는다.
+  /// [replace]가 true면 현재 화면을 대체한다. (대시보드로 돌아갈 때 화면이 쌓이지 않게 하려는 용도)
   void _navigate(BuildContext context, String routeName,
       {bool replace = false}) {
     final currentRoute = ModalRoute.of(context)?.settings.name;
@@ -28,9 +35,9 @@ class AppDrawer extends StatelessWidget {
     final auth = context.watch<AuthSession>();
     final info = auth.employeeInfo;
 
-    // 관리자 전용 네이비 컬러 정의
-    const navyPrimary = Color(0xFF1E293B); // 고급스러운 딥 네이비
-    const navyMuted = Color(0xFF64748B); // 은은한 서브 네이비
+    // 관리자 메뉴 전용 색상 (일반 메뉴는 AppColors 사용)
+    const navyPrimary = Color(0xFF1E293B); // 관리자 메뉴 글자색
+    const navyMuted = Color(0xFF64748B); // '관리자 전용 Menu' 소제목 색
 
     return Drawer(
       child: SafeArea(
@@ -43,6 +50,7 @@ class AppDrawer extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // 프로필: 내 정보가 아직 없으면 로그인 응답의 이름만 표시한다.
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
                       child: Column(
@@ -82,7 +90,7 @@ class AppDrawer extends StatelessWidget {
                     _NavItem(
                         label: '내 정보',
                         onTap: () => _navigate(context, '/my-info')),
-                    // 관리자 섹션
+                    // 관리자 섹션 (role이 ADMIN인 경우에만 노출)
                     if (info != null && info.role == 'ADMIN') ...[
                       const Padding(
                         padding: EdgeInsets.symmetric(
@@ -121,6 +129,7 @@ class AppDrawer extends StatelessWidget {
                           adminTextColor: navyPrimary,
                           onTap: () => _navigate(
                               context, '/search_employee_number_screen')),
+                      // 아래 두 메뉴는 관리자 중에서도 CEO(직급 '사장' 또는 '대표이사')에게만 노출한다.
                       if (info.isCeo)
                         _NavItem(
                             label: '부서 및 팀 관리',
@@ -128,7 +137,6 @@ class AppDrawer extends StatelessWidget {
                             adminTextColor: navyPrimary,
                             onTap: () =>
                                 _navigate(context, '/department-team-manage')),
-                      // 조건 추가: 역할이 ADMIN이면서 동시에 포지션이 '사장'일 때만 노출
                       if (info.isCeo)
                         _NavItem(
                             label: '관리자별 관리팀 설정',
@@ -152,6 +160,7 @@ class AppDrawer extends StatelessWidget {
                 final navigator = Navigator.of(context, rootNavigator: true);
                 final authProvider = context.read<AuthSession>();
 
+                // 로그아웃하면 저장된 FCM token 정보가 지워지므로 먼저 읽어 둔다.
                 FcmLogoutContext? cleanupContext;
                 try {
                   cleanupContext =
@@ -163,7 +172,8 @@ class AppDrawer extends StatelessWidget {
                 Navigator.pop(context);
 
                 // 로컬 인증 상태를 FCM SDK/네트워크보다 먼저 종료한다.
-                await authProvider.logout();
+                // 서버에는 FCM token을 함께 보내 서버 쪽 FCM 연결도 해제하게 한다.
+                await authProvider.logout(fcmToken: cleanupContext?.fcmToken);
                 final loggedOutGeneration = ApiClient().sessionGeneration;
 
                 if (navigator.mounted) {
@@ -173,6 +183,8 @@ class AppDrawer extends StatelessWidget {
                   );
                 }
 
+                // 이 기기의 FCM 정리는 화면 전환을 막지 않도록 기다리지 않고 백그라운드로 처리한다.
+                // 10초 안에 끝나지 않거나 실패해도 로그아웃 자체에는 영향이 없다.
                 if (cleanupContext != null) {
                   unawaited(
                     FcmService.instance
@@ -196,9 +208,12 @@ class AppDrawer extends StatelessWidget {
   }
 }
 
+/// Drawer의 메뉴 한 줄. [isAdmin]이 true면 관리자 메뉴 스타일(연한 배경 박스, 굵은 글씨)로 그린다.
 class _NavItem extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+
+  /// 글자색을 직접 지정할 때 사용한다. (예: 로그아웃) 지정하면 [adminTextColor]보다 우선한다.
   final Color? color;
   final bool isAdmin;
   final Color? adminTextColor;
@@ -214,12 +229,12 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      // 관리자 메뉴만 은은한 좌우 패딩 박스로 감싸 시각적 레이어를 분리
+      // 관리자 메뉴만 좌우 여백이 있는 박스로 감싸 일반 메뉴와 구분한다.
       margin: isAdmin
           ? const EdgeInsets.symmetric(horizontal: 12, vertical: 2)
           : EdgeInsets.zero,
       decoration: BoxDecoration(
-        // 아이콘이 없으므로 배경색을 미세하게 조정하여 눈이 편안한 네이비 슬레이트 베이지를 연출
+        // 관리자 메뉴 박스의 은은한 배경색
         color: isAdmin
             ? const Color(0xFF1E293B).withOpacity(0.04)
             : Colors.transparent,
@@ -229,7 +244,7 @@ class _NavItem extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Padding(
-          // 일반 메뉴(horizontal: 24)와 관리자 메뉴(12 + 12 = 24)의 텍스트 시작 포인트를 정확히 일치
+          // 일반 메뉴(horizontal: 24)와 관리자 메뉴(12 + 12 = 24)의 텍스트 시작 위치를 맞춘다.
           padding:
               EdgeInsets.symmetric(horizontal: isAdmin ? 12 : 24, vertical: 14),
           child: Row(

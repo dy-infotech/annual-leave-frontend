@@ -1,14 +1,17 @@
-import 'package:annual_leave_frontend/core/network/api_client.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/leave/views/LVE001_M01.dart';
+import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
-import 'package:flutter/services.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http_mock_adapter/http_mock_adapter.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
 import '../../../helpers/fixture_reader.dart';
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/test_doubles/fake_auth_session.dart';
+import '../../../helpers/test_doubles/fake_leave_repository.dart';
+import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
 
 /// 휴가 신청 화면(LVE001_M01) 특성화 테스트.
 ///
@@ -21,22 +24,33 @@ void main() {
 
   setUpAll(() async {
     await initializeDateFormatting('ko_KR', null);
-    // 인터셉터의 JWT 조회가 플랫폼 채널을 타므로 null을 돌려주도록 모킹
-    const channel =
-        MethodChannel('plugins.it_nomads.com/flutter_secure_storage');
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async => null);
   });
 
-  late DioAdapter dioAdapter;
+  late FakeLeaveRepository leaveRepository;
+  late FakePublicHolidayRepository holidayRepository;
+  late Employee employeeInfo;
 
   final now = DateTime.now();
-  // 매달 존재하는 10일을 선택 대상으로 사용한다. (반차 플로우는 주말이어도 동작 동일)
-  String currentMonthDay(int day) =>
-      '${now.year}-${now.month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
+
+  DateTime selectableDayInCurrentMonth() {
+    for (var day = 8; day <= 14; day++) {
+      final candidate = DateTime(now.year, now.month, day);
+      if (candidate.weekday != DateTime.saturday &&
+          candidate.weekday != DateTime.sunday) {
+        return candidate;
+      }
+    }
+    throw StateError('현재 월에서 테스트용 평일을 찾을 수 없습니다.');
+  }
+
+  final selectableDay = selectableDayInCurrentMonth();
+
+  String selectedDate() =>
+      '${selectableDay.year}-${selectableDay.month.toString().padLeft(2, '0')}-${selectableDay.day.toString().padLeft(2, '0')}';
 
   setUp(() {
-    dioAdapter = DioAdapter(dio: ApiClient().dio);
+    leaveRepository = FakeLeaveRepository();
+    holidayRepository = FakePublicHolidayRepository();
   });
 
   void stubCommon({
@@ -45,12 +59,15 @@ void main() {
   }) {
     final employee = fixtureJson('admin/employee.json')
       ..['remainingLeaveDays'] = remainingLeaveDays;
-    dioAdapter.onGet('/api/employees/me', (s) => s.reply(200, employee));
-    dioAdapter.onGet('/api/leave-requests/my', (s) => s.reply(200, myList));
-    dioAdapter.onGet('/api/leave-requests/current-year-special-days',
-        (s) => s.reply(200, []));
-    dioAdapter.onGet('/api/leave-requests/next-year-special-days',
-        (s) => s.reply(200, []));
+    employeeInfo = Employee.fromJson(employee);
+    leaveRepository.leavePeriodToReturn = LeavePeriod(
+      startDate: DateTime(now.year, 1, 1),
+      endDate: DateTime(now.year, 12, 31),
+    );
+    leaveRepository.myLeaveRequestsToReturn = myList
+        .map((json) => LeaveRequestListItem.fromJson(json))
+        .toList();
+    holidayRepository.holidaysToReturn = [];
   }
 
   Future<void> pumpLeaveRequestScreen(WidgetTester tester) async {
@@ -60,9 +77,14 @@ void main() {
 
     await pumpApp(
       tester,
-      const LeaveRequestScreen(),
+      LeaveRequestScreen(
+        repository: leaveRepository,
+        holidayRepository: holidayRepository,
+      ),
       providers: [
-        ChangeNotifierProvider(create: (_) => AuthSession()),
+        ChangeNotifierProvider<AuthSession>(
+          create: (_) => FakeAuthSession(employeeInfo: employeeInfo),
+        ),
       ],
     );
     await pumpFor(tester, duration: const Duration(seconds: 1));
@@ -100,22 +122,10 @@ void main() {
 
   testWidgets('반차 신청 성공 - 확인 다이얼로그를 거쳐 제출되고 폼이 초기화된다', (tester) async {
     stubCommon();
-    dioAdapter.onPost(
-      '/api/leave-requests',
-      (s) => s.reply(200, {}),
-      data: {
-        'leaveType': 'AM_HALF',
-        'startDate': currentMonthDay(10),
-        'endDate': currentMonthDay(10),
-        'useDays': 0.5,
-        'leaveReason': null,
-      },
-    );
-
     await pumpLeaveRequestScreen(tester);
 
     await selectLeaveType(tester, '반차(오전)');
-    await tester.tap(find.text('10'));
+    await tester.tap(find.text('${selectableDay.day}'));
     await pumpFor(tester, duration: const Duration(milliseconds: 500));
     expect(find.text('0.5 일'), findsOneWidget);
 
@@ -138,15 +148,15 @@ void main() {
     final existing = fixtureJson('leave/leave_request_list_item.json')
       ..['leaveType'] = 'AM_HALF'
       ..['status'] = 'PENDING'
-      ..['startDate'] = currentMonthDay(10)
-      ..['endDate'] = currentMonthDay(10)
+      ..['startDate'] = selectedDate()
+      ..['endDate'] = selectedDate()
       ..['useDays'] = 0.5;
     stubCommon(myList: [existing]);
 
     await pumpLeaveRequestScreen(tester);
 
     await selectLeaveType(tester, '반차(오전)');
-    await tester.tap(find.text('10'));
+    await tester.tap(find.text('${selectableDay.day}'));
     await pumpFor(tester, duration: const Duration(milliseconds: 500));
 
     expect(find.text('중복 신청 안내'), findsOneWidget);
@@ -156,15 +166,15 @@ void main() {
     final existing = fixtureJson('leave/leave_request_list_item.json')
       ..['leaveType'] = 'AM_HALF'
       ..['status'] = 'PENDING'
-      ..['startDate'] = currentMonthDay(10)
-      ..['endDate'] = currentMonthDay(10)
+      ..['startDate'] = selectedDate()
+      ..['endDate'] = selectedDate()
       ..['useDays'] = 0.5;
     stubCommon(myList: [existing]);
 
     await pumpLeaveRequestScreen(tester);
 
     await selectLeaveType(tester, '반차(오후)');
-    await tester.tap(find.text('10'));
+    await tester.tap(find.text('${selectableDay.day}'));
     await pumpFor(tester, duration: const Duration(milliseconds: 500));
 
     expect(find.text('중복 신청 안내'), findsNothing);
@@ -177,7 +187,7 @@ void main() {
     await pumpLeaveRequestScreen(tester);
 
     await selectLeaveType(tester, '반차(오전)');
-    await tester.tap(find.text('10'));
+    await tester.tap(find.text('${selectableDay.day}'));
     await pumpFor(tester, duration: const Duration(milliseconds: 500));
 
     expect(find.text('잔여 연차 부족 안내'), findsOneWidget);

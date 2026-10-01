@@ -354,18 +354,22 @@ void main() {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, [fixtureJson('admin/employee.json')]),
-        queryParameters: {'searchParam': '홍길동'},
+        queryParameters: {'searchParam': '홍길동', 'page': 0, 'size': 100},
       );
 
       final employees = await repository.searchEmployees('  홍길동  ');
 
       expect(lastRequest().method, 'GET');
       expect(lastRequest().path, '/api/admin/employees/all');
-      expect(lastRequest().queryParameters, {'searchParam': '홍길동'});
+      expect(lastRequest().queryParameters, {
+        'searchParam': '홍길동',
+        'page': 0,
+        'size': 100,
+      });
       expect(employees.first.name, '홍길동');
     });
 
-    test('검색어가 null이면 쿼리 파라미터 없이 전체를 조회한다', () async {
+    test('검색어가 null이면 검색 조건 없이 bounded page를 조회한다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, []),
@@ -373,11 +377,11 @@ void main() {
 
       await repository.searchEmployees(null);
 
-      expect(lastRequest().queryParameters, isEmpty);
-      expect(lastRequest().uri.hasQuery, isFalse);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 100});
+      expect(lastRequest().uri.hasQuery, isTrue);
     });
 
-    test('검색어가 공백뿐이면 쿼리 파라미터 없이 전체를 조회한다', () async {
+    test('검색어가 공백뿐이면 검색 조건 없이 bounded page를 조회한다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, []),
@@ -385,7 +389,7 @@ void main() {
 
       await repository.searchEmployees('   ');
 
-      expect(lastRequest().queryParameters, isEmpty);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 100});
     });
 
     test('에러 응답은 예외로 전파된다', () async {
