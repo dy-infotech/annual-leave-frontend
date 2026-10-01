@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM001_M01_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -84,6 +86,40 @@ void main() {
       expect(vm.employees, isEmpty);
       expect(vm.selectedEmployee, isNull);
       expect(vm.isLoading, isFalse);
+    });
+
+    test('새 첫 페이지 조회는 진행 중인 이전 loadMore 결과를 폐기한다', () async {
+      repository.employeesByPage[0] = List.generate(
+        50,
+        (index) => emp(
+          employeeNumber: 'A${(index + 1).toString().padLeft(4, '0')}',
+          name: '기존${index + 1}',
+        ),
+      );
+      commonCodes.codesToReturn = {'accessibleTeam': <String>[]};
+
+      final vm = build();
+      await vm.fetchEmployees();
+      expect(vm.hasMoreEmployees, isTrue);
+
+      final stalePage = Completer<List<Employee>>();
+      repository.employeePageFutures[1] = stalePage.future;
+      final loadMore = vm.loadMoreEmployees();
+      await Future<void>.delayed(Duration.zero);
+
+      repository.employeesByPage[0] = [
+        emp(employeeNumber: 'B0001', name: '최신'),
+      ];
+      final refresh = vm.fetchEmployees();
+      await refresh;
+
+      stalePage.complete([
+        emp(employeeNumber: 'A0051', name: '늦은응답'),
+      ]);
+      await loadMore;
+
+      expect(vm.employees.map((e) => e.employeeNumber), ['B0001']);
+      expect(vm.selectedEmployee?.employeeNumber, 'B0001');
     });
 
     test('selectEmployee - 검색 입력란을 "이름 직급 사번" 형식으로 채운다', () async {
