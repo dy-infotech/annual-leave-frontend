@@ -43,6 +43,7 @@ class ApiClient {
   static const _loggedOutSessionMarkerKey =
       'annual_leave_logged_out_sso_session_marker';
   static const _authGenerationKey = 'authGeneration';
+  static const _intendedAuthGenerationKey = 'intendedAuthGeneration';
 
   /// `RequestOptions.extra`에서 401 후 재시도를 이미 했는지 표시하는 키. (무한 재시도 방지)
   static const _authRetriedKey = 'authRetried';
@@ -167,9 +168,24 @@ class ApiClient {
   /// 새 변경 작업이 시작되면 처음부터 다시 읽는다. (반쯤 갱신된 상태의 토큰을 쓰지 않기 위함)
   /// 토큰이 없으면 헤더를 붙이지 않고, 있으면 전송 시점의 세션 세대를 `extra`에 기록한다.
   Future<void> _attachCurrentAuthentication(RequestOptions options) async {
+    if (_isAuthenticationRequest(options)) {
+      options.headers.remove('Authorization');
+      options.extra.remove(_authGenerationKey);
+      options.extra.remove(_intendedAuthGenerationKey);
+      return;
+    }
+
+    // 요청이 인증 부착을 시작한 순간의 세대를 고정한다. token mutation을 기다리는 동안
+    // 로그아웃/재로그인이 일어나도 새 계정 토큰으로 기존 요청을 재해석하지 않는다.
+    final intendedGeneration =
+        options.extra[_intendedAuthGenerationKey] as int? ?? _authGeneration;
+    options.extra[_intendedAuthGenerationKey] = intendedGeneration;
+
     while (true) {
+      _requireSameSession(options, intendedGeneration);
       final barrier = _tokenMutation;
       await barrier;
+      _requireSameSession(options, intendedGeneration);
 
       if (_isAuthenticationRequest(options)) {
         options.headers.remove('Authorization');
@@ -178,14 +194,12 @@ class ApiClient {
       }
 
       if (_explicitlyLoggedOut) {
-        options.headers.remove('Authorization');
-        options.extra.remove(_authGenerationKey);
-        return;
+        _requireSameSession(options, intendedGeneration);
       }
 
-      final generation = _authGeneration;
       var token = await _storage.read(key: _tokenKey);
-      if (generation != _authGeneration || barrier != _tokenMutation) continue;
+      _requireSameSession(options, intendedGeneration);
+      if (barrier != _tokenMutation) continue;
 
       final storedEmployeeId = token == null
           ? null
@@ -196,7 +210,8 @@ class ApiClient {
           storedEmployeeId != boundEmployeeId) {
         // 다른 탭의 로그인으로 shared storage 토큰 사용자가 바뀐 경우,
         // 새 탭의 토큰은 삭제하지 않고 현재 탭의 화면 세션만 만료한다.
-        await _expireLocalSessionOnly(generation);
+        await _expireLocalSessionOnly(intendedGeneration);
+        _requireSameSession(options, intendedGeneration);
         options.headers.remove('Authorization');
         options.extra.remove(_authGenerationKey);
         return;
@@ -209,28 +224,42 @@ class ApiClient {
       if (token != null && _isExpiringSoon(token)) {
         try {
           final refreshed =
-              await _refreshAccessTokenSingleFlight(generation, token);
+              await _refreshAccessTokenSingleFlight(intendedGeneration, token);
           if (refreshed != null) {
             token = refreshed.token;
           } else {
             token = await _storage.read(key: _tokenKey);
           }
+          _requireSameSession(options, intendedGeneration);
         } on DioException {
           // 갱신이 일시 장애로 실패해도 아직 만료 전이면 기존 토큰으로 계속 진행한다.
           if (_isExpired(token)) rethrow;
         }
       }
 
-      if (generation != _authGeneration) continue;
+      _requireSameSession(options, intendedGeneration);
 
       if (token == null) {
         options.headers.remove('Authorization');
         options.extra.remove(_authGenerationKey);
       } else {
         options.headers['Authorization'] = 'Bearer $token';
-        options.extra[_authGenerationKey] = generation;
+        options.extra[_authGenerationKey] = intendedGeneration;
       }
       return;
+    }
+  }
+
+  void _requireSameSession(
+    RequestOptions options,
+    int intendedGeneration,
+  ) {
+    if (_explicitlyLoggedOut || intendedGeneration != _authGeneration) {
+      throw DioException(
+        requestOptions: options,
+        type: DioExceptionType.cancel,
+        message: '계정이 변경되어 이전 요청을 취소했습니다.',
+      );
     }
   }
 
