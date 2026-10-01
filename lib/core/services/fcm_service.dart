@@ -43,9 +43,9 @@ class FcmService {
   final String _fcmTokenKey = 'registered_fcm_token';
   String get fcmTokenKey => _fcmTokenKey;
 
-  // 같은 FCM token이라도 로그인 사용자가 바뀌면 서버 owner migration이 필요하다.
-  // JWT 자체는 저장하지 않고 앱 프로세스 내 마지막 sync 기준으로만 사용한다.
-  String? _lastSyncedJwt;
+  // access JWT는 같은 로그인 세션 안에서도 refresh될 수 있으므로 JWT 문자열이 아니라
+  // ApiClient의 세션 세대를 마지막 sync 기준으로 사용한다.
+  int? _lastSyncedAuthGeneration;
 
   StreamSubscription? _foregroundNotificationSubscription;
   StreamSubscription? _openedNotificationSubscription;
@@ -104,8 +104,9 @@ class FcmService {
 
       final prefs = await SharedPreferences.getInstance();
       final registeredToken = prefs.getString(fcmTokenKey);
-      final currentJwt = await _apiClient.getToken();
-      if (registeredToken != token || _lastSyncedJwt != currentJwt) {
+      final currentGeneration = _apiClient.sessionGeneration;
+      if (registeredToken != token ||
+          _lastSyncedAuthGeneration != currentGeneration) {
         final deviceOs = kIsWeb
             ? 'Web'
             : switch (defaultTargetPlatform) {
@@ -124,7 +125,7 @@ class FcmService {
           ).toJson(),
         );
         await prefs.setString(fcmTokenKey, token);
-        _lastSyncedJwt = currentJwt;
+        _lastSyncedAuthGeneration = currentGeneration;
       }
     } on PlatformException catch (e) {
       // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
@@ -203,7 +204,7 @@ class FcmService {
       return;
     }
 
-    _lastSyncedJwt = null;
+    _lastSyncedAuthGeneration = null;
     await closeSubscription();
 
     if (expectedAuthGeneration != null &&
