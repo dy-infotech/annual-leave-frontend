@@ -29,8 +29,35 @@ class MyLeaveRequestsScreen extends StatelessWidget {
   }
 }
 
-class _MyLeaveRequestsView extends StatelessWidget {
+class _MyLeaveRequestsView extends StatefulWidget {
   const _MyLeaveRequestsView();
+
+  @override
+  State<_MyLeaveRequestsView> createState() => _MyLeaveRequestsViewState();
+}
+
+class _MyLeaveRequestsViewState extends State<_MyLeaveRequestsView> {
+  final ScrollController _scrollController = ScrollController();
+
+  MyLeaveRequestsViewModel get _vm =>
+      context.read<MyLeaveRequestsViewModel>();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.extentAfter < 240) {
+        _vm.loadMore();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   Future<void> _confirmCancel(BuildContext context,
       MyLeaveRequestsViewModel vm, LeaveRequestListItem item) async {
@@ -169,9 +196,26 @@ class _MyLeaveRequestsView extends StatelessWidget {
                 : vm.items.isEmpty
                 ? const Center(child: Text('신청 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
                 : ListView.builder(
+              controller: _scrollController,
               padding: const EdgeInsets.all(20),
-              itemCount: vm.items.length,
+              itemCount: vm.items.length + (vm.isLoadingMore ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index >= vm.items.length) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 12),
+                    child: Center(
+                      child: SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: AppColors.slate,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+
                 final item = vm.items[index];
                 final isRejected = item.status == 'REJECTED' &&
                     item.rejectReason != null &&
