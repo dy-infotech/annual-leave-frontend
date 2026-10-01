@@ -105,9 +105,15 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
     );
 
     if (confirmed == true) {
-      final ok = await vm.approve(req.requestId);
+      final result = await vm.approve(req.requestId);
       messenger.showSnackBar(SnackBar(
-          content: Text(ok ? '승인 처리되었습니다.' : '승인 처리에 실패했습니다.')));
+        content: Text(switch (result) {
+          ApprovalMutationResult.succeeded => '승인 처리되었습니다.',
+          ApprovalMutationResult.succeededRefreshFailed =>
+            '승인은 처리되었지만 목록을 새로 불러오지 못했습니다.',
+          ApprovalMutationResult.failed => '승인 처리에 실패했습니다.',
+        }),
+      ));
     }
   }
 
@@ -159,9 +165,15 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
     );
 
     if (confirmed == true) {
-      final ok = await vm.reject(req.requestId, controller.text.trim());
+      final result = await vm.reject(req.requestId, controller.text.trim());
       messenger.showSnackBar(SnackBar(
-          content: Text(ok ? '반려 처리되었습니다.' : '반려 처리에 실패했습니다.')));
+        content: Text(switch (result) {
+          ApprovalMutationResult.succeeded => '반려 처리되었습니다.',
+          ApprovalMutationResult.succeededRefreshFailed =>
+            '반려는 처리되었지만 목록을 새로 불러오지 못했습니다.',
+          ApprovalMutationResult.failed => '반려 처리에 실패했습니다.',
+        }),
+      ));
     }
   }
 
