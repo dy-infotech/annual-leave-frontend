@@ -307,7 +307,7 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Text(
-                    '${vm.requests.length}건',
+                    '${vm.totalCount}건',
                     style: const TextStyle(
                       color: Color(0xFF555555),
                       fontSize: 13,
