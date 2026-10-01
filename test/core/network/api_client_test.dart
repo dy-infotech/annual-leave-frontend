@@ -183,6 +183,55 @@ void main() {
       await ApiClient().clearToken();
     });
 
+    test('요청 생성 뒤 인증 인터셉터 진입 전 계정이 바뀌면 전송하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      final interceptorEntered = Completer<void>();
+      final releaseInterceptor = Completer<void>();
+      final gate = InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (!interceptorEntered.isCompleted) interceptorEntered.complete();
+          await releaseInterceptor.future;
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.insert(0, gate);
+
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) => server.reply(200, {}),
+        data: {'leaveType': 'FULL'},
+      );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
+
+      try {
+        final pending = _captureDioException(
+          () => ApiClient().authenticatedRequest(
+            '/api/leave-requests',
+            method: 'POST',
+            data: {'leaveType': 'FULL'},
+          ),
+        );
+        await interceptorEntered.future;
+
+        await ApiClient().saveToken(
+          _otherAccessToken,
+          sessionMarker: 'session-b',
+        );
+        releaseInterceptor.complete();
+
+        final error = await pending;
+        expect(error.type, DioExceptionType.cancel);
+        expect(counter.fetchCount, 0);
+      } finally {
+        ApiClient().dio.interceptors.remove(gate);
+      }
+    });
+
     test('저장된 토큰이 없으면 Authorization 헤더를 붙이지 않는다', () async {
       dioAdapter.onGet('/api/employees/me', (server) => server.reply(200, {}));
 
@@ -390,7 +439,8 @@ void main() {
       );
 
       expect(error.response?.statusCode, 401);
-      expect(storedToken, isNull);
+      expect(storedToken, _validAccessToken);
+      expect(sessionMarker, 'session-a');
       expect(expiredCount, 1);
     });
 
@@ -427,8 +477,56 @@ void main() {
 
       expect(error.response?.statusCode, 401);
       expect(refreshCalls, 1);
-      expect(storedToken, isNull);
+      expect(storedToken, _validAccessToken);
+      expect(sessionMarker, 'session-a');
       expect(expiredCount, 1);
+    });
+
+    test('A refresh 실패 전에 B shared session이 저장되면 B 토큰과 marker를 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(401, {'message': 'refresh session 만료'}),
+      );
+
+      final refreshEntered = Completer<void>();
+      final releaseRefresh = Completer<void>();
+      final gated = GatedPathAdapter(
+        dioAdapter,
+        path: '/api/auth/refresh',
+        entered: refreshEntered,
+        release: releaseRefresh,
+      );
+      ApiClient().dio.httpClientAdapter = gated;
+
+      final pending = _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+      await refreshEntered.future;
+
+      // 다른 탭은 별도 ApiClient 인스턴스이므로 이 탭의 generation을 올리지 않고
+      // same-origin shared storage만 사용자 8 세션으로 교체한다.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      releaseRefresh.complete();
+
+      final error = await pending;
+      expect(error.response?.statusCode, 401);
+      expect(expiredCount, 1);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
     });
 
     test('marker가 없는 기존 세션은 cookie marker를 조회한 뒤 refresh한다', () async {
@@ -727,6 +825,37 @@ class CountingAdapter implements HttpClientAdapter {
     Future<void>? cancelFuture,
   ) {
     fetchCount++;
+    return delegate.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) => delegate.close(force: force);
+}
+
+
+class GatedPathAdapter implements HttpClientAdapter {
+  GatedPathAdapter(
+    this.delegate, {
+    required this.path,
+    required this.entered,
+    required this.release,
+  });
+
+  final HttpClientAdapter delegate;
+  final String path;
+  final Completer<void> entered;
+  final Completer<void> release;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    if (options.path == path) {
+      if (!entered.isCompleted) entered.complete();
+      await release.future;
+    }
     return delegate.fetch(options, requestStream, cancelFuture);
   }
 
