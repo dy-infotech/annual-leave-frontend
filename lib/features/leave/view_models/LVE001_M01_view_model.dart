@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveState.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
@@ -45,6 +47,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool _disposed = false;
   int _requestSeq = 0;
+  String? _submitIdempotencyKey;
+  String? _submitPayloadSignature;
 
   /// 사유 입력값. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
   final TextEditingController reasonController = TextEditingController();
@@ -320,6 +324,24 @@ class LeaveRequestViewModel extends ChangeNotifier {
         useDays: useDays, remainingLeaveDays: remainingLeaveDays);
   }
 
+  String _newSubmitIdempotencyKey() {
+    final random = Random.secure();
+    return List<int>.generate(32, (_) => random.nextInt(256))
+        .map((value) => value.toRadixString(16).padLeft(2, '0'))
+        .join();
+  }
+
+  String _submitSignature(LeaveRequestCreate request) {
+    final data = request.toJson();
+    return [
+      data['leaveType'],
+      data['startDate'],
+      data['endDate'],
+      data['useDays'],
+      data['leaveReason'] ?? '',
+    ].join('|');
+  }
+
   /// 휴가 신청 제출. 성공 시 데이터를 갱신하고 선택 상태를 초기화한다.
   Future<bool> submit() async {
     if (_disposed || _isSubmitting) return false;
@@ -338,7 +360,16 @@ class LeaveRequestViewModel extends ChangeNotifier {
         leaveReason: leaveReason,
       );
 
-      final result = await _submitLeaveRequest(request);
+      final signature = _submitSignature(request);
+      if (_submitPayloadSignature != signature || _submitIdempotencyKey == null) {
+        _submitPayloadSignature = signature;
+        _submitIdempotencyKey = _newSubmitIdempotencyKey();
+      }
+
+      final result = await _submitLeaveRequest(
+        request,
+        idempotencyKey: _submitIdempotencyKey,
+      );
       if (result case Err(:final failure)) {
         _errorMessage = failure.message;
         return false;
@@ -365,6 +396,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
       _useDaysText = '0';
       _selectedLeaveType = LeaveType.full;
       reasonController.clear();
+      _submitIdempotencyKey = null;
+      _submitPayloadSignature = null;
       return true;
     } finally {
       if (!_disposed && seq == _requestSeq) {
