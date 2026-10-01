@@ -90,8 +90,10 @@ class AppDrawer extends StatelessWidget {
                     _NavItem(
                         label: '내 정보',
                         onTap: () => _navigate(context, '/my-info')),
-                    // 관리자 섹션 (role이 ADMIN인 경우에만 노출)
-                    if (info != null && info.role == 'ADMIN') ...[
+                    // PM 관리자 또는 현재 인사권자인 CEO에게 관리 섹션을 노출한다.
+                    // CEO와 PM은 별도 개념이므로 CEO에게 role == ADMIN을 요구하지 않는다.
+                    if (info != null &&
+                        (info.role == 'ADMIN' || info.isCeo)) ...[
                       const Padding(
                         padding: EdgeInsets.symmetric(
                             horizontal: 16.0, vertical: 8.0),
@@ -112,11 +114,13 @@ class AppDrawer extends StatelessWidget {
                           ),
                         ),
                       ),
-                      _NavItem(
-                          label: '결재 대기 목록',
-                          isAdmin: true,
-                          adminTextColor: navyPrimary,
-                          onTap: () => _navigate(context, '/pending-approval')),
+                      if (info.role == 'ADMIN')
+                        _NavItem(
+                            label: '결재 대기 목록',
+                            isAdmin: true,
+                            adminTextColor: navyPrimary,
+                            onTap: () =>
+                                _navigate(context, '/pending-approval')),
                       _NavItem(
                           label: '사용자 등록 관리',
                           isAdmin: true,
