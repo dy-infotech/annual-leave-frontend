@@ -11,6 +11,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
   final List<bool?> fetchRegistered = [];
   final List<Map<String, Object?>> pageRequests = [];
   final Map<int, List<Employee>> employeesByPage = {};
+  final Map<int, Future<List<Employee>>> employeePageFutures = {};
 
   @override
   Future<List<Employee>> fetchEmployees({
@@ -44,6 +45,9 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
       'registered': registered,
     });
     if (errorToThrow != null) throw errorToThrow!;
+
+    final delayedPage = employeePageFutures[page];
+    if (delayedPage != null) return delayedPage;
 
     final explicitPage = employeesByPage[page];
     if (explicitPage != null) return explicitPage;
