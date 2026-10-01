@@ -12,8 +12,14 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
   final String? initialStatus;
   final LeaveRepository _repository;
 
+  static const int _pageSize = LeaveRepository.defaultPageSize;
+
   List<LeaveRequestListItem> _items = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  String? _cursorRequestedAt;
+  int? _cursorRequestId;
   String? _statusFilter;
   DateTimeRange? _dateRange;
   final Set<int> _processingIds = {};
@@ -22,6 +28,8 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
 
   List<LeaveRequestListItem> get items => _items;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String? get statusFilter => _statusFilter;
   DateTimeRange? get dateRange => _dateRange;
   bool isProcessing(int requestId) => _processingIds.contains(requestId);
@@ -35,23 +43,70 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     await _fetch();
   }
 
+  Future<List<LeaveRequestListItem>> _fetchPage({
+    bool continueFromCursor = false,
+  }) {
+    return _repository.fetchMyLeaveRequestsPage(
+      status: _statusFilter,
+      startDate: _dateRange != null ? formatDate(_dateRange!.start) : null,
+      endDate: _dateRange != null ? formatDate(_dateRange!.end) : null,
+      page: 0,
+      size: _pageSize,
+      cursorRequestedAt:
+          continueFromCursor ? _cursorRequestedAt : null,
+      cursorRequestId: continueFromCursor ? _cursorRequestId : null,
+    );
+  }
+
   Future<void> _fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
+    _isLoadingMore = false;
+    _hasMore = true;
+    _cursorRequestedAt = null;
+    _cursorRequestId = null;
     _notify();
+
     try {
-      final items = await _repository.fetchMyLeaveRequests(
-        status: _statusFilter,
-        startDate: _dateRange != null ? formatDate(_dateRange!.start) : null,
-        endDate: _dateRange != null ? formatDate(_dateRange!.end) : null,
-      );
+      final page = await _fetchPage();
       if (_disposed || seq != _requestSeq) return;
-      _items = items;
+      _items = page;
+      _applyPageCursor(page);
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
         _notify();
       }
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+
+    final seq = _requestSeq;
+    _isLoadingMore = true;
+    _notify();
+    try {
+      final page = await _fetchPage(continueFromCursor: true);
+      if (_disposed || seq != _requestSeq) return;
+
+      final existingIds = _items.map((item) => item.requestId).toSet();
+      _items.addAll(page.where((item) => existingIds.add(item.requestId)));
+      _applyPageCursor(page);
+    } finally {
+      if (!_disposed && seq == _requestSeq) {
+        _isLoadingMore = false;
+        _notify();
+      }
+    }
+  }
+
+  void _applyPageCursor(List<LeaveRequestListItem> page) {
+    _hasMore = page.length == _pageSize;
+    if (page.isNotEmpty) {
+      final last = page.last;
+      _cursorRequestedAt = last.requestedAt;
+      _cursorRequestId = last.requestId;
     }
   }
 
