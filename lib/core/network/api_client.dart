@@ -267,7 +267,12 @@ class ApiClient {
         if (sharedToken != null &&
             sharedToken != beforeToken &&
             !_isExpired(sharedToken)) {
-          return LoginResponse.tryFromAccessToken(sharedToken);
+          final sharedSession = LoginResponse.tryFromAccessToken(sharedToken);
+          if (!_sameSubject(beforeToken, sharedSession)) {
+            await _expireSessionOnce(expectedGeneration);
+            return null;
+          }
+          return sharedSession;
         }
 
         try {
@@ -285,10 +290,29 @@ class ApiClient {
 
     final refreshed =
         LoginResponse.fromJson(Map<String, dynamic>.from(response.data as Map));
+
+    // 브라우저가 늦게 도착한 다른 로그인 응답의 HttpOnly refresh cookie를
+    // 적용했더라도 현재 access-token 사용자와 다른 계정으로 조용히 전환하지 않는다.
+    if (!_sameSubject(beforeToken, refreshed)) {
+      await _expireSessionOnce(expectedGeneration);
+      return null;
+    }
+
     final replaced =
         await _replaceAccessToken(refreshed.token, expectedGeneration);
     if (!replaced) return null;
     return refreshed;
+  }
+
+  bool _sameSubject(String? beforeToken, LoginResponse? candidate) {
+    if (beforeToken == null || candidate == null) return true;
+
+    final before = LoginResponse.tryFromAccessToken(beforeToken);
+    final beforeEmployeeId = before?.employeeId;
+    final candidateEmployeeId = candidate.employeeId;
+    if (beforeEmployeeId == null || candidateEmployeeId == null) return true;
+
+    return beforeEmployeeId == candidateEmployeeId;
   }
 
   /// 갱신 실패를 분류한다. 401/403은 refresh 쿠키가 무효라는 뜻이므로 세션을 만료 처리하고 null을 돌려준다.
