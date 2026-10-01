@@ -77,6 +77,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
 
   int? updateStatusCodeToReturn = 200;
   Object? updateErrorToThrow;
+  Future<int?>? updateFuture;
   final List<({String employeeNumber, Map<String, dynamic> data})> updates = [];
 
   @override
@@ -84,6 +85,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
       String employeeNumber, Map<String, dynamic> data) async {
     updates.add((employeeNumber: employeeNumber, data: data));
     if (updateErrorToThrow != null) throw updateErrorToThrow!;
+    if (updateFuture != null) return updateFuture!;
     return updateStatusCodeToReturn;
   }
 
