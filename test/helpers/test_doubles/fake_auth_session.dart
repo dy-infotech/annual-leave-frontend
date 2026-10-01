@@ -18,6 +18,17 @@ class FakeAuthSession extends AuthSession {
   Completer<void>? fetchMyInfoCompleter;
   int logoutCount = 0;
   final List<String> updatedEmails = [];
+  int fakeGeneration = 0;
+
+  void advanceGeneration() {
+    fakeGeneration++;
+  }
+
+  @override
+  int captureGeneration() => fakeGeneration;
+
+  @override
+  bool isCurrentGeneration(int generation) => generation == fakeGeneration;
 
   Object? loginErrorToThrow;
   final List<Map<String, String>> loginCalls = [];
@@ -37,11 +48,30 @@ class FakeAuthSession extends AuthSession {
   @override
   Future<void> logout({String? fcmToken}) async {
     logoutCount++;
+    fakeGeneration++;
+  }
+
+  @override
+  Future<bool> logoutIfCurrent(
+    int expectedGeneration, {
+    String? fcmToken,
+  }) async {
+    if (expectedGeneration != fakeGeneration) return false;
+    logoutCount++;
+    fakeGeneration++;
+    return true;
   }
 
   @override
   Future<void> updateEmail(String newEmail) async {
     updatedEmails.add(newEmail);
+  }
+
+  @override
+  bool updateEmailIfCurrent(int expectedGeneration, String newEmail) {
+    if (expectedGeneration != fakeGeneration) return false;
+    updatedEmails.add(newEmail);
+    return true;
   }
 
   @override
