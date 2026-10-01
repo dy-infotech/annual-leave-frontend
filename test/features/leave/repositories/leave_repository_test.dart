@@ -154,6 +154,30 @@ void main() {
         throwsA(isA<DioException>()),
       );
     });
+
+    test('같은 full page cursor가 반복되면 두 번째 응답에서 중단한다', () async {
+      final repeatedPage = List.generate(
+        LeaveRepository.defaultPageSize,
+        (_) => fixtureJson('leave/leave_request_list_item.json'),
+      );
+      dioAdapter.onGet(
+        '/api/leave-requests/my',
+        (server) => server.reply(200, repeatedPage),
+      );
+
+      await expectLater(
+        repository.fetchMyLeaveRequests(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            '휴가 목록 cursor가 전진하지 않았습니다.',
+          ),
+        ),
+      );
+
+      expect(sentRequests, hasLength(2));
+    });
   });
 
   group('fetchAllLeaveRequests', () {
@@ -463,6 +487,30 @@ void main() {
         repository.fetchPendingLeaveRequests(),
         throwsA(isA<DioException>()),
       );
+    });
+
+    test('같은 결재 대기 cursor가 반복되면 두 번째 응답에서 중단한다', () async {
+      final repeatedPage = List.generate(
+        LeaveRepository.defaultPageSize,
+        (_) => fixtureJson('leave/pending_leave_request.json'),
+      );
+      dioAdapter.onGet(
+        '/api/admin/leave-requests/pending',
+        (server) => server.reply(200, repeatedPage),
+      );
+
+      await expectLater(
+        repository.fetchPendingLeaveRequests(),
+        throwsA(
+          isA<StateError>().having(
+            (e) => e.message,
+            'message',
+            '결재 대기 목록 cursor가 전진하지 않았습니다.',
+          ),
+        ),
+      );
+
+      expect(sentRequests, hasLength(2));
     });
   });
 
