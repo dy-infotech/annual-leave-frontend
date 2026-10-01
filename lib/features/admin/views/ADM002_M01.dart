@@ -255,12 +255,12 @@ class _SignupManageViewState extends State<_SignupManageView> {
                     // 1. 리스트 아이템 중 검사 중인 항목이 관리자(admin)인지 확인
                     final bool isManagerItem = role == RoleType.admin;
 
-                    // 2. 현재 접속자가 대표이면서 동시에 관리자인지 권한 확인
+                    // 2. 현재 접속자가 대표 직급인지 확인 (현재 인사권 구현은 CEO에 귀속)
                     final bool isCurrentUserCeoAndAdmin =
                         SignupManageViewModel.canAssignAdminRole(
                             currentUser: info);
 
-                    // 3. 만약 관리자 아이템인데, 현재 접속자가 [대표 + 관리자] 조건에 맞지 않는다면 리스트에서 숨김(제외)
+                    // 3. 관리자(PM) 역할 부여는 현재 인사권자인 대표 직급에게만 노출
                     if (isManagerItem && !isCurrentUserCeoAndAdmin) {
                       return false;
                     }
