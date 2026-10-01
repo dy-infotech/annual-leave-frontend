@@ -23,6 +23,10 @@ class LoginResponse {
   final String? name;
   final String? role;
 
+  /// 서버 refresh session의 안정 식별자. background logout이 이후 세션을
+  /// 잘못 폐기하지 않도록 사용하며 refresh secret 자체는 아니다.
+  final String? ssoSessionMarker;
+
   /// 액세스 토큰의 만료 시각(UTC). 토큰에서 읽지 못하면 null.
   final DateTime? accessTokenExpiresAt;
 
@@ -31,6 +35,7 @@ class LoginResponse {
     required this.employeeId,
     required this.name,
     required this.role,
+    this.ssoSessionMarker,
     this.accessTokenExpiresAt,
   });
 
@@ -42,6 +47,7 @@ class LoginResponse {
       employeeId: (json['employeeId'] as num?)?.toInt() ?? claims?.employeeId,
       name: json['name']?.toString() ?? claims?.name,
       role: json['role']?.toString() ?? claims?.role,
+      ssoSessionMarker: json['ssoSessionMarker']?.toString(),
       accessTokenExpiresAt: claims?.accessTokenExpiresAt,
     );
   }
