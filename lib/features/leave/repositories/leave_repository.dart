@@ -81,18 +81,21 @@ class LeaveRepository {
         .toList();
   }
 
-  /// 캘린더/중복 검사처럼 전체 내역이 필요한 내부 호출용.
+  /// 캘린더/중복 검사처럼 범위 내 전체 내역이 필요한 내부 호출용.
+  /// OFFSET 대신 마지막 (requestedAt, requestId) cursor를 이어서 수집한다.
   Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
     String? status,
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return fetchMyLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        page: page,
+        page: 0,
+        cursorRequestedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
@@ -103,12 +106,14 @@ class LeaveRepository {
     String? startDate,
     String? endDate,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return fetchAllLeaveRequestsPage(
         status: status,
         startDate: startDate,
         endDate: endDate,
-        page: page,
+        page: 0,
+        cursorRequestedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
@@ -175,12 +180,14 @@ class LeaveRepository {
     required String? team,
     String? employeeParam,
   }) {
-    return _collectLeavePages((page) {
+    return _collectLeaveCursorPages((cursorAt, cursorId) {
       return searchAdminLeaveRequestsPage(
         status: status,
         team: team,
         employeeParam: employeeParam,
-        page: page,
+        page: 0,
+        cursorCreatedAt: cursorAt,
+        cursorRequestId: cursorId,
       );
     });
   }
@@ -211,13 +218,24 @@ class LeaveRepository {
 
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
     final result = <PendingLeaveRequest>[];
+    String? cursorCreatedAt;
+    int? cursorRequestId;
 
-    for (var page = 0; page < _maxCursorBatches; page++) {
-      final items = await fetchPendingLeaveRequestsPage(page: page);
+    for (var batch = 0; batch < _maxCursorBatches; batch++) {
+      final items = await fetchPendingLeaveRequestsPage(
+        page: 0,
+        cursorCreatedAt: cursorCreatedAt,
+        cursorRequestId: cursorRequestId,
+      );
       result.addAll(items);
       if (items.length < defaultPageSize) return result;
+      if (items.isEmpty) return result;
+
+      final last = items.last;
+      cursorCreatedAt = last.createdAt;
+      cursorRequestId = last.requestId;
     }
-    throw StateError('결재 대기 목록이 페이지 조회 한도를 초과했습니다.');
+    throw StateError('결재 대기 목록이 cursor 조회 한도를 초과했습니다.');
   }
 
   Future<void> approveLeaveRequest(int requestId) async {
@@ -243,16 +261,26 @@ class LeaveRepository {
     };
   }
 
-  Future<List<LeaveRequestListItem>> _collectLeavePages(
-    Future<List<LeaveRequestListItem>> Function(int page) fetchPage,
+  Future<List<LeaveRequestListItem>> _collectLeaveCursorPages(
+    Future<List<LeaveRequestListItem>> Function(
+      String? cursorCreatedAt,
+      int? cursorRequestId,
+    ) fetchPage,
   ) async {
     final result = <LeaveRequestListItem>[];
+    String? cursorCreatedAt;
+    int? cursorRequestId;
 
-    for (var page = 0; page < _maxCursorBatches; page++) {
-      final items = await fetchPage(page);
+    for (var batch = 0; batch < _maxCursorBatches; batch++) {
+      final items = await fetchPage(cursorCreatedAt, cursorRequestId);
       result.addAll(items);
       if (items.length < defaultPageSize) return result;
+      if (items.isEmpty) return result;
+
+      final last = items.last;
+      cursorCreatedAt = last.requestedAt;
+      cursorRequestId = last.requestId;
     }
-    throw StateError('휴가 목록이 페이지 조회 한도를 초과했습니다.');
+    throw StateError('휴가 목록이 cursor 조회 한도를 초과했습니다.');
   }
 }
