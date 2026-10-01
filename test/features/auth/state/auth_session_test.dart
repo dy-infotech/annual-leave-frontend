@@ -1,4 +1,5 @@
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
+import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter_test/flutter_test.dart';
 
