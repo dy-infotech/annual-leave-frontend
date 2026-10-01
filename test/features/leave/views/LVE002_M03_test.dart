@@ -71,8 +71,9 @@ void main() {
   testWidgets('조회 - 내역이 없으면 안내 문구와 0건이 표시된다', (tester) async {
     await pumpSearchScreen(tester);
 
-    expect(find.text('목록을 불러오지 못했습니다.'), findsOneWidget);
-    expect(find.text('다시 시도'), findsOneWidget);
+    expect(find.text('조회된 내역이 없습니다.'), findsOneWidget);
+    expect(find.text('목록을 불러오지 못했습니다.'), findsNothing);
+    expect(find.text('다시 시도'), findsNothing);
     expect(find.text('0건'), findsOneWidget);
   });
 
@@ -105,11 +106,13 @@ void main() {
     expect(fake.adminSearchQueries.last['employeeParam'], '홍길동');
   });
 
-  testWidgets('조회 실패 - 이후 성공 조회 전까지 목록이 비어 있다', (tester) async {
+  testWidgets('조회 실패 - 오류와 재시도를 표시하고 빈 목록 문구와 구분한다', (tester) async {
     fake.errorToThrow = Exception('network');
 
     await pumpSearchScreen(tester);
 
-    expect(find.text('조회된 내역이 없습니다.'), findsOneWidget);
+    expect(find.text('목록을 불러오지 못했습니다.'), findsOneWidget);
+    expect(find.text('다시 시도'), findsOneWidget);
+    expect(find.text('조회된 내역이 없습니다.'), findsNothing);
   });
 }
