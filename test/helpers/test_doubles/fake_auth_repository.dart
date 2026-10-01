@@ -8,6 +8,8 @@ class FakeAuthRepository implements AuthRepository {
   Future<LoginResponse> Function(String employeeNumber, String password)?
       signInHandler;
   final List<Map<String, String>> signInCalls = [];
+  bool _insideSharedSsoMutation = false;
+  bool saveTokenInsideSharedSsoMutation = false;
   LoginResponse signInResponse = LoginResponse(
       token: 'test.token', employeeId: 1, name: '홍길동', role: 'EMPLOYEE');
 
@@ -35,7 +37,14 @@ class FakeAuthRepository implements AuthRepository {
   int logoutCalls = 0;
 
   @override
-  Future<T> runSharedSsoMutation<T>(Future<T> Function() action) => action();
+  Future<T> runSharedSsoMutation<T>(Future<T> Function() action) async {
+    _insideSharedSsoMutation = true;
+    try {
+      return await action();
+    } finally {
+      _insideSharedSsoMutation = false;
+    }
+  }
 
   @override
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
@@ -83,6 +92,7 @@ class FakeAuthRepository implements AuthRepository {
     String? ssoSessionMarker,
   }) async {
     if (saveTokenErrorToThrow != null) throw saveTokenErrorToThrow!;
+    saveTokenInsideSharedSsoMutation = _insideSharedSsoMutation;
     storedToken = token;
     storedSessionMarker = ssoSessionMarker;
   }
