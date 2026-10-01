@@ -906,3 +906,93 @@ class ApiClient {
     );
   }
 }
+
+
+/// Repository가 기존 Dio 주입 구조를 유지하면서도 요청 생성 시점의 인증 세대를
+/// 고정할 수 있게 하는 보호 요청 확장이다. 공개 /api/auth/** 호출에는 사용하지 않는다.
+extension AuthenticatedDioRequests on Dio {
+  Future<Response<T>> authenticatedGet<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) =>
+      ApiClient().authenticatedRequest<T>(
+        path,
+        method: 'GET',
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        transport: this,
+      );
+
+  Future<Response<T>> authenticatedPost<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) =>
+      ApiClient().authenticatedRequest<T>(
+        path,
+        method: 'POST',
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        transport: this,
+      );
+
+  Future<Response<T>> authenticatedPut<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) =>
+      ApiClient().authenticatedRequest<T>(
+        path,
+        method: 'PUT',
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        transport: this,
+      );
+
+  Future<Response<T>> authenticatedPatch<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) =>
+      ApiClient().authenticatedRequest<T>(
+        path,
+        method: 'PATCH',
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        transport: this,
+      );
+
+  Future<Response<T>> authenticatedDelete<T>(
+    String path, {
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+  }) =>
+      ApiClient().authenticatedRequest<T>(
+        path,
+        method: 'DELETE',
+        data: data,
+        queryParameters: queryParameters,
+        options: options,
+        cancelToken: cancelToken,
+        transport: this,
+      );
+}
