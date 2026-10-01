@@ -408,6 +408,72 @@ void main() {
       );
     });
 
+    test('A 요청의 401 뒤 shared storage가 B로 바뀌어도 A mutation을 B 계정으로 재전송하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      var mutationCalls = 0;
+      String? retriedAuthorization;
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) {
+          mutationCalls++;
+          if (mutationCalls == 1) {
+            // A 요청이 서버에 도착한 뒤 다른 탭 B가 shared storage를 교체한다.
+            storedToken = _otherAccessToken;
+            sessionMarker = 'session-b';
+            server.reply(401, {'message': 'access token 만료'});
+            return;
+          }
+          server.reply(200, {'ok': true});
+        },
+        data: Matchers.any,
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(409, {'message': 'session marker mismatch'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+
+      final capture = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path == '/api/leave-requests' &&
+              options.extra['authRetried'] == true) {
+            retriedAuthorization = options.headers['Authorization'] as String?;
+          }
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.add(capture);
+
+      try {
+        final error = await _captureDioException(
+          () => ApiClient().authenticatedRequest<dynamic>(
+            '/api/leave-requests',
+            method: 'POST',
+            data: {'leaveType': 'ANNUAL'},
+          ),
+        );
+
+        expect(error.response?.statusCode, 401);
+        expect(mutationCalls, 1);
+        expect(retriedAuthorization, isNull);
+        expect(storedToken, _otherAccessToken);
+        expect(sessionMarker, 'session-b');
+      } finally {
+        ApiClient().dio.interceptors.remove(capture);
+        await ApiClient().saveToken(
+          _validAccessToken,
+          sessionMarker: 'session-a',
+        );
+      }
+    });
+
     test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
       await ApiClient().saveToken(
         _validAccessToken,
