@@ -24,7 +24,7 @@ class SearchEmployeeNumberScreen extends StatelessWidget {
       create: (_) => SearchEmployeeNumberViewModel(
         repository: repository,
         commonCodeRepository: commonCodeRepository,
-      )..fetch(),
+      )..load(),
       child: const _SearchEmployeeNumberView(),
     );
   }
@@ -40,8 +40,21 @@ class _SearchEmployeeNumberView extends StatefulWidget {
 
 class _SearchEmployeeNumberViewState extends State<_SearchEmployeeNumberView>
     with RouteAware {
+  final ScrollController _scrollController = ScrollController();
+
   SearchEmployeeNumberViewModel get _vm =>
       context.read<SearchEmployeeNumberViewModel>();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(() {
+      if (!_scrollController.hasClients) return;
+      if (_scrollController.position.extentAfter < 240) {
+        _vm.loadMore();
+      }
+    });
+  }
 
   // 📄 2페이지 전체를 이 정제된 다중 필터 구조 코드로 대체하세요.
   // 📄 2페이지의 _fetch() 함수 전체를 이 최종 버전으로 완전히 교체하세요.
@@ -115,6 +128,7 @@ class _SearchEmployeeNumberViewState extends State<_SearchEmployeeNumberView>
   @override
   void dispose() {
     routeObserver.unsubscribe(this);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -452,6 +466,7 @@ class _SearchEmployeeNumberViewState extends State<_SearchEmployeeNumberView>
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))
                     : ListView.builder(
+                        controller: _scrollController,
                         padding: const EdgeInsets.only(
                             top: 10.0, left: 20.0, right: 20.0, bottom: 20.0),
                         itemCount: _vm.items.length,
