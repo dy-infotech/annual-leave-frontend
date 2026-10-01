@@ -918,7 +918,8 @@ class ApiClient {
     bool replacementDetected,
   })> _prepareExplicitLogout({String? sessionMarkerOverride}) {
     return runSharedSsoMutation(() async {
-      final ownedMarker = sessionMarkerOverride ?? _boundSessionMarker;
+      final tabOwnedMarker = _boundSessionMarker;
+      final ownedMarker = sessionMarkerOverride ?? tabOwnedMarker;
       final sharedMarker = await _storage.read(key: _sessionMarkerKey);
       final sharedToken = await _storage.read(key: _tokenKey);
       final sharedEmployeeId = sharedToken == null
@@ -932,7 +933,11 @@ class ApiClient {
           ownedMarker.isNotEmpty &&
           sharedMarker != null &&
           sharedMarker.isNotEmpty &&
-          sharedMarker != ownedMarker;
+          sharedMarker != ownedMarker &&
+          // partial signin cleanup의 override marker는 새 cookie session이고,
+          // secure storage에는 이 탭의 직전 세션 marker가 남아 있을 수 있다.
+          // 그 값까지 replacement로 오인하지 않는다.
+          (tabOwnedMarker == null || sharedMarker != tabOwnedMarker);
 
       if (subjectReplaced || markerReplaced) {
         // AuthSession은 호출 전에 자신의 화면 상태를 이미 로그아웃 처리한다.
