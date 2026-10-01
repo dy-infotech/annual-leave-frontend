@@ -25,7 +25,7 @@ class PublicHolidayRepository {
   static List<PublicHoliday>? _cache;
   static int? _cachedYear;
   static DateTime? _expiresAt;
-  static Future<List<PublicHoliday>>? _inFlight;
+  static final Map<int, Future<List<PublicHoliday>>> _inFlightByYear = {};
 
   Future<List<PublicHoliday>> fetchPublicHolidays({bool refresh = false}) {
     final now = _now();
@@ -39,17 +39,19 @@ class PublicHolidayRepository {
       return Future.value(_cache!);
     }
 
-    if (_inFlight != null) {
-      return _inFlight!;
+    final inFlight = _inFlightByYear[year];
+    if (inFlight != null) {
+      return inFlight;
     }
 
-    final future = _load(year, now);
-    _inFlight = future;
-    return future.whenComplete(() {
-      if (identical(_inFlight, future)) {
-        _inFlight = null;
+    late Future<List<PublicHoliday>> future;
+    future = _load(year, now).whenComplete(() {
+      if (identical(_inFlightByYear[year], future)) {
+        _inFlightByYear.remove(year);
       }
     });
+    _inFlightByYear[year] = future;
+    return future;
   }
 
   // Future<List<PublicHoliday>> _load(int year, DateTime loadedAt) async {
@@ -103,6 +105,6 @@ class PublicHolidayRepository {
     _cache = null;
     _cachedYear = null;
     _expiresAt = null;
-    _inFlight = null;
+    _inFlightByYear.clear();
   }
 }
