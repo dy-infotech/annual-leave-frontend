@@ -57,7 +57,13 @@ class DashboardViewModel extends ChangeNotifier {
         notifyListeners();
 
         if (data?.allEmployeeRequestSummary != null) {
-          await _registerFcm();
+          try {
+            await _registerFcm();
+          } catch (e) {
+            // 대시보드 데이터 조회는 이미 성공했다. FCM은 부가기능이므로
+            // 플러그인/권한/초기 메시지 오류가 화면 조회 성공을 실패로 뒤집지 않는다.
+            debugPrint('FCM 등록 실패(대시보드 조회 결과는 유지): $e');
+          }
         }
       }
     }
