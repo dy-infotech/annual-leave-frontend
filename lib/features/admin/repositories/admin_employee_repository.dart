@@ -42,7 +42,7 @@ class AdminEmployeeRepository {
   }) async {
     final normalizedSearch = searchParam?.trim();
     final normalizedTeam = team?.trim();
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/employees/all',
       queryParameters: {
         if (normalizedSearch != null && normalizedSearch.isNotEmpty)
@@ -65,7 +65,7 @@ class AdminEmployeeRepository {
   Future<int?> updateEmployee(
       String employeeNumber, Map<String, dynamic> data) async {
     final response =
-        await _dio.put('/api/admin/employees/$employeeNumber', data: data);
+        await _dio.authenticatedPut('/api/admin/employees/$employeeNumber', data: data);
     return response.statusCode;
   }
 
@@ -75,7 +75,7 @@ class AdminEmployeeRepository {
     required List<String> expectedManagedTeams,
     required List<String> managedTeams,
   }) async {
-    final response = await _dio.put(
+    final response = await _dio.authenticatedPut(
       '/api/admin/employees/$employeeNumber/managed-teams',
       data: {
         'expectedManagedTeams': expectedManagedTeams,
