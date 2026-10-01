@@ -8,11 +8,13 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   AllLeaveRequestsViewModel({
     this.initialStatus,
     this.initialFilter,
+    this.canViewAll = true,
     LeaveRepository? repository,
   }) : _repository = repository ?? LeaveRepository();
 
   final String? initialStatus;
   final String? initialFilter;
+  final bool canViewAll;
   final LeaveRepository _repository;
 
   static const int _pageSize = LeaveRepository.defaultPageSize;
@@ -46,7 +48,9 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
 
   Future<void> load() async {
     _statusFilter = initialStatus;
-    if (initialFilter != null) {
+    if (!canViewAll) {
+      _buttonLabel = '내 신청';
+    } else if (initialFilter != null) {
       _buttonLabel = initialFilter == 'my' ? '내 신청' : '전체';
     }
     await fetch();
@@ -145,6 +149,8 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   }
 
   void setButtonLabel(String label) {
+    if (!canViewAll && label != '내 신청') return;
+    if (_buttonLabel == label) return;
     _buttonLabel = label;
     _notify();
     unawaited(fetch());
