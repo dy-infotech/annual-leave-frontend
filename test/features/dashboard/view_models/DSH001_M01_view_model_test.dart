@@ -25,6 +25,22 @@ void main() {
       expect(fcmCalls, 1);
     });
 
+    test('조회 성공(관리자) - FCM 등록 실패가 대시보드 성공을 뒤집지 않는다', () async {
+      final vm = DashboardViewModel(
+        repository: FakeDashboardRepository(
+          dataToReturn:
+              DashboardData.fromJson(fixtureJson('dashboard/dashboard.json')),
+        ),
+        registerFcm: () async => throw StateError('firebase unavailable'),
+      );
+
+      await expectLater(vm.fetchDashboard(), completes);
+
+      expect(vm.data, isNotNull);
+      expect(vm.isLoading, isFalse);
+      expect(vm.errorMessage, isNull);
+    });
+
     test('조회 성공(일반 사용자) - FCM 등록을 수행하지 않는다', () async {
       var fcmCalls = 0;
       final vm = DashboardViewModel(
