@@ -71,10 +71,12 @@ class SignupManageViewModel extends ChangeNotifier {
     return List<String>.unmodifiable(teamList);
   }
 
-  /// 관리자 역할 부여 가능 여부.
-  /// 대표(사장/대표이사 직급)이면서 관리자인 접속자만 부여할 수 있다.
+  /// 관리자(PM) 역할 부여 가능 여부.
+  ///
+  /// 현재 인사권 구현은 CEO에게 귀속되어 있으며 PM 여부와는 별개다.
+  /// 향후 서버가 별도 인사권 필드를 제공하면 그 명시 권한으로 교체한다.
   static bool canAssignAdminRole({Employee? currentUser}) {
-    return (currentUser?.isCeo ?? false) && currentUser?.role == 'ADMIN';
+    return currentUser?.isCeo ?? false;
   }
 
   Future<void> fetch() async {
