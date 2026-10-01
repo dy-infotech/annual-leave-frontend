@@ -63,22 +63,34 @@ class MyInfoViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.changePassword(
-        currentPassword: currentPasswordController.text,
-        newPassword: newPasswordController.text,
-      );
-      if (_disposed) return true;
-      currentPasswordController.clear();
-      newPasswordController.clear();
-      newPasswordConfirmController.clear();
+      try {
+        await _repository.changePassword(
+          currentPassword: currentPasswordController.text,
+          newPassword: newPasswordController.text,
+        );
+      } catch (e) {
+        if (!_disposed) {
+          _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
+        }
+        return false;
+      }
 
-      // 비밀번호 hash 변경으로 기존 JWT credentialVersion이 즉시 무효화된다.
-      // 성공 응답 직후 로컬 세션도 종료해 다음 API의 갑작스러운 401을 피한다.
-      await _authProvider.logoutIfCurrent(sessionGeneration);
+      // 여기부터는 서버의 비밀번호 변경과 refresh session 폐기가 이미 commit됐다.
+      // 후속 로컬 logout 정리 실패를 성공한 mutation의 실패로 뒤집지 않는다.
+      if (!_disposed) {
+        currentPasswordController.clear();
+        newPasswordController.clear();
+        newPasswordConfirmController.clear();
+      }
+
+      try {
+        await _authProvider.logoutIfCurrent(sessionGeneration);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] 비밀번호 변경 후 로컬 로그아웃 정리 실패: $e');
+        }
+      }
       return true;
-    } catch (e) {
-      _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
-      return false;
     } finally {
       _isSubmitting = false;
       if (!_disposed) notifyListeners();
