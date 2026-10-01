@@ -32,8 +32,8 @@ class FakeAuthSession extends AuthSession {
   }
 
   @override
-  Future<void> updateEmail(newEmail) async {
-    updatedEmails.add(newEmail as String);
+  Future<void> updateEmail(String newEmail) async {
+    updatedEmails.add(newEmail);
   }
 
   @override
