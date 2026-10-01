@@ -312,8 +312,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     _isLoading = true;
     _notify();
     try {
-      final reloaded =
-          await _reloadSelectedFromServer(employee.employeeNumber);
+      final reloaded = await _reloadSelectedFromServer(employee.employeeNumber);
       if (!reloaded) {
         _needsReconcile = true;
         return '서버 상태를 불러오지 못했습니다. 다시 시도해 주세요.';
@@ -377,7 +376,12 @@ class AdminSettingsViewModel extends ChangeNotifier {
             ? '다른 변경이 먼저 반영되었습니다. 서버 상태를 다시 조회해 주세요.'
             : '저장 결과를 확인하지 못했습니다. 서버 상태를 다시 조회해 주세요.';
       }
-      return e.message ?? '저장 중 오류가 발생했습니다.';
+      // return e.message ?? '저장 중 오류가 발생했습니다.';
+      // 변경 후
+      // 서버가 변경을 거부(예: 400)하면 저장된 것이 없다.
+      // 화면에서 옮겨 둔 임시 상태를 서버의 현재 상태로 되돌려 저장된 것처럼 보이지 않게 한다.
+      await _reloadSelectedFromServer(employee.employeeNumber);
+      return '저장되지 않았습니다. ${e.message ?? '저장 중 오류가 발생했습니다.'}';
     } catch (e) {
       debugPrint('권한 설정 저장 실패: $e');
       _needsReconcile = true;

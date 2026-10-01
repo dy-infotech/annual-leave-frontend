@@ -63,7 +63,11 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
     final messenger = ScaffoldMessenger.of(context);
     final error = await _vm.saveChanges();
     if (error != null && mounted) {
-      messenger.showSnackBar(SnackBar(content: Text(error)));
+      //messenger.showSnackBar(SnackBar(content: Text(error)));
+      messenger.showSnackBar(SnackBar(
+        content: Text(error),
+        duration: const Duration(seconds: 8),
+      ));
     }
   }
 
