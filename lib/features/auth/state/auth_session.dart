@@ -138,9 +138,13 @@ class AuthSession extends ChangeNotifier {
       Object? cleanupError;
       StackTrace? cleanupStackTrace;
       final marker = issuedSession?.ssoSessionMarker;
+      final cleanupOwnsCurrentGeneration = _isCurrent(generation);
       if (marker != null && marker.isNotEmpty) {
         try {
-          await _repository.discardRefreshSession(marker);
+          await _repository.discardRefreshSession(
+            marker,
+            clearLocalState: cleanupOwnsCurrentGeneration,
+          );
         } catch (error, stackTrace) {
           // fence 저장과 서버 revoke가 모두 실패한 경우에는 orphan refresh session을
           // 조용히 남기지 않도록 최종적으로 cleanup 실패를 호출자에게 전파한다.
