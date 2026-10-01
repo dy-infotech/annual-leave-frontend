@@ -31,9 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
         prefs.getBool(AuthPreferences.autoLoginKey) ??
             AuthPreferences.autoLoginDefault;
 
-    if (autoLoginEnabled) {
-      await auth.tryAutoLogin();
-    }
+    await auth.tryAutoLogin(enabled: autoLoginEnabled);
 
     if (!mounted) return;
 
