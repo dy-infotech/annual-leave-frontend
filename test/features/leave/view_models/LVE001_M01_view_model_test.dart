@@ -925,6 +925,39 @@ void main() {
       expect(ok, isTrue);
       expect(vm.errorMessage, isNull);
     });
+
+    test('실패 후 같은 요청 재시도는 같은 Idempotency-Key를 재사용한다', () async {
+      fake.submitErrorToThrow = Exception('network');
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+
+      expect(await vm.submit(), isFalse);
+      final firstKey = fake.submittedIdempotencyKeys.single;
+      expect(firstKey, isNotNull);
+      expect(firstKey, isNotEmpty);
+
+      fake.submitErrorToThrow = null;
+      expect(await vm.submit(), isTrue);
+
+      expect(fake.submittedIdempotencyKeys, hasLength(2));
+      expect(fake.submittedIdempotencyKeys[1], firstKey);
+    });
+
+    test('실패 뒤 신청 내용이 바뀌면 새 Idempotency-Key를 사용한다', () async {
+      fake.submitErrorToThrow = Exception('network');
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+
+      expect(await vm.submit(), isFalse);
+      final firstKey = fake.submittedIdempotencyKeys.single;
+
+      vm.reasonController.text = '변경된 사유';
+      fake.submitErrorToThrow = null;
+      expect(await vm.submit(), isTrue);
+
+      expect(fake.submittedIdempotencyKeys, hasLength(2));
+      expect(fake.submittedIdempotencyKeys[1], isNot(firstKey));
+    });
   });
 
   group('halfDayStatus - 캘린더 별표 상태', () {
