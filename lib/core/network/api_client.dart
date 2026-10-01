@@ -476,7 +476,7 @@ class ApiClient {
   ) async {
     final status = error.response?.statusCode;
     if (status == 401 || status == 403) {
-      await _expireSessionOnce(expectedGeneration);
+      await _expireRefreshFailureSession(expectedGeneration);
       return null;
     }
     throw error;
