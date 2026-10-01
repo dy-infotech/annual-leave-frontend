@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// 사원 상세 화면(ADM004_D01)의 ViewModel.
+// 사원 상세 정보와 수정 상태를 관리한다
 class EmployeeDetailViewModel extends ChangeNotifier {
   EmployeeDetailViewModel({
     required this.employee,
@@ -56,7 +56,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
   late final TextEditingController fireDateController;
 
   final List<String> departmentList = [];
-  final List<String> teamList = []; // 하위 호환용 팀명 목록
+  final List<String> teamList = []; // 기존 화면용 팀명 목록을 유지한다
   final List<AccessibleTeamOption> teamOptions = [];
   final List<String> positionList = [];
 
@@ -82,7 +82,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
           .map((team) => team.teamName)
           .toList();
 
-      // 현재 배정값은 공통데이터 접근범위 밖이어도 조회/수정 화면에서 잃지 않는다.
+      // 현재 배정값은 선택 목록에 없어도 화면에 유지한다
       if (department == employee.department &&
           employee.team.isNotEmpty &&
           !result.contains(employee.team)) {
@@ -266,7 +266,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
         (statusCode != null && statusCode >= 500);
   }
 
-  /// 편집 가능한 현재 상태만 desired로 보내고, 마지막 조회 상태를 expected로 함께 전송한다.
+  // 마지막 조회 상태와 편집한 값을 함께 보내 수정한다
   Future<bool> saveChanges() async {
     if (_disposed || _isSaving) return false;
 

@@ -3,7 +3,7 @@ import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// 내 정보 화면(EMP001_M01)의 ViewModel.
+// 내 정보 수정과 요청 상태를 관리한다
 class MyInfoViewModel extends ChangeNotifier {
   MyInfoViewModel({
     required AuthSession authProvider,
@@ -30,14 +30,14 @@ class MyInfoViewModel extends ChangeNotifier {
   String? get emailErrorMessage => _emailErrorMessage;
   bool get isEditingEmail => _isEditingEmail;
 
-  /// 이메일 편집 시작. 기존 이메일을 입력란에 채운다.
+  // 현재 이메일을 입력값에 채우고 편집을 시작한다
   void startEditingEmail() {
     emailController.text = _authProvider.employeeInfo?.email ?? '';
     _isEditingEmail = true;
     notifyListeners();
   }
 
-  /// 비밀번호 변경. 검증 통과 후 API 호출까지 성공하면 true를 돌려준다.
+  // 입력값 확인 후 비밀번호 변경을 요청한다
   Future<bool> changePassword() async {
     if (_disposed || _isSubmitting) return false;
     if (currentPasswordController.text.isEmpty ||
@@ -76,8 +76,7 @@ class MyInfoViewModel extends ChangeNotifier {
         return false;
       }
 
-      // 여기부터는 서버의 비밀번호 변경과 refresh session 폐기가 이미 commit됐다.
-      // 후속 로컬 logout 정리 실패를 성공한 mutation의 실패로 뒤집지 않는다.
+      // 서버 변경 성공 후 현재 로컬 세션을 정리한다
       if (!_disposed) {
         currentPasswordController.clear();
         newPasswordController.clear();
@@ -98,7 +97,7 @@ class MyInfoViewModel extends ChangeNotifier {
     }
   }
 
-  /// 이메일 변경. 성공 시 세션의 이메일도 갱신하고 편집 모드를 종료한다.
+  // 이메일 변경 후 현재 세션 정보도 갱신한다
   Future<bool> changeEmail() async {
     if (_disposed || _isSubmitting) return false;
     if (emailController.text.isEmpty) {

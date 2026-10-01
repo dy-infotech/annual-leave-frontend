@@ -10,6 +10,7 @@ enum CancelResult {
   succeededRefreshFailed,
 }
 
+// 조직 전체와 내 휴가 신청 목록 상태를 관리한다
 class AllLeaveRequestsViewModel extends ChangeNotifier {
   AllLeaveRequestsViewModel({
     this.initialStatus,
@@ -58,6 +59,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  // 초기 필터를 적용한 뒤 첫 목록을 조회한다
   Future<void> load() async {
     _statusFilter = initialStatus;
     if (!canViewAll) {
@@ -68,6 +70,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     await fetch();
   }
 
+  // 현재 보기 조건과 기간에 맞는 목록 페이지를 조회한다
   Future<PageResult<LeaveRequestListItem>> _fetchPage({
     bool continueFromCursor = false,
   }) {
@@ -102,6 +105,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
           );
   }
 
+  // 현재 조건으로 목록을 처음부터 다시 조회한다
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
@@ -134,6 +138,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 조건을 유지한 채 다음 목록을 이어서 조회한다
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _loadError != null) return;
 
@@ -179,6 +184,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(fetch());
   }
 
+  // 전체 목록과 내 신청 보기 전환 후 목록을 다시 조회한다
   void setButtonLabel(String label) {
     if (!canViewAll && label != '내 신청') return;
     if (_buttonLabel == label) return;
@@ -200,6 +206,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(fetch());
   }
 
+  // 내 신청을 취소한 뒤 현재 목록을 다시 조회한다
   Future<CancelResult> cancel(int requestId) async {
     if (!_processingIds.add(requestId)) {
       return CancelResult.failed;

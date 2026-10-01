@@ -10,7 +10,7 @@ enum CancelResult {
   succeededRefreshFailed,
 }
 
-/// 내 휴가 신청 목록 화면(LVE002_M01)의 ViewModel.
+// 내 휴가 신청 목록과 취소 상태를 관리한다
 class MyLeaveRequestsViewModel extends ChangeNotifier {
   MyLeaveRequestsViewModel({this.initialStatus, LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();
@@ -48,6 +48,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  // 초기 상태 필터를 적용한 뒤 목록을 조회한다
   Future<void> load() async {
     _statusFilter = initialStatus;
     await _fetch();
@@ -68,6 +69,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     );
   }
 
+  // 현재 조건으로 신청 목록을 처음부터 다시 조회한다
   Future<void> _fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
@@ -100,6 +102,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 조건을 유지한 채 다음 신청 목록을 조회한다
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _loadError != null) return;
 
@@ -157,6 +160,7 @@ class MyLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(_fetch());
   }
 
+  // 신청을 취소한 뒤 현재 목록을 다시 조회한다
   Future<CancelResult> cancel(int requestId) async {
     if (!_processingIds.add(requestId)) {
       return CancelResult.failed;

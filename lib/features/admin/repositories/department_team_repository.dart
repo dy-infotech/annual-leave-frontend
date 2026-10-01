@@ -3,17 +3,13 @@ import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:dio/dio.dart';
 
-/// 부서/팀 관리 API 호출 모음. (docs/api-spec-department-team.md 참고)
-///
-/// 실제 권한은 Backend의 현재 인사권 검증이 최종 기준이다.
-/// 에러 응답의 message 는 ApiClient 인터셉터가 DioException.message 로 옮겨 두므로
-/// 호출부는 그것을 그대로 사용자에게 보여주면 된다.
+// 부서와 팀 관리에 필요한 서버 요청을 담당한다
 class DepartmentTeamRepository {
   DepartmentTeamRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
   final Dio _dio;
 
-  // ------------------------------------------------------------ 부서
+  // 부서 조회와 변경 요청을 처리한다
 
   Future<List<Department>> fetchDepartments() async {
     final response = await _dio.authenticatedGet('/api/admin/departments');
@@ -40,7 +36,7 @@ class DepartmentTeamRepository {
     await _dio.authenticatedDelete('/api/admin/departments/$departmentId');
   }
 
-  // ------------------------------------------------------------ 팀
+  // 팀 조회와 변경 요청을 처리한다
 
   Future<List<Team>> fetchTeams() async {
     final response = await _dio.authenticatedGet('/api/admin/teams');
@@ -70,7 +66,7 @@ class DepartmentTeamRepository {
     await _dio.authenticatedDelete('/api/admin/teams/$teamId');
   }
 
-  // ------------------------------------------------------------ 사원
+  // 담당자 선택에 필요한 사원 조회를 처리한다
 
   Future<List<Employee>> searchEmployeesPage(
     String? keyword, {
@@ -91,8 +87,7 @@ class DepartmentTeamRepository {
         .toList();
   }
 
-  /// 담당자 선택용 사원 검색. bounded page를 끝까지 수집해
-  /// backend paging 도입 전과 같은 완전한 결과 계약을 유지한다.
+  // 담당자 검색 결과를 서버 페이지 끝까지 수집한다
   Future<List<Employee>> searchEmployees(String? keyword) async {
     const pageSize = 100;
     const maxPages = 201;

@@ -4,7 +4,7 @@ import 'package:annual_leave_frontend/features/admin/repositories/common_code_re
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 
-/// 관리자별 관리팀 설정 화면(ADM001_M01)의 ViewModel.
+// 관리자별 담당 팀 설정 상태를 관리한다
 class AdminSettingsViewModel extends ChangeNotifier {
   AdminSettingsViewModel({
     AdminEmployeeRepository? repository,
@@ -36,7 +36,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
   int _employeeLoadSeq = 0;
   bool _disposed = false;
 
-  /// 사용자 이름 검색 입력. 조회 시점의 값을 그대로 쓰기 위해 VM이 소유한다.
+  // 사용자 이름 검색어를 화면과 함께 관리한다
   final TextEditingController employeeInfoController = TextEditingController();
 
   List<Employee> get employees => _employees;
@@ -148,7 +148,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  /// 선택된 사원의 일반 팀/관리 팀을 마지막 서버 상태 기준으로 다시 구성한다.
+  // 선택한 사원의 소속 팀과 담당 팀을 서버 상태로 맞춘다
   Future<bool> fetchEmployeeTeams() async {
     final selected = _selectedEmployee;
     if (selected == null) return false;
@@ -170,8 +170,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
         }
       }
 
-      // 관리팀의 기준은 서버가 명시적으로 내려준 teamList다.
-      // role은 deprecated 파생값이므로 관리팀 판정에 사용하지 않는다.
+      // 담당 팀은 서버가 내려준 팀 목록을 기준으로 판단한다
       final managedNames = (selected.teamList ?? const <String>[])
           .map((team) => team.trim())
           .where((team) => team.isNotEmpty)
@@ -200,7 +199,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  /// 사용자 선택 검색은 현재까지 로딩된 좌측 목록이 아니라 서버 페이지 검색을 사용한다.
+  // 사용자 검색은 서버 목록을 기준으로 수행한다
   Future<List<Employee>> searchEmployeesPage(
     String? keyword, {
     required int page,
@@ -213,7 +212,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     );
   }
 
-  /// 미저장 변경이 있으면 다른 직원을 선택하지 않는다.
+  // 저장하지 않은 변경이 있으면 사용자 전환을 막는다
   bool selectEmployee(Employee emp) {
     if (_isLoading || _needsReconcile || hasChanges) return false;
     if (_selectedEmployee?.employeeNumber == emp.employeeNumber) return true;
@@ -224,8 +223,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     if (existingIndex >= 0) {
       _employees[existingIndex] = emp;
     } else {
-      // 서버 검색으로 현재 로딩 범위 밖의 사원을 선택한 경우에도
-      // 좌측 목록에서 선택 상태를 유지할 수 있도록 현재 snapshot에 포함한다.
+      // 검색으로 선택한 사용자도 현재 목록 상태에 포함한다
       _employees.add(emp);
     }
 
@@ -243,7 +241,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     return true;
   }
 
-  /// 이름과 일치하는 사원을 선택하고 목록 내 인덱스를 돌려준다. 없거나 전환 불가면 -1.
+  // 이름으로 사용자를 찾아 선택 상태를 갱신한다
   int selectEmployeeByName(String value) {
     final keyword = value.trim();
     final index = _employees.indexWhere((e) => e.name == keyword);
@@ -332,7 +330,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  /// 충돌/결과 불명확 상태에서 서버의 현재 값을 다시 읽는다.
+  // 저장 결과가 불명확하면 서버 상태를 다시 조회한다
   Future<String?> reconcileSelected() async {
     final employee = _selectedEmployee;
     if (_isLoading || employee == null) return null;
@@ -355,7 +353,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     }
   }
 
-  /// 마지막 조회 상태(expected)와 화면의 최종 상태(desired)를 함께 보내 CAS로 저장한다.
+  // 마지막 조회 상태와 화면 변경 상태를 함께 보내 저장한다
   Future<String?> saveChanges() async {
     final employee = _selectedEmployee;
     if (_isLoading ||
@@ -404,10 +402,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
             ? '다른 변경이 먼저 반영되었습니다. 서버 상태를 다시 조회해 주세요.'
             : '저장 결과를 확인하지 못했습니다. 서버 상태를 다시 조회해 주세요.';
       }
-      // return e.message ?? '저장 중 오류가 발생했습니다.';
-      // 변경 후
-      // 서버가 변경을 거부(예: 400)하면 저장된 것이 없다.
-      // 화면에서 옮겨 둔 임시 상태를 서버의 현재 상태로 되돌려 저장된 것처럼 보이지 않게 한다.
+      // 서버가 변경을 거부하면 화면 상태를 서버 값으로 되돌린다
       await _reloadSelectedFromServer(employee.employeeNumber);
       return '저장되지 않았습니다. ${e.message ?? '저장 중 오류가 발생했습니다.'}';
     } catch (e) {

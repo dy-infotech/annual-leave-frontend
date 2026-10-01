@@ -3,10 +3,7 @@ import 'package:annual_leave_frontend/features/dashboard/models/dashboard_models
 import 'package:annual_leave_frontend/features/dashboard/repositories/dashboard_repository.dart';
 import 'package:flutter/foundation.dart';
 
-/// 대시보드 화면(DSH001_M01)의 ViewModel.
-///
-/// 기존 DashboardProvider에서 FCM 로직을 FcmService로 분리하고
-/// 조회 상태만 남긴 것이다.
+// 대시보드 조회와 초기 부가 작업 상태를 관리한다
 class DashboardViewModel extends ChangeNotifier {
   DashboardViewModel({
     DashboardRepository? repository,
@@ -41,7 +38,7 @@ class DashboardViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Backend 권한은 요청 시점 조직 상태를 사용하므로 메뉴 snapshot도 함께 갱신한다.
+      // 대시보드 조회 전 현재 세션 권한을 갱신한다
       await _refreshSession();
       if (_disposed || seq != _requestSeq) return;
       final data = await _repository.fetchDashboard();
@@ -60,8 +57,7 @@ class DashboardViewModel extends ChangeNotifier {
           try {
             await _registerFcm();
           } catch (e) {
-            // 대시보드 데이터 조회는 이미 성공했다. FCM은 부가기능이므로
-            // 플러그인/권한/초기 메시지 오류가 화면 조회 성공을 실패로 뒤집지 않는다.
+            // 알림 등록 실패는 대시보드 조회 결과에 반영하지 않는다
             debugPrint('FCM 등록 실패(대시보드 조회 결과는 유지): $e');
           }
         }

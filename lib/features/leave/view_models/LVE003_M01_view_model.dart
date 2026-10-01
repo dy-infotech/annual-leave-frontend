@@ -52,6 +52,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     _notify();
   }
 
+  // 결재 대기 목록의 첫 페이지를 다시 조회한다
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
@@ -86,6 +87,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 목록에 다음 결재 대기 페이지를 이어 붙인다
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
      final seq = _requestSeq;
@@ -127,6 +129,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
+  // 승인 처리 후 결재 대기 목록을 다시 조회한다
   Future<ApprovalMutationResult> approve(int requestId) async {
     if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);
@@ -145,6 +148,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
+  // 반려 처리 후 결재 대기 목록을 다시 조회한다
   Future<ApprovalMutationResult> reject(int requestId, String reason) async {
     if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);

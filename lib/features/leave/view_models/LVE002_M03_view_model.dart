@@ -5,6 +5,7 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
 
+// 처리 완료된 휴가 신청의 관리자 검색 상태를 관리한다
 class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   AdminSearchLeaveRequestsViewModel({
     this.initialStatus,
@@ -63,12 +64,14 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     };
   }
 
+  // 초기 상태와 팀 목록을 준비한 뒤 신청 목록을 조회한다
   Future<void> load() async {
     _status = _normalizeStatus(initialStatus ?? initialFilter) ?? 'approved';
     await getComData();
     await fetch();
   }
 
+  // 현재 접근 가능한 팀 목록을 기초 코드에서 불러온다
   Future<void> getComData() async {
     try {
       final data = await _commonCodeRepository.fetchCommonCodes();
@@ -103,6 +106,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     );
   }
 
+  // 현재 검색 조건으로 첫 목록을 다시 조회한다
   Future<void> fetch() async {
     final normalizedEmployeeParam = searchEmployeeController.text.trim();
     _appliedEmployeeParam =
@@ -137,6 +141,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 검색 조건을 유지한 채 다음 목록을 조회한다
   Future<void> loadMore() async {
     if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
      final seq = _requestSeq;
