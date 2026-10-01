@@ -162,6 +162,41 @@ class ApiClient {
     return withSharedSsoMutation(action);
   }
 
+  /// 인증이 필요한 요청을 생성하는 순간의 세대를 고정한다.
+  ///
+  /// Dio 인터셉터가 실제 실행되기 전에 계정이 바뀌더라도 과거 payload를 새 계정의
+  /// 토큰으로 전송하지 않도록 Repository의 보호 API 호출은 이 진입점을 사용한다.
+  Future<Response<T>> authenticatedRequest<T>(
+    String path, {
+    required String method,
+    Object? data,
+    Map<String, dynamic>? queryParameters,
+    Options? options,
+    CancelToken? cancelToken,
+    ProgressCallback? onSendProgress,
+    ProgressCallback? onReceiveProgress,
+    Dio? transport,
+  }) {
+    final intendedGeneration = _authGeneration;
+    final original = options ?? Options();
+    final stamped = original.copyWith(
+      method: method,
+      extra: {
+        ...?original.extra,
+        _intendedAuthGenerationKey: intendedGeneration,
+      },
+    );
+    return (transport ?? dio).request<T>(
+      path,
+      data: data,
+      queryParameters: queryParameters,
+      options: stamped,
+      cancelToken: cancelToken,
+      onSendProgress: onSendProgress,
+      onReceiveProgress: onReceiveProgress,
+    );
+  }
+
   /// [options]에 현재 세션의 액세스 토큰을 붙인다.
   ///
   /// 토큰 변경 작업이 진행 중이면 끝나기를 기다리고, 토큰을 읽는 동안 세션 세대가 바뀌거나
@@ -343,7 +378,7 @@ class ApiClient {
           final currentCookieMarker = await _fetchCurrentSessionMarker();
           if (currentCookieMarker == null ||
               currentCookieMarker != expectedSessionMarker) {
-            await _expireSessionOnce(expectedGeneration);
+            await _expireLocalSessionOnly(expectedGeneration);
             return null;
           }
         } on DioException catch (probeError) {
@@ -359,7 +394,7 @@ class ApiClient {
             !_isExpired(sharedToken)) {
           final sharedSession = LoginResponse.tryFromAccessToken(sharedToken);
           if (!_sameSubject(beforeToken, sharedSession)) {
-            await _expireSessionOnce(expectedGeneration);
+            await _expireLocalSessionOnly(expectedGeneration);
             return null;
           }
           return sharedSession;
@@ -384,7 +419,7 @@ class ApiClient {
     // 브라우저가 늦게 도착한 다른 로그인 응답의 HttpOnly refresh cookie를
     // 적용했더라도 현재 access-token 사용자와 다른 계정으로 조용히 전환하지 않는다.
     if (!_sameSubject(beforeToken, refreshed)) {
-      await _expireSessionOnce(expectedGeneration);
+      await _expireLocalSessionOnly(expectedGeneration);
       return null;
     }
 
