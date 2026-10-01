@@ -533,6 +533,15 @@ class ApiClient {
     }
   }
 
+  /// /signin은 성공했지만 로컬 세션 확정에 실패한 경우 서버 refresh session만 정리한다.
+  /// 명시 로그아웃 표식은 남기지 않으며 marker가 현재 cookie session과 다르면 서버가 no-op 처리한다.
+  Future<void> discardRefreshSession(String sessionMarker) async {
+    if (sessionMarker.isEmpty) return;
+    await _revokeLoggedOutSession(
+      sessionMarker: sessionMarker,
+    );
+  }
+
   Future<void> _revokeLoggedOutSession({
     String? fcmToken,
     required String sessionMarker,
