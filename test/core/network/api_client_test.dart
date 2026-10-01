@@ -817,6 +817,21 @@ void main() {
       expect(storedToken, isNull);
     });
 
+    test('clearToken은 다른 탭이 교체한 shared session을 삭제하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+
+      await ApiClient().clearToken();
+
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+    });
+
     test('saveToken 후 getToken으로 같은 값을 다시 읽을 수 있다', () async {
       await ApiClient().saveToken('round.trip.token');
 
