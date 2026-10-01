@@ -372,14 +372,24 @@ class ApiClient {
   }
 
   Future<String?> _fetchCurrentSessionMarker() async {
-    final response = await dio.post(
-      '/api/auth/session-marker',
-      options: Options(headers: const {'X-SSO-Refresh': '1'}),
-    );
-    final data = response.data;
-    if (data is! Map) return null;
-    final marker = data['sessionMarker']?.toString();
-    return marker == null || marker.isEmpty ? null : marker;
+    try {
+      final response = await dio.post(
+        '/api/auth/session-marker',
+        options: Options(headers: const {'X-SSO-Refresh': '1'}),
+      );
+      final data = response.data;
+      if (data is! Map) return null;
+      final marker = data['sessionMarker']?.toString();
+      return marker == null || marker.isEmpty ? null : marker;
+    } on DioException catch (error) {
+      final status = error.response?.statusCode;
+      if (status == 401 || status == 403) {
+        // session-marker는 로그인 상태 복원을 위한 probe다.
+        // refresh cookie가 없거나 이미 무효한 상태는 "비로그인"이라는 정상 결과다.
+        return null;
+      }
+      rethrow;
+    }
   }
 
   bool _sameSubject(String? beforeToken, LoginResponse? candidate) {

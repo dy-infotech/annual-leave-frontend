@@ -416,6 +416,22 @@ void main() {
     });
   });
 
+  test('restoreSession - refresh cookie가 없으면 비로그인으로 정상 처리한다', () async {
+    dioAdapter.onPost(
+      '/api/auth/session-marker',
+      (server) => server.reply(
+        401,
+        {'message': 'refresh token이 없습니다.'},
+      ),
+    );
+
+    final restored = await ApiClient().restoreSession();
+
+    expect(restored, isNull);
+    expect(storedToken, isNull);
+    expect(sessionMarker, isNull);
+  });
+
   group('명시 로그아웃 SSO 복구', () {
     test('로그아웃 뒤 다른 앱이 만든 새 shared SSO session을 다시 발견한다', () async {
       await ApiClient().saveToken(
