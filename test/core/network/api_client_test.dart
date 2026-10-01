@@ -237,7 +237,7 @@ void main() {
     });
 
     test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
-      storedToken = _validAccessToken;
+      await ApiClient().saveToken(_validAccessToken);
       var expiredCount = 0;
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
