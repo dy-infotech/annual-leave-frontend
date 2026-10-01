@@ -12,7 +12,7 @@ class CommonCodeRepository {
 
   /// 기초 코드 조회. GET /api/admin/auth/common
   Future<Map<String, dynamic>> fetchCommonCodes() async {
-    final response = await _dio.get('/api/admin/auth/common');
+    final response = await _dio.authenticatedGet('/api/admin/auth/common');
     return response.data as Map<String, dynamic>;
   }
 }
