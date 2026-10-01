@@ -165,7 +165,7 @@ class AuthSession extends ChangeNotifier {
 
   /// 이메일 변경 성공 후 화면에 보이는 내 정보의 이메일만 로컬에서 갱신한다. (서버 호출 없음)
   /// 내 정보가 없으면 아무것도 하지 않는다.
-  Future<void> updateEmail(newEmail) async {
+  Future<void> updateEmail(String newEmail) async {
     final info = _employeeInfo;
     if (info == null) return;
     _employeeInfo = info.copyWith(email: newEmail);
