@@ -117,7 +117,13 @@ void main() {
       expect(await ApiClient().getToken(), isNull);
 
       await repository.saveToken(response.token);
-      expect(writeCalls(), hasLength(1));
+      expect(
+        writeCalls().map((call) => (call.arguments as Map)['key']).toSet(),
+        {
+          'annual_leave_explicit_logout',
+          'annual_leave_access_token',
+        },
+      );
       expect(await ApiClient().getToken(), 'header.payload.signature');
     });
 
