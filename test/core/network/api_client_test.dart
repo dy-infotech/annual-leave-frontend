@@ -414,6 +414,51 @@ void main() {
     });
   });
 
+  group('명시 로그아웃 SSO 복구', () {
+    test('로그아웃 뒤 다른 앱이 만든 새 shared SSO session을 다시 발견한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(204, null),
+      );
+
+      await ApiClient().logoutSession();
+
+      expect(explicitLogoutMarker, 'session:session-a');
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+
+      // 다른 시스템(resource-management)이 같은 origin의 shared refresh
+      // cookie를 새 session-b로 교체한 상황을 backend probe/refresh로 모사한다.
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _validAccessToken,
+          'employeeId': 7,
+          'name': '홍길동',
+          'role': 'ADMIN',
+          'ssoSessionMarker': 'session-b',
+        }),
+      );
+
+      final restored = await ApiClient().restoreSession();
+
+      expect(restored, isNotNull);
+      expect(restored!.employeeId, 7);
+      expect(explicitLogoutMarker, '0');
+      expect(sessionMarker, 'session-b');
+      expect(storedToken, _validAccessToken);
+    });
+  });
+
   group('토큰 저장소', () {
     test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');
