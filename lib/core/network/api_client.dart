@@ -521,15 +521,31 @@ class ApiClient {
   /// 이 기기의 토큰과 세션 상태를 항상 정리한다. 서버 요청이 실패해도 로컬 로그아웃은 완료된다.
   Future<void> logoutSession({String? fcmToken}) async {
     // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정하면서,
-    // 그 직전 refresh session marker를 함께 캡처한다.
-    final sessionMarker = await _markExplicitLogout();
+    // 그 직전 refresh session marker와 영속 fence 저장 성공 여부를 함께 캡처한다.
+    final logout = await _markExplicitLogout();
+    final sessionMarker = logout.sessionMarker;
 
-    // marker가 없는 구버전 세션은 새 세션을 잘못 폐기하는 것보다 서버 만료에 맡긴다.
     if (sessionMarker != null && sessionMarker.isNotEmpty) {
-      unawaited(_revokeLoggedOutSession(
-        fcmToken: fcmToken,
-        sessionMarker: sessionMarker,
-      ));
+      if (logout.fencePersisted) {
+        // 정상 경로는 UI를 막지 않는다. 영속 fence가 재시작 후 자동복구를 막는다.
+        unawaited(_revokeLoggedOutSession(
+          fcmToken: fcmToken,
+          sessionMarker: sessionMarker,
+        ));
+      } else {
+        // fence 저장에 실패한 예외 경로에서는 서버 revoke까지 성공해야
+        // 재시작 뒤 같은 cookie로 세션이 부활하지 않는다.
+        await _revokeLoggedOutSession(
+          fcmToken: fcmToken,
+          sessionMarker: sessionMarker,
+          swallowFailure: false,
+        );
+      }
+      return;
+    }
+
+    if (!logout.fencePersisted) {
+      throw StateError('로그아웃 상태를 저장하거나 서버 세션을 식별할 수 없습니다.');
     }
   }
 
@@ -545,6 +561,7 @@ class ApiClient {
   Future<void> _revokeLoggedOutSession({
     String? fcmToken,
     required String sessionMarker,
+    bool swallowFailure = true,
   }) async {
     try {
       await runSharedSsoMutation(() {
@@ -561,7 +578,8 @@ class ApiClient {
         );
       });
     } on DioException {
-      // explicit logout 표식이 남아 있으므로 서버 revoke 실패가 자동 재로그인으로 이어지지 않는다.
+      if (!swallowFailure) rethrow;
+      // 영속 explicit logout fence가 있는 정상 경로는 서버 장애가 있어도 자동복구되지 않는다.
     }
   }
 
@@ -696,8 +714,10 @@ class ApiClient {
   }
 
   /// 명시적 로그아웃 상태로 전환한다. 세대를 올리고 토큰을 지우며 만료 콜백은 호출하지 않는다.
-  Future<String?> _markExplicitLogout() async {
+  Future<({String? sessionMarker, bool fencePersisted})>
+      _markExplicitLogout() async {
     String? sessionMarker;
+    var fencePersisted = false;
     await _mutateToken(() async {
       sessionMarker = await _storage.read(key: _sessionMarkerKey);
       _authGeneration++;
@@ -710,6 +730,7 @@ class ApiClient {
             ? 'session:$sessionMarker'
             : '1';
         await _storage.write(key: _explicitLogoutKey, value: fenceValue);
+        fencePersisted = true;
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[AUTH] explicit logout marker write failed: $e');
@@ -730,6 +751,9 @@ class ApiClient {
         }
       }
     });
-    return sessionMarker;
+    return (
+      sessionMarker: sessionMarker,
+      fencePersisted: fencePersisted,
+    );
   }
 }
