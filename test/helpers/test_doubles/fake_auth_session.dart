@@ -23,7 +23,7 @@ class FakeAuthSession extends AuthSession {
   }
 
   @override
-  Future<void> logout() async {
+  Future<void> logout({String? fcmToken}) async {
     logoutCount++;
   }
 
