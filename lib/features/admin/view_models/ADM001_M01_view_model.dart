@@ -196,10 +196,34 @@ class AdminSettingsViewModel extends ChangeNotifier {
     }
   }
 
+  /// 사용자 선택 검색은 현재까지 로딩된 좌측 목록이 아니라 서버 페이지 검색을 사용한다.
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    required int page,
+    required int size,
+  }) {
+    return _repository.fetchEmployeesPage(
+      searchParam: keyword,
+      page: page,
+      size: size,
+    );
+  }
+
   /// 미저장 변경이 있으면 다른 직원을 선택하지 않는다.
   bool selectEmployee(Employee emp) {
     if (_isLoading || _needsReconcile || hasChanges) return false;
     if (_selectedEmployee?.employeeNumber == emp.employeeNumber) return true;
+
+    final existingIndex = _employees.indexWhere(
+      (employee) => employee.employeeNumber == emp.employeeNumber,
+    );
+    if (existingIndex >= 0) {
+      _employees[existingIndex] = emp;
+    } else {
+      // 서버 검색으로 현재 로딩 범위 밖의 사원을 선택한 경우에도
+      // 좌측 목록에서 선택 상태를 유지할 수 있도록 현재 snapshot에 포함한다.
+      _employees.add(emp);
+    }
 
     _selectedEmployee = emp;
     employeeInfoController.text =
