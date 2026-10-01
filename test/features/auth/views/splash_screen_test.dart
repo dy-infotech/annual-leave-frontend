@@ -4,6 +4,7 @@ import 'package:annual_leave_frontend/features/leave/repositories/public_holiday
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_doubles/fake_public_holiday_repository.dart';
@@ -34,7 +35,10 @@ class _StubAuthSession extends AuthSession {
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  setUp(PublicHolidayRepository.clearCache);
+  setUp(() {
+    PublicHolidayRepository.clearCache();
+    SharedPreferences.setMockInitialValues({});
+  });
 
   Future<_StubAuthSession> pumpSplash(
     WidgetTester tester, {
@@ -80,6 +84,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(session.tryAutoLoginCount, 1);
+    expect(find.text('login-stub'), findsOneWidget);
+    expect(find.text('dashboard-stub'), findsNothing);
+  });
+
+  testWidgets('자동 로그인 해제 - 세션 복원을 시도하지 않고 로그인 화면으로 이동한다',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({'autoLoginEnabled': false});
+
+    final session = await pumpSplash(tester, loggedIn: true);
+    await tester.pumpAndSettle();
+
+    expect(session.tryAutoLoginCount, 0);
     expect(find.text('login-stub'), findsOneWidget);
     expect(find.text('dashboard-stub'), findsNothing);
   });
