@@ -2,6 +2,8 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/foundation.dart';
 
+enum ApprovalMutationResult { failed, succeeded, succeededRefreshFailed }
+
 class PendingApprovalViewModel extends ChangeNotifier {
   PendingApprovalViewModel({LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();
@@ -125,24 +127,26 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> approve(int requestId) async {
-    if (_processingIds.contains(requestId)) return false;
+  Future<ApprovalMutationResult> approve(int requestId) async {
+    if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);
     _notify();
     try {
       await _repository.approveLeaveRequest(requestId);
       await fetch();
-      return true;
+      return _errorMessage == null
+          ? ApprovalMutationResult.succeeded
+          : ApprovalMutationResult.succeededRefreshFailed;
     } catch (_) {
-      return false;
+      return ApprovalMutationResult.failed;
     } finally {
       _processingIds.remove(requestId);
       _notify();
     }
   }
 
-  Future<bool> reject(int requestId, String reason) async {
-    if (_processingIds.contains(requestId)) return false;
+  Future<ApprovalMutationResult> reject(int requestId, String reason) async {
+    if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);
     _notify();
     try {
@@ -151,9 +155,11 @@ class PendingApprovalViewModel extends ChangeNotifier {
         rejectReason: reason.isEmpty ? null : reason,
       );
       await fetch();
-      return true;
+      return _errorMessage == null
+          ? ApprovalMutationResult.succeeded
+          : ApprovalMutationResult.succeededRefreshFailed;
     } catch (_) {
-      return false;
+      return ApprovalMutationResult.failed;
     } finally {
       _processingIds.remove(requestId);
       _notify();
