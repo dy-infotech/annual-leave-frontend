@@ -12,6 +12,8 @@ class FakeAuthRepository implements AuthRepository {
   Employee? myInfoToReturn;
   String? storedToken;
   String? storedSessionMarker;
+  Object? saveTokenErrorToThrow;
+  final List<String> discardedSessionMarkers = [];
 
   Object? signUpErrorToThrow;
   final List<Map<String, String>> signUpCalls = [];
@@ -70,8 +72,14 @@ class FakeAuthRepository implements AuthRepository {
     String token, {
     String? ssoSessionMarker,
   }) async {
+    if (saveTokenErrorToThrow != null) throw saveTokenErrorToThrow!;
     storedToken = token;
     storedSessionMarker = ssoSessionMarker;
+  }
+
+  @override
+  Future<void> discardRefreshSession(String sessionMarker) async {
+    discardedSessionMarkers.add(sessionMarker);
   }
 
   @override
