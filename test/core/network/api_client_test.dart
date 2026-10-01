@@ -7,6 +7,8 @@ import 'package:http_mock_adapter/http_mock_adapter.dart';
 
 const _validAccessToken =
     'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI3IiwibmFtZSI6Iu2Zjeq4uOuPmSIsInJvbGUiOiJBRE1JTiIsImV4cCI6NDEwMjQ0NDgwMH0.signature';
+const _otherAccessToken =
+    'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI4IiwibmFtZSI6Ik90aGVyIiwicm9sZSI6IkVNUExPWUVFIiwiZXhwIjo0MTAyNDQ0ODAwfQ.signature';
 
 /// ApiClient 특성화 테스트.
 ///
@@ -219,6 +221,35 @@ void main() {
       expect(error.message, '인증 정보가 유효하지 않습니다.');
       expect(storedToken, isNull);
       expect(storageCalls.map((call) => call.method), contains('delete'));
+      expect(expiredCount, 1);
+    });
+
+    test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
+      storedToken = _validAccessToken;
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(200, {
+          'token': _otherAccessToken,
+          'employeeId': 8,
+          'name': 'Other',
+          'role': 'EMPLOYEE',
+        }),
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(storedToken, isNull);
       expect(expiredCount, 1);
     });
 
