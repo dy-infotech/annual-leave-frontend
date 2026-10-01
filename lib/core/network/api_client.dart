@@ -778,14 +778,35 @@ class ApiClient {
 
   /// 저장된 토큰을 삭제하고 세션 세대를 올린다. 서버 호출 없이 로컬 상태만 정리한다.
   /// (서버 폐기까지 필요한 로그아웃은 [logoutSession] 사용)
-  Future<void> clearToken() async {
-    await _mutateToken(() async {
-      _authGeneration++;
-      _sessionExpired = false;
-      _boundEmployeeId = null;
-      _boundSessionMarker = null;
-      await _storage.delete(key: _tokenKey);
-      await _storage.delete(key: _sessionMarkerKey);
+  Future<void> clearToken() {
+    return runSharedSsoMutation(() async {
+      await _mutateToken(() async {
+        final sharedToken = await _storage.read(key: _tokenKey);
+        final sharedMarker = await _storage.read(key: _sessionMarkerKey);
+        final sharedEmployeeId = sharedToken == null
+            ? null
+            : LoginResponse.tryFromAccessToken(sharedToken)?.employeeId;
+
+        final subjectReplaced = _boundEmployeeId != null &&
+            sharedEmployeeId != null &&
+            sharedEmployeeId != _boundEmployeeId;
+        final markerReplaced = _boundSessionMarker != null &&
+            _boundSessionMarker!.isNotEmpty &&
+            sharedMarker != null &&
+            sharedMarker.isNotEmpty &&
+            sharedMarker != _boundSessionMarker;
+        final replacementSession = subjectReplaced || markerReplaced;
+
+        _authGeneration++;
+        _sessionExpired = false;
+        _boundEmployeeId = null;
+        _boundSessionMarker = null;
+
+        if (!replacementSession) {
+          await _storage.delete(key: _tokenKey);
+          await _storage.delete(key: _sessionMarkerKey);
+        }
+      });
     });
   }
 
