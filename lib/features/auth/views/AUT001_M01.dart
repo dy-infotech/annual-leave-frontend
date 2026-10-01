@@ -173,7 +173,7 @@ class _LoginViewState extends State<_LoginView> {
                             onTap: _vm.toggleRememberMe, // 텍스트 영역 클릭 시에도 토글
 
                             child: const Text(
-                              '계정 정보 저장', // 👈 직관적으로 인지하도록 문구 수정
+                              '사번 저장', // 👈 직관적으로 인지하도록 문구 수정
                               style: TextStyle(
                                 fontSize: 13.5,
                                 color: AppColors.slate,
