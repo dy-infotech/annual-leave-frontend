@@ -12,12 +12,12 @@ class LeaveRepository {
   static const int _maxCursorBatches = 1000;
 
   Future<LeaveRequestDetail> fetchLeaveRequestDetail(int requestId) async {
-    final response = await _dio.get('/api/leave-requests/$requestId');
+    final response = await _dio.authenticatedGet('/api/leave-requests/$requestId');
     return LeaveRequestDetail.fromJson(response.data);
   }
 
   Future<LeavePeriod> fetchMyLeavePeriod() async {
-    final response = await _dio.get('/api/leave-requests/my/period');
+    final response = await _dio.authenticatedGet('/api/leave-requests/my/period');
     return LeavePeriod.fromJson(Map<String, dynamic>.from(response.data));
   }
 
@@ -30,7 +30,7 @@ class LeaveRepository {
     String? cursorRequestedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/leave-requests/my',
       queryParameters: _pageQuery(
         {
@@ -58,7 +58,7 @@ class LeaveRepository {
     String? cursorRequestedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/leave-requests/all',
       queryParameters: _pageQuery(
         {
@@ -115,14 +115,14 @@ class LeaveRepository {
   }
 
   Future<void> cancelLeaveRequest(int requestId) async {
-    await _dio.delete('/api/leave-requests/$requestId');
+    await _dio.authenticatedDelete('/api/leave-requests/$requestId');
   }
 
   Future<void> submitLeaveRequest(
     LeaveRequestCreate request, {
     String? idempotencyKey,
   }) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/leave-requests',
       data: request.toJson(),
       options: idempotencyKey == null
@@ -148,7 +148,7 @@ class LeaveRepository {
 
     final normalizedTeam = team?.trim();
     final normalizedEmployeeParam = employeeParam?.trim();
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/leave-requests/$normalizedStatus',
       queryParameters: _pageQuery(
         {
@@ -192,7 +192,7 @@ class LeaveRepository {
     String? cursorCreatedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/leave-requests/pending',
       queryParameters: _pageQuery(
         {
@@ -237,11 +237,11 @@ class LeaveRepository {
   }
 
   Future<void> approveLeaveRequest(int requestId) async {
-    await _dio.post('/api/admin/leave-requests/$requestId/approve');
+    await _dio.authenticatedPost('/api/admin/leave-requests/$requestId/approve');
   }
 
   Future<void> rejectLeaveRequest(int requestId, {String? rejectReason}) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/admin/leave-requests/$requestId/reject',
       data: {'rejectReason': rejectReason},
     );
