@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
@@ -112,6 +114,45 @@ void main() {
       expect(fake.storedToken, isNull);
       expect(session.isLoggedIn, isFalse);
       expect(session.employeeInfo, isNull);
+    });
+
+    test('늦게 실패한 이전 로그인은 새 로그인 토큰을 삭제하지 않는다', () async {
+      final firstSignIn = Completer<LoginResponse>();
+      var signInCount = 0;
+      fake.signInHandler = (employeeNumber, password) {
+        signInCount++;
+        if (signInCount == 1) return firstSignIn.future;
+        return Future.value(LoginResponse(
+          token: 'new.token',
+          employeeId: 2,
+          name: '새 사용자',
+          role: 'EMPLOYEE',
+          ssoSessionMarker: 'session-new',
+        ));
+      };
+
+      final session = AuthSession(repository: fake);
+      final staleLogin = session.login('A0001', 'old');
+      await Future<void>.delayed(Duration.zero);
+
+      await session.login('B0002', 'new');
+      expect(fake.storedToken, 'new.token');
+      expect(session.isLoggedIn, isTrue);
+
+      firstSignIn.complete(LoginResponse(
+        token: 'old.token',
+        employeeId: 1,
+        name: '이전 사용자',
+        role: 'EMPLOYEE',
+        ssoSessionMarker: 'session-old',
+      ));
+
+      await expectLater(staleLogin, throwsA(isA<StateError>()));
+
+      expect(fake.discardedSessionMarkers, contains('session-old'));
+      expect(fake.discardClearLocalStates.last, isFalse);
+      expect(fake.storedToken, 'new.token');
+      expect(session.isLoggedIn, isTrue);
     });
 
     test('tryAutoLogin - 세션 복원 자체가 실패해도 예외를 밖으로 흘리지 않는다', () async {
