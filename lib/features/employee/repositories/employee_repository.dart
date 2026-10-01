@@ -12,7 +12,7 @@ class EmployeeRepository {
     required String currentPassword,
     required String newPassword,
   }) async {
-    await _dio.patch(
+    await _dio.authenticatedPatch(
       '/api/employees/me/password',
       data: {
         'currentPassword': currentPassword,
@@ -23,6 +23,6 @@ class EmployeeRepository {
 
   /// 이메일 변경. PATCH /api/employees/me/email
   Future<void> changeEmail(String email) async {
-    await _dio.patch('/api/employees/me/email', data: {"email": email});
+    await _dio.authenticatedPatch('/api/employees/me/email', data: {"email": email});
   }
 }
