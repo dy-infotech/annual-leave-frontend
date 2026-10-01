@@ -21,6 +21,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int _nextPage = 0;
+  String? _errorMessage;
   bool _disposed = false;
   int _requestSeq = 0;
   int _teamRequestSeq = 0;
@@ -42,6 +43,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+  String? get errorMessage => _errorMessage;
   String get selectedStatus => _selectedStatus;
   List<String> get filterTeamList => _filterTeamList;
   String get selectedTeamFilter => _selectedTeamFilter;
@@ -109,7 +111,9 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     _appliedStatus = _selectedStatus;
     _appliedTeamFilter = _selectedTeamFilter;
     _nextPage = 0;
-    _hasMore = true;
+    _items = [];
+    _hasMore = false;
+    _errorMessage = null;
     _isLoading = true;
     _isLoadingMore = false;
     notifyListeners();
@@ -119,9 +123,13 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
       if (_disposed || seq != _requestSeq) return;
 
       _items = page;
+      _errorMessage = null;
       _hasMore = page.length == _pageSize;
       if (page.isNotEmpty) _nextPage = 1;
     } catch (e) {
+      if (_disposed || seq != _requestSeq) return;
+      _errorMessage = '사원 목록을 불러오지 못했습니다.';
+      _hasMore = false;
       debugPrint('사원 리스트 조회 실패: $e');
     } finally {
       if (!_disposed && seq == _requestSeq) {
@@ -132,7 +140,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
 
     final seq = _requestSeq;
     final pageNumber = _nextPage;
@@ -151,6 +159,10 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
       _hasMore = page.length == _pageSize;
       if (page.isNotEmpty) _nextPage++;
     } catch (e) {
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = '추가 사원 목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
       debugPrint('추가 사원 목록 조회 실패: $e');
     } finally {
       if (!_disposed && seq == _requestSeq) {
