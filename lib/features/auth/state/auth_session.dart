@@ -112,20 +112,24 @@ class AuthSession extends ChangeNotifier {
     _resetState(notify: false);
 
     try {
-      final loginResponse =
-          await _repository.signIn(employeeNumber, password);
-      issuedSession = loginResponse;
-      if (!_isCurrent(generation)) {
-        throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
-      }
+      final loginResponse = await _repository.runSharedSsoMutation(() async {
+        final response = await _repository.signIn(employeeNumber, password);
+        issuedSession = response;
+        if (!_isCurrent(generation)) {
+          throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
+        }
 
-      await _repository.saveToken(
-        loginResponse.token,
-        ssoSessionMarker: loginResponse.ssoSessionMarker,
-      );
-      if (!_isCurrent(generation)) {
-        throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
-      }
+        // signin이 만든 refresh cookie와 대응하는 access token/session marker를
+        // lock 해제 전에 함께 확정한다. 다른 탭 로그인은 이 구간 사이에 끼어들 수 없다.
+        await _repository.saveToken(
+          response.token,
+          ssoSessionMarker: response.ssoSessionMarker,
+        );
+        if (!_isCurrent(generation)) {
+          throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
+        }
+        return response;
+      });
 
       final info = await _repository.fetchMyInfo();
       if (!_isCurrent(generation)) {
