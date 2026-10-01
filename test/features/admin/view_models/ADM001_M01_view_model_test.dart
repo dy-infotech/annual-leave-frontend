@@ -97,6 +97,38 @@ void main() {
       expect(vm.selectedEmployee?.employeeNumber, 'A0002');
     });
 
+    test('서버 검색 - 최초 50명 밖 사원도 검색 후 선택 목록에 유지한다', () async {
+      repository.employeesToReturn = List.generate(
+        51,
+        (index) => emp(
+          employeeNumber: 'A${(index + 1).toString().padLeft(4, '0')}',
+          name: index == 50 ? '검색대상' : '사원${index + 1}',
+        ),
+      );
+      commonCodes.codesToReturn = {
+        'accessibleTeam': ['SI사업팀'],
+      };
+
+      final vm = build();
+      await vm.fetchEmployees();
+      expect(vm.employees, hasLength(50));
+
+      final found = await vm.searchEmployeesPage(
+        '검색대상',
+        page: 0,
+        size: 50,
+      );
+      expect(found, hasLength(1));
+      expect(found.single.employeeNumber, 'A0051');
+
+      expect(vm.selectEmployee(found.single), isTrue);
+      await settle();
+
+      expect(vm.selectedEmployee?.employeeNumber, 'A0051');
+      expect(vm.employees.any((e) => e.employeeNumber == 'A0051'), isTrue);
+      expect(repository.pageRequests.last['searchParam'], '검색대상');
+    });
+
     test('selectEmployeeByName - 이름이 일치하면 인덱스를, 없으면 -1을 돌려준다', () async {
       repository.employeesToReturn = [
         emp(),
