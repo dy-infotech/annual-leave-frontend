@@ -83,7 +83,14 @@ class AuthRepository {
   }
 
   /// 로그인 응답으로 받은 액세스 토큰을 보안 저장소에 저장한다.
-  Future<void> saveToken(String token) => _apiClient.saveToken(token);
+  Future<void> saveToken(
+    String token, {
+    String? ssoSessionMarker,
+  }) =>
+      _apiClient.saveToken(
+        token,
+        sessionMarker: ssoSessionMarker,
+      );
 
   /// 자동 로그인용 액세스 토큰을 돌려준다. 저장된 토큰이 만료 임박이면 refresh로 갱신한 토큰을,
   /// 복원할 세션이 없으면 null을 돌려준다. (단순 조회가 아니라 갱신 요청이 포함될 수 있다)
