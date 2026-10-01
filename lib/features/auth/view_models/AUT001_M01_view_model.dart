@@ -136,6 +136,9 @@ class LoginViewModel extends ChangeNotifier {
       );
 
       if (_disposed || seq != _requestSeq) return false;
+      // 로그인 완료 직후의 AuthSession 소유권을 고정한다. 이후 부가 비동기 작업 중
+      // cross-tab 로그인/세션 만료가 발생하면 성공한 과거 로그인으로 화면 전환하지 않는다.
+      final sessionGeneration = _authSession.captureGeneration();
 
       // 계정 기억하기는 로그인 자체와 분리된 부가 기능이다.
       // 저장소 실패가 이미 확정된 인증 세션까지 실패로 보이게 만들지 않는다.
@@ -144,14 +147,27 @@ class LoginViewModel extends ChangeNotifier {
       } catch (e) {
         debugPrint('계정 저장 정보 갱신 실패: $e');
       }
+      if (_disposed ||
+          seq != _requestSeq ||
+          !_authSession.isCurrentGeneration(sessionGeneration)) {
+        return false;
+      }
 
       // 휴가 신청 화면에서 바로 쓸 수 있도록 공휴일을 미리 조회해 캐시한다.
       try {
         await _holidayRepository.fetchPublicHolidays();
       } catch (_) {
-        // 공휴일 조회 실패가 로그인 흐름을 막지 않도록 무시
+        // 공휴일 조회 자체의 실패는 로그인 흐름을 막지 않는다.
       }
 
+      // prefetch가 인증 요청을 수행하는 동안 다른 탭 세션으로 교체되면 ApiClient의
+      // unauthorized handler가 AuthSession generation을 올린다. 이 경우에는 이미
+      // 만료된 로그인 성공값으로 대시보드 이동을 허용하지 않는다.
+      if (_disposed ||
+          seq != _requestSeq ||
+          !_authSession.isCurrentGeneration(sessionGeneration)) {
+        return false;
+      }
       return true;
     } catch (e) {
       if (!_disposed && seq == _requestSeq) {
