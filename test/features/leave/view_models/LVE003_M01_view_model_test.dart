@@ -53,27 +53,52 @@ void main() {
       expect(vm.selectedRequest?.employeeName, '이신청');
     });
 
-    test('approve 성공 - true를 돌려주고 재조회한다', () async {
+    test('approve 성공 - 성공 상태를 돌려주고 재조회한다', () async {
       final vm = PendingApprovalViewModel(repository: fake);
       await vm.fetch();
 
       final ok = await vm.approve(21);
 
-      expect(ok, isTrue);
+      expect(ok, ApprovalMutationResult.succeeded);
       expect(fake.approvedIds, [21]);
       expect(fake.pendingFetchCount, 2);
       expect(vm.isProcessing, isFalse);
     });
 
-    test('approve 실패 - false를 돌려주고 처리 중 상태를 해제한다', () async {
+    test('approve 실패 - 실패 상태를 돌려주고 처리 중 상태를 해제한다', () async {
       fake.approveErrorToThrow = Exception('network');
       final vm = PendingApprovalViewModel(repository: fake);
       await vm.fetch();
 
       final ok = await vm.approve(21);
 
-      expect(ok, isFalse);
+      expect(ok, ApprovalMutationResult.failed);
       expect(vm.isProcessing, isFalse);
+    });
+
+    test('approve 쓰기 성공 후 재조회 실패를 별도 상태로 돌려준다', () async {
+      final vm = PendingApprovalViewModel(repository: fake);
+      await vm.fetch();
+      fake.errorToThrow = Exception('refresh failed');
+
+      final result = await vm.approve(21);
+
+      expect(result, ApprovalMutationResult.succeededRefreshFailed);
+      expect(fake.approvedIds, [21]);
+      expect(vm.errorMessage, '목록을 불러오지 못했습니다.');
+    });
+
+    test('reject 쓰기 성공 후 재조회 실패를 별도 상태로 돌려준다', () async {
+      final vm = PendingApprovalViewModel(repository: fake);
+      await vm.fetch();
+      fake.errorToThrow = Exception('refresh failed');
+
+      final result = await vm.reject(21, '일정 겹침');
+
+      expect(result, ApprovalMutationResult.succeededRefreshFailed);
+      expect(fake.rejections.last,
+          {'requestId': '21', 'rejectReason': '일정 겹침'});
+      expect(vm.errorMessage, '목록을 불러오지 못했습니다.');
     });
 
     test('reject - 사유가 있으면 사유와 함께, 비어 있으면 null로 전송한다', () async {
