@@ -49,7 +49,7 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 로컬 저장소에서 계정 정보(사번 + 비밀번호) 불러오기
+  // 로컬 저장소에서 저장된 사번만 불러온다. 비밀번호는 refresh session으로 대체하고 장기 저장하지 않는다.
   Future<void> loadSavedAccountInfo() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
@@ -57,35 +57,33 @@ class LoginViewModel extends ChangeNotifier {
     if (_disposed || seq != _requestSeq) return;
     _isRememberMe = prefs.getBool('isRememberMe') ?? false;
     if (_isRememberMe) {
-      // 일반 설정에서 사번 로드
       employeeNumberController.text =
           prefs.getString('savedEmployeeNumber') ?? '';
-      // 암호화 공간에서 비밀번호 꺼내오기
-      final savedPassword =
-          await _secureStorage.read(key: 'savedPassword') ?? '';
+      // 이전 버전이 저장해 둔 원문 비밀번호는 마이그레이션 시 즉시 폐기한다.
+      try {
+        await _secureStorage.delete(key: 'savedPassword');
+      } catch (e) {
+        debugPrint('레거시 비밀번호 저장값 삭제 실패: $e');
+      }
       if (_disposed || seq != _requestSeq) return;
-      passwordController.text = savedPassword;
     }
     if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
-  // 로그인 성공 시 계정 정보(사번 + 암호화 비밀번호) 저장 처리
+  // 로그인 성공 시 사번 저장 설정만 반영한다. 비밀번호는 저장하지 않는다.
   Future<void> _saveAccountInfoPreference() async {
     final prefs = await SharedPreferences.getInstance();
     if (_isRememberMe) {
-      // 사번 일반 저장
       await prefs.setBool('isRememberMe', true);
       await prefs.setString(
           'savedEmployeeNumber', employeeNumberController.text.trim());
-      // 비밀번호 안전하게 암호화 저장
-      await _secureStorage.write(
-          key: 'savedPassword', value: passwordController.text);
     } else {
-      // 체크 해제 시 데이터 전부 일괄 소거
       await prefs.remove('isRememberMe');
       await prefs.remove('savedEmployeeNumber');
-      await _secureStorage.delete(key: 'savedPassword'); // 암호 저장소 삭제
     }
+
+    // 어느 경로에서도 원문 비밀번호를 장기 저장하지 않는다.
+    await _secureStorage.delete(key: 'savedPassword');
   }
 
   /// 로그인. 성공하면 true를 돌려준다. (화면은 대시보드로 이동)
