@@ -477,13 +477,28 @@ class _FakeDepartmentTeamApi extends DepartmentTeamRepository {
   }
 
   @override
-  Future<List<Employee>> searchEmployees(String? keyword) async {
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    int page = 0,
+    int size = 50,
+  }) async {
     final q = keyword?.trim() ?? '';
-    if (q.isEmpty) return List.of(employees);
-    return employees
-        .where((e) =>
-            e.employeeNumber.toLowerCase().contains(q.toLowerCase()) ||
-            e.name.contains(q))
-        .toList();
+    final filtered = q.isEmpty
+        ? List<Employee>.of(employees)
+        : employees
+            .where((e) =>
+                e.employeeNumber.toLowerCase().contains(q.toLowerCase()) ||
+                e.name.contains(q))
+            .toList();
+
+    final from = page * size;
+    if (from >= filtered.length) return <Employee>[];
+    final to = (from + size).clamp(0, filtered.length);
+    return filtered.sublist(from, to);
+  }
+
+  @override
+  Future<List<Employee>> searchEmployees(String? keyword) async {
+    return searchEmployeesPage(keyword);
   }
 }
