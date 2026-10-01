@@ -38,6 +38,7 @@ class ApiClient {
   /// 보안 저장소에 액세스 토큰을 저장하는 키.
   static const _tokenKey = 'annual_leave_access_token';
   static const _explicitLogoutKey = 'annual_leave_explicit_logout';
+  static const _sessionMarkerKey = 'annual_leave_sso_session_marker';
   static const _authGenerationKey = 'authGeneration';
 
   /// `RequestOptions.extra`에서 401 후 재시도를 이미 했는지 표시하는 키. (무한 재시도 방지)
@@ -298,8 +299,11 @@ class ApiClient {
       return null;
     }
 
-    final replaced =
-        await _replaceAccessToken(refreshed.token, expectedGeneration);
+    final replaced = await _replaceAccessToken(
+      refreshed.token,
+      expectedGeneration,
+      sessionMarker: refreshed.ssoSessionMarker,
+    );
     if (!replaced) return null;
     return refreshed;
   }
@@ -333,12 +337,18 @@ class ApiClient {
   /// 저장하지 않고 false를 돌려준다. (로그아웃한 뒤에 토큰이 되살아나는 것을 막는다)
   Future<bool> _replaceAccessToken(
     String token,
-    int expectedGeneration,
-  ) async {
+    int expectedGeneration, {
+    String? sessionMarker,
+  }) async {
     var replaced = false;
     await _mutateToken(() async {
       if (expectedGeneration != _authGeneration || _sessionExpired) return;
       await _storage.write(key: _tokenKey, value: token);
+      if (sessionMarker == null || sessionMarker.isEmpty) {
+        await _storage.delete(key: _sessionMarkerKey);
+      } else {
+        await _storage.write(key: _sessionMarkerKey, value: sessionMarker);
+      }
       replaced = true;
     });
     return replaced;
@@ -377,22 +387,32 @@ class ApiClient {
   /// 명시적 로그아웃. 서버에 refresh 토큰 폐기(와 선택적으로 FCM 토큰 해제)를 요청한 뒤
   /// 이 기기의 토큰과 세션 상태를 항상 정리한다. 서버 요청이 실패해도 로컬 로그아웃은 완료된다.
   Future<void> logoutSession({String? fcmToken}) async {
-    // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정한다.
-    await _markExplicitLogout();
+    // 네트워크/FCM 정리보다 로컬 세션 종료를 먼저 확정하면서,
+    // 그 직전 refresh session marker를 함께 캡처한다.
+    final sessionMarker = await _markExplicitLogout();
 
-    // old refresh cookie revoke는 즉시 시작하되 화면 전환을 막지 않는다.
-    unawaited(_revokeLoggedOutSession(fcmToken: fcmToken));
+    // marker가 없는 구버전 세션은 새 세션을 잘못 폐기하는 것보다 서버 만료에 맡긴다.
+    if (sessionMarker != null && sessionMarker.isNotEmpty) {
+      unawaited(_revokeLoggedOutSession(
+        fcmToken: fcmToken,
+        sessionMarker: sessionMarker,
+      ));
+    }
   }
 
-  Future<void> _revokeLoggedOutSession({String? fcmToken}) async {
+  Future<void> _revokeLoggedOutSession({
+    String? fcmToken,
+    required String sessionMarker,
+  }) async {
     try {
       await dio.post(
         '/api/auth/logout',
         data: fcmToken == null ? null : {'fcmToken': fcmToken},
         options: Options(
-          headers: const {
+          headers: {
             'X-SSO-Refresh': '1',
             'X-SSO-Background-Logout': '1',
+            'X-SSO-Session-Marker': sessionMarker,
           },
         ),
       );
@@ -401,16 +421,23 @@ class ApiClient {
     }
   }
 
-  /// 로그인 성공 후 새 액세스 토큰을 저장한다. 세션 세대를 올려 이전 세션의 진행 중 요청을 무효화하고
-  /// 만료 상태를 해제한다.
-  Future<void> saveToken(String token) async {
+  /// 로그인 성공 후 새 액세스 토큰과 refresh session marker를 저장한다.
+  /// 세션 세대를 올려 이전 세션의 진행 중 요청을 무효화하고 만료 상태를 해제한다.
+  Future<void> saveToken(
+    String token, {
+    String? sessionMarker,
+  }) async {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
       _explicitlyLoggedOut = false;
-      // 새 로그인은 이전 explicit-logout 표식을 먼저 해제한 뒤 새 access token을 저장한다.
       await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.write(key: _tokenKey, value: token);
+      if (sessionMarker == null || sessionMarker.isEmpty) {
+        await _storage.delete(key: _sessionMarkerKey);
+      } else {
+        await _storage.write(key: _sessionMarkerKey, value: sessionMarker);
+      }
     });
   }
 
@@ -427,6 +454,7 @@ class ApiClient {
       _authGeneration++;
       _sessionExpired = false;
       await _storage.delete(key: _tokenKey);
+      await _storage.delete(key: _sessionMarkerKey);
     });
   }
 
@@ -502,6 +530,7 @@ class ApiClient {
       _sessionExpired = true;
       expiredGeneration = ++_authGeneration;
       await _storage.delete(key: _tokenKey);
+      await _storage.delete(key: _sessionMarkerKey);
     });
 
     final generation = expiredGeneration;
@@ -511,15 +540,22 @@ class ApiClient {
   }
 
   /// 명시적 로그아웃 상태로 전환한다. 세대를 올리고 토큰을 지우며 만료 콜백은 호출하지 않는다.
-  Future<void> _markExplicitLogout() async {
+  Future<String?> _markExplicitLogout() async {
+    String? sessionMarker;
     await _mutateToken(() async {
+      sessionMarker = await _storage.read(key: _sessionMarkerKey);
       _authGeneration++;
       _sessionExpired = false;
       _explicitlyLoggedOut = true;
 
-      // 표식을 먼저 남겨 access token 삭제나 background revoke가 실패해도
-      // 앱 재시작 시 HttpOnly refresh cookie로 자동 복구되지 않게 한다.
-      await _storage.write(key: _explicitLogoutKey, value: '1');
+      // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
+      try {
+        await _storage.write(key: _explicitLogoutKey, value: '1');
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] explicit logout marker write failed: $e');
+        }
+      }
       try {
         await _storage.delete(key: _tokenKey);
       } catch (e) {
@@ -527,6 +563,14 @@ class ApiClient {
           debugPrint('[AUTH] explicit logout token delete failed: $e');
         }
       }
+      try {
+        await _storage.delete(key: _sessionMarkerKey);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] session marker delete failed: $e');
+        }
+      }
     });
+    return sessionMarker;
   }
 }
