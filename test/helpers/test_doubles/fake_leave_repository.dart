@@ -105,7 +105,9 @@ class FakeLeaveRepository implements LeaveRepository {
   }
 
   List<LeaveRequestListItem> adminSearchResultsToReturn = [];
+  final Map<int, List<LeaveRequestListItem>> adminSearchResultsByPage = {};
   final List<Map<String, String?>> adminSearchQueries = [];
+  final List<Map<String, int>> adminSearchPageRequests = [];
 
   @override
   Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
@@ -117,8 +119,9 @@ class FakeLeaveRepository implements LeaveRepository {
   }) async {
     adminSearchQueries
         .add({'status': status, 'team': team, 'employeeParam': employeeParam});
+    adminSearchPageRequests.add({'page': page, 'size': size});
     if (errorToThrow != null) throw errorToThrow!;
-    return adminSearchResultsToReturn;
+    return adminSearchResultsByPage[page] ?? adminSearchResultsToReturn;
   }
 
   @override

@@ -29,6 +29,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   int _nextPage = 0;
   String? _status;
   String? _selectedTeam = '전체';
+  String? _appliedEmployeeParam;
   final List<String> _teamList = [];
   int _requestSeq = 0;
   bool _disposed = false;
@@ -86,17 +87,20 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   }
 
   Future<List<LeaveRequestListItem>> _fetchPage({required int page}) {
-    final employeeParam = searchEmployeeController.text.trim();
     return _repository.searchAdminLeaveRequestsPage(
       status: _status,
       team: _selectedTeam == '전체' ? null : _selectedTeam,
-      employeeParam: employeeParam.isEmpty ? null : employeeParam,
+      employeeParam: _appliedEmployeeParam,
       page: page,
       size: _pageSize,
     );
   }
 
   Future<void> fetch() async {
+    final normalizedEmployeeParam = searchEmployeeController.text.trim();
+    _appliedEmployeeParam =
+        normalizedEmployeeParam.isEmpty ? null : normalizedEmployeeParam;
+
     final seq = ++_requestSeq;
     _isLoading = true;
     _isLoadingMore = false;
