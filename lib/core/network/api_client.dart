@@ -437,10 +437,10 @@ class ApiClient {
     await _tokenMutation;
     var generation = _authGeneration;
     final explicitLogout = await _storage.read(key: _explicitLogoutKey);
-    if (explicitLogout == '1') {
+    if (explicitLogout != null && explicitLogout != '0') {
       _explicitlyLoggedOut = true;
       final replacementActivated =
-          await _activateReplacementSsoSession(generation);
+          await _activateReplacementSsoSession(generation, explicitLogout);
       if (!replacementActivated) {
         return null;
       }
@@ -465,9 +465,14 @@ class ApiClient {
 
   Future<bool> _activateReplacementSsoSession(
     int expectedGeneration,
+    String explicitLogoutValue,
   ) async {
-    final loggedOutMarker =
-        await _storage.read(key: _loggedOutSessionMarkerKey);
+    final embeddedMarker = explicitLogoutValue.startsWith('session:')
+        ? explicitLogoutValue.substring('session:'.length)
+        : null;
+    final loggedOutMarker = embeddedMarker != null && embeddedMarker.isNotEmpty
+        ? embeddedMarker
+        : await _storage.read(key: _loggedOutSessionMarkerKey);
     if (loggedOutMarker == null || loggedOutMarker.isEmpty) {
       return false;
     }
@@ -681,13 +686,10 @@ class ApiClient {
 
       // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
       try {
-        await _storage.write(key: _explicitLogoutKey, value: '1');
-        if (sessionMarker != null && sessionMarker!.isNotEmpty) {
-          await _storage.write(
-            key: _loggedOutSessionMarkerKey,
-            value: sessionMarker,
-          );
-        }
+        final fenceValue = sessionMarker != null && sessionMarker!.isNotEmpty
+            ? 'session:$sessionMarker'
+            : '1';
+        await _storage.write(key: _explicitLogoutKey, value: fenceValue);
       } catch (e) {
         if (kDebugMode) {
           debugPrint('[AUTH] explicit logout marker write failed: $e');
