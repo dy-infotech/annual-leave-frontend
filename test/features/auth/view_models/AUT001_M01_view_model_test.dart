@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/auth/view_models/AUT001_M01_view_model.dart';
 import 'package:annual_leave_frontend/features/leave/models/public_holiday.dart';
 import 'package:flutter/services.dart';
@@ -15,6 +17,20 @@ class _CountingHolidayRepository extends FakePublicHolidayRepository {
   Future<List<PublicHoliday>> fetchPublicHolidays({bool refresh = false}) {
     fetchCount++;
     return super.fetchPublicHolidays(refresh: refresh);
+  }
+}
+
+class _GatedHolidayRepository extends _CountingHolidayRepository {
+  final Completer<void> entered = Completer<void>();
+  final Completer<void> release = Completer<void>();
+
+  @override
+  Future<List<PublicHoliday>> fetchPublicHolidays({bool refresh = false}) async {
+    fetchCount++;
+    if (!entered.isCompleted) entered.complete();
+    await release.future;
+    if (errorToThrow != null) throw errorToThrow!;
+    return holidaysToReturn;
   }
 }
 
@@ -248,6 +264,26 @@ void main() {
       ]);
       expect(vm.errorMessage, isNull);
       expect(holidayRepository.fetchCount, 1);
+    });
+
+    test('로그인 후 부가 작업 중 세션 generation이 바뀌면 성공 화면 전환을 막는다', () async {
+      final gatedHolidayRepository = _GatedHolidayRepository();
+      holidayRepository = gatedHolidayRepository;
+
+      final vm = build();
+      vm.employeeNumberController.text = 'A0001';
+      vm.passwordController.text = 'pw1234';
+
+      final pending = vm.login();
+      await gatedHolidayRepository.entered.future;
+
+      // 다른 탭 로그인/세션 만료가 현재 로그인 이후 발생한 상황을 모델링한다.
+      session.advanceGeneration();
+      gatedHolidayRepository.release.complete();
+
+      expect(await pending, isFalse);
+      expect(gatedHolidayRepository.fetchCount, 1);
+      expect(vm.isLoading, isFalse);
     });
 
     test('공휴일 프리페치가 실패해도 로그인 성공으로 처리한다', () async {
