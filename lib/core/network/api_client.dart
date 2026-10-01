@@ -64,6 +64,7 @@ class ApiClient {
   int _authGeneration = 0;
   int? _boundEmployeeId;
   String? _boundSessionMarker;
+  bool _preserveReplacementSessionOnNextClear = false;
   Future<void> _tokenMutation = Future<void>.value();
   Future<LoginResponse?>? _refreshInFlight;
 
@@ -536,6 +537,7 @@ class ApiClient {
       if (expectedGeneration != _authGeneration || _sessionExpired) return;
       await _storage.write(key: _tokenKey, value: token);
       _boundEmployeeId = LoginResponse.tryFromAccessToken(token)?.employeeId;
+      _preserveReplacementSessionOnNextClear = false;
       if (sessionMarker == null || sessionMarker.isEmpty) {
         _boundSessionMarker = null;
         await _storage.delete(key: _sessionMarkerKey);
@@ -635,6 +637,7 @@ class ApiClient {
       _authGeneration++;
       _sessionExpired = false;
       _explicitlyLoggedOut = false;
+      _preserveReplacementSessionOnNextClear = false;
       await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.write(key: _sessionMarkerKey, value: currentMarker);
       _boundSessionMarker = currentMarker;
@@ -795,12 +798,15 @@ class ApiClient {
             sharedMarker != null &&
             sharedMarker.isNotEmpty &&
             sharedMarker != _boundSessionMarker;
-        final replacementSession = subjectReplaced || markerReplaced;
+        final replacementSession = _preserveReplacementSessionOnNextClear ||
+            subjectReplaced ||
+            markerReplaced;
 
         _authGeneration++;
         _sessionExpired = false;
         _boundEmployeeId = null;
         _boundSessionMarker = null;
+        _preserveReplacementSessionOnNextClear = false;
 
         if (!replacementSession) {
           await _storage.delete(key: _tokenKey);
@@ -899,6 +905,7 @@ class ApiClient {
       final replacementSession = subjectReplaced || markerReplaced;
 
       _sessionExpired = true;
+      _preserveReplacementSessionOnNextClear = replacementSession;
       _boundEmployeeId = null;
       _boundSessionMarker = null;
       expiredGeneration = ++_authGeneration;
@@ -922,6 +929,7 @@ class ApiClient {
     await _mutateToken(() async {
       if (_sessionExpired || expectedGeneration != _authGeneration) return;
       _sessionExpired = true;
+      _preserveReplacementSessionOnNextClear = true;
       _boundEmployeeId = null;
       _boundSessionMarker = null;
       expiredGeneration = ++_authGeneration;
@@ -970,6 +978,7 @@ class ApiClient {
           _explicitlyLoggedOut = true;
           _boundEmployeeId = null;
           _boundSessionMarker = null;
+          _preserveReplacementSessionOnNextClear = true;
         });
         return (
           sessionMarker: ownedMarker,
