@@ -56,8 +56,8 @@ class PublicHolidayRepository {
 
   // Future<List<PublicHoliday>> _load(int year, DateTime loadedAt) async {
   //   final responses = await Future.wait([
-  //     _dio.get('/api/leave-requests/current-year-special-days'),
-  //     _dio.get('/api/leave-requests/next-year-special-days'),
+  //     _dio.authenticatedGet('/api/leave-requests/current-year-special-days'),
+  //     _dio.authenticatedGet('/api/leave-requests/next-year-special-days'),
   //   ]);
 
   //   final result = [
@@ -76,8 +76,8 @@ class PublicHolidayRepository {
 // 변경 후
   Future<List<PublicHoliday>> _load(int year, DateTime loadedAt) async {
     final responses = await Future.wait([
-      _dio.get('/api/leave-requests/current-year-special-days'),
-      _dio.get('/api/leave-requests/next-year-special-days'),
+      _dio.authenticatedGet('/api/leave-requests/current-year-special-days'),
+      _dio.authenticatedGet('/api/leave-requests/next-year-special-days'),
     ]);
 
     final result = <PublicHoliday>[
