@@ -24,24 +24,36 @@ void main() {
   late DioAdapter dioAdapter;
   late List<MethodCall> storageCalls;
   String? storedToken;
+  String? explicitLogoutMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    explicitLogoutMarker = null;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       storageCalls.add(call);
       final args = call.arguments as Map?;
+      final key = args?['key'] as String?;
+      final explicitKey = key == 'annual_leave_explicit_logout';
       switch (call.method) {
         case 'read':
-          return storedToken;
+          return explicitKey ? explicitLogoutMarker : storedToken;
         case 'write':
-          storedToken = args?['value'] as String?;
+          if (explicitKey) {
+            explicitLogoutMarker = args?['value'] as String?;
+          } else {
+            storedToken = args?['value'] as String?;
+          }
           return null;
         case 'delete':
-          storedToken = null;
+          if (explicitKey) {
+            explicitLogoutMarker = null;
+          } else {
+            storedToken = null;
+          }
           return null;
       }
       return null;
@@ -302,7 +314,11 @@ void main() {
     test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');
 
-      final write = storageCalls.firstWhere((call) => call.method == 'write');
+      final write = storageCalls.firstWhere((call) {
+        final args = call.arguments as Map?;
+        return call.method == 'write' &&
+            args?['key'] == 'annual_leave_access_token';
+      });
       expect((write.arguments as Map)['key'], 'annual_leave_access_token');
       expect((write.arguments as Map)['value'], 'new.jwt.token');
       expect(storedToken, 'new.jwt.token');
