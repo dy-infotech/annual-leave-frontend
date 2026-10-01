@@ -119,9 +119,15 @@ class FcmService {
                 TargetPlatform.fuchsia => 'Fuchsia',
               };
         final authSessionMarker = await _apiClient.getSessionMarker();
+        if (_apiClient.sessionGeneration != currentGeneration) {
+          // marker 조회 중 계정이 바뀌었다. 이전 lifecycle 작업이 새 계정의
+          // FCM binding을 생성하지 않도록 중단하고 새 대시보드 cycle에 맡긴다.
+          return;
+        }
         if (authSessionMarker != null && authSessionMarker.isNotEmpty) {
-          await _apiClient.dio.post(
+          await _apiClient.authenticatedRequest(
             '/api/admin/auth/sync-fcm-token',
+            method: 'POST',
             data: SyncFcmTokenRequest(
               fcmToken: token,
               deviceOs: deviceOs,
@@ -130,7 +136,13 @@ class FcmService {
               'X-SSO-Session-Marker': authSessionMarker,
             }),
           );
+          if (_apiClient.sessionGeneration != currentGeneration) {
+            return;
+          }
           await prefs.setString(fcmTokenKey, token);
+          if (_apiClient.sessionGeneration != currentGeneration) {
+            return;
+          }
           _lastSyncedAuthGeneration = currentGeneration;
         } else {
           debugPrint('FCM sync skipped: SSO session marker is unavailable');
