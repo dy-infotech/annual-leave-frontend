@@ -39,6 +39,12 @@ class AuthSession extends ChangeNotifier {
 
   bool _isCurrent(int generation) => generation == _generation;
 
+  /// 화면의 비동기 작업이 시작될 때 현재 세션 소유권을 캡처한다.
+  /// 반환값은 로컬 side effect를 같은 세션에만 적용하기 위한 opaque fence로 사용한다.
+  int captureGeneration() => _generation;
+
+  bool isCurrentGeneration(int generation) => _isCurrent(generation);
+
   /// 내 정보(/me)를 다시 조회해 세션 상태를 갱신한다.
   ///
   /// 잔여 연차나 권한(관리자 여부, 관리 팀)이 바뀌었을 수 있는 시점에 호출한다.
@@ -183,17 +189,36 @@ class AuthSession extends ChangeNotifier {
   /// 명시적 로그아웃. 로컬 상태를 먼저 지운 뒤 서버에 토큰 폐기를 요청한다.
   /// [fcmToken]을 주면 서버가 해당 기기의 푸시 연결도 함께 해제한다.
   Future<void> logout({String? fcmToken}) async {
+    await logoutIfCurrent(_generation, fcmToken: fcmToken);
+  }
+
+  /// [expectedGeneration]이 아직 현재 세션일 때만 로그아웃한다.
+  /// 오래된 화면 작업의 성공 완료가 새 로그인 세션을 종료하지 못하게 한다.
+  Future<bool> logoutIfCurrent(
+    int expectedGeneration, {
+    String? fcmToken,
+  }) async {
+    if (!_isCurrent(expectedGeneration)) return false;
     ++_generation;
     _resetState();
     await _repository.logout(fcmToken: fcmToken);
+    return true;
   }
 
   /// 이메일 변경 성공 후 화면에 보이는 내 정보의 이메일만 로컬에서 갱신한다. (서버 호출 없음)
   /// 내 정보가 없으면 아무것도 하지 않는다.
   Future<void> updateEmail(String newEmail) async {
+    updateEmailIfCurrent(_generation, newEmail);
+  }
+
+  /// 오래된 이메일 변경 응답이 새 로그인 사용자의 로컬 정보를 덮지 않도록
+  /// 요청 시작 시점의 세션 generation이 여전히 현재인지 확인한다.
+  bool updateEmailIfCurrent(int expectedGeneration, String newEmail) {
+    if (!_isCurrent(expectedGeneration)) return false;
     final info = _employeeInfo;
-    if (info == null) return;
+    if (info == null) return false;
     _employeeInfo = info.copyWith(email: newEmail);
     notifyListeners();
+    return true;
   }
 }
