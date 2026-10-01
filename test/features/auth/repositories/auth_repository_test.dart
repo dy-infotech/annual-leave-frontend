@@ -27,23 +27,35 @@ void main() {
   late List<MethodCall> storageCalls;
   late Interceptor captureInterceptor;
   String? storedToken;
+  String? explicitLogoutMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
+    explicitLogoutMarker = null;
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
       storageCalls.add(call);
       final args = call.arguments as Map?;
+      final key = args?['key'] as String?;
+      final explicitKey = key == 'annual_leave_explicit_logout';
       switch (call.method) {
         case 'read':
-          return storedToken;
+          return explicitKey ? explicitLogoutMarker : storedToken;
         case 'write':
-          storedToken = args?['value'] as String?;
+          if (explicitKey) {
+            explicitLogoutMarker = args?['value'] as String?;
+          } else {
+            storedToken = args?['value'] as String?;
+          }
           return null;
         case 'delete':
-          storedToken = null;
+          if (explicitKey) {
+            explicitLogoutMarker = null;
+          } else {
+            storedToken = null;
+          }
           return null;
       }
       return null;
@@ -69,8 +81,11 @@ void main() {
 
   RequestOptions lastRequest() => sentRequests.last;
 
-  List<MethodCall> writeCalls() =>
-      storageCalls.where((call) => call.method == 'write').toList();
+  List<MethodCall> writeCalls() => storageCalls.where((call) {
+        final args = call.arguments as Map?;
+        return call.method == 'write' &&
+            args?['key'] == 'annual_leave_access_token';
+      }).toList();
 
   group('signIn', () {
     test('POST /api/auth/signin에 사번과 비밀번호를 실어 보낸다', () async {
