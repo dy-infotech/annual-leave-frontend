@@ -103,8 +103,8 @@ class AuthRepository {
     return session?.token;
   }
 
-  /// signin 성공 뒤 로컬 세션 확정이 실패했을 때 해당 refresh session만 폐기한다.
-  /// 사용자 명시 로그아웃 상태는 만들지 않는다.
+  /// signin 성공 뒤 로컬 세션 확정이 실패했을 때 해당 refresh session을 폐기한다.
+  /// 같은 cookie session이 재시작 뒤 자동 복구되지 않도록 marker 기반 fence도 남긴다.
   Future<void> discardRefreshSession(String sessionMarker) =>
       _apiClient.discardRefreshSession(sessionMarker);
 

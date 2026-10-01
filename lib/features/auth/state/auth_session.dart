@@ -138,16 +138,21 @@ class AuthSession extends ChangeNotifier {
       _name = info.name;
       _isLoggedIn = true;
       notifyListeners();
-    } catch (_) {
+    } catch (loginError, loginStackTrace) {
       // signin 응답까지 받았다면 secure-storage 저장 실패를 포함해 서버에 생긴
-      // refresh session을 marker-bound background revoke로 정리한다.
+      // refresh session을 marker-bound revoke + durable fence로 정리한다.
       // 그 사이 다른 로그인 cookie가 들어왔으면 서버가 marker mismatch로 no-op 처리한다.
+      Object? cleanupError;
+      StackTrace? cleanupStackTrace;
       final marker = issuedSession?.ssoSessionMarker;
       if (marker != null && marker.isNotEmpty) {
         try {
           await _repository.discardRefreshSession(marker);
-        } catch (_) {
-          // 원래 로그인 실패를 가리지 않는다. orphan session은 TTL로 최종 정리된다.
+        } catch (error, stackTrace) {
+          // fence 저장과 서버 revoke가 모두 실패한 경우에는 orphan refresh session을
+          // 조용히 남기지 않도록 최종적으로 cleanup 실패를 호출자에게 전파한다.
+          cleanupError = error;
+          cleanupStackTrace = stackTrace;
         }
       }
 
@@ -155,11 +160,15 @@ class AuthSession extends ChangeNotifier {
         try {
           await _repository.clearToken();
         } catch (_) {
-          // secure storage 장애가 원인인 경우 cleanup 실패가 원래 예외를 덮지 않게 한다.
+          // secure storage 장애가 원인인 경우에도 가능한 범위의 서버 cleanup은 위에서 먼저 시도했다.
         }
         if (_isCurrent(generation)) _resetState();
       }
-      rethrow;
+
+      if (cleanupError != null && cleanupStackTrace != null) {
+        Error.throwWithStackTrace(cleanupError, cleanupStackTrace);
+      }
+      Error.throwWithStackTrace(loginError, loginStackTrace);
     }
   }
 

@@ -503,6 +503,37 @@ void main() {
       expect(sessionMarker, isNull);
     });
 
+  group('부분 로그인 refresh session 폐기', () {
+    test('서버 revoke가 실패해도 marker fence가 남는다', () async {
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await ApiClient().discardRefreshSession('session-partial');
+
+      expect(explicitLogoutMarker, 'session:session-partial');
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+
+    test('marker fence 저장과 서버 revoke가 모두 실패하면 실패를 전파한다', () async {
+      failExplicitLogoutFenceWrite = true;
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(503, {'message': 'unavailable'}),
+      );
+
+      await expectLater(
+        ApiClient().discardRefreshSession('session-partial'),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(storedToken, isNull);
+      expect(sessionMarker, isNull);
+    });
+  });
+
   group('토큰 저장소', () {
     test('saveToken은 annual_leave_access_token 키로 값을 저장한다', () async {
       await ApiClient().saveToken('new.jwt.token');

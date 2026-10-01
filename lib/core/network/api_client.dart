@@ -549,12 +549,19 @@ class ApiClient {
     }
   }
 
-  /// /signin은 성공했지만 로컬 세션 확정에 실패한 경우 서버 refresh session만 정리한다.
-  /// 명시 로그아웃 표식은 남기지 않으며 marker가 현재 cookie session과 다르면 서버가 no-op 처리한다.
+  /// /signin은 성공했지만 로컬 세션 확정에 실패한 경우 해당 refresh session을 폐기한다.
+  /// 서버 revoke가 일시 실패해도 같은 cookie session이 앱 재시작 뒤 부활하지 않도록
+  /// 먼저 session marker 기반 durable fence를 남긴다. fence 저장 자체가 실패한 경우에는
+  /// 서버 revoke 성공을 필수로 하여 둘 다 실패한 상태를 조용히 넘기지 않는다.
   Future<void> discardRefreshSession(String sessionMarker) async {
     if (sessionMarker.isEmpty) return;
+
+    final discard = await _markExplicitLogout(
+      sessionMarkerOverride: sessionMarker,
+    );
     await _revokeLoggedOutSession(
       sessionMarker: sessionMarker,
+      swallowFailure: discard.fencePersisted,
     );
   }
 
@@ -713,13 +720,16 @@ class ApiClient {
     }
   }
 
-  /// 명시적 로그아웃 상태로 전환한다. 세대를 올리고 토큰을 지우며 만료 콜백은 호출하지 않는다.
+  /// 세션을 로컬 종료 상태로 전환한다. 명시 로그아웃뿐 아니라 signin 성공 뒤
+  /// 로컬 확정에 실패한 refresh session 폐기에도 사용한다.
+  /// [sessionMarkerOverride]가 있으면 저장소보다 signin 응답의 marker를 정본으로 사용한다.
   Future<({String? sessionMarker, bool fencePersisted})>
-      _markExplicitLogout() async {
+      _markExplicitLogout({String? sessionMarkerOverride}) async {
     String? sessionMarker;
     var fencePersisted = false;
     await _mutateToken(() async {
-      sessionMarker = await _storage.read(key: _sessionMarkerKey);
+      sessionMarker = sessionMarkerOverride ??
+          await _storage.read(key: _sessionMarkerKey);
       _authGeneration++;
       _sessionExpired = false;
       _explicitlyLoggedOut = true;
