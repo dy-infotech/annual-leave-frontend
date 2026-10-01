@@ -30,7 +30,7 @@ void main() {
   RequestOptions lastRequest() => sentRequests.last;
 
   group('fetchEmployees', () {
-    test('검색어가 없으면 쿼리 파라미터 없이 GET /api/admin/employees/all을 호출한다', () async {
+    test('검색어가 없으면 bounded 첫 페이지로 GET /api/admin/employees/all을 호출한다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, [fixtureJson('admin/employee.json')]),
@@ -40,11 +40,11 @@ void main() {
 
       expect(lastRequest().method, 'GET');
       expect(lastRequest().path, '/api/admin/employees/all');
-      expect(lastRequest().queryParameters, isEmpty);
-      expect(lastRequest().uri.hasQuery, isFalse);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 100});
+      expect(lastRequest().uri.hasQuery, isTrue);
     });
 
-    test('검색어가 빈 문자열이어도 쿼리 파라미터 없이 호출한다', () async {
+    test('검색어가 빈 문자열이어도 검색 조건 없이 bounded page를 호출한다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, []),
@@ -52,32 +52,35 @@ void main() {
 
       await repository.fetchEmployees(searchParam: '');
 
-      expect(lastRequest().queryParameters, isEmpty);
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 100});
     });
 
-    test('검색어가 있으면 searchParam 쿼리로 실린다', () async {
+    test('검색어가 있으면 searchParam과 page 쿼리로 실린다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, []),
-        queryParameters: {'searchParam': '홍길동'},
+        queryParameters: {'searchParam': '홍길동', 'page': 0, 'size': 100},
       );
 
       await repository.fetchEmployees(searchParam: '홍길동');
 
-      expect(lastRequest().queryParameters, {'searchParam': '홍길동'});
+      expect(lastRequest().queryParameters, {
+        'searchParam': '홍길동',
+        'page': 0,
+        'size': 100,
+      });
     });
 
-    test('공백만 있는 검색어는 그대로 쿼리에 실린다', () async {
+    test('공백만 있는 검색어는 trim 후 검색 조건에서 제외한다', () async {
       dioAdapter.onGet(
         '/api/admin/employees/all',
         (server) => server.reply(200, []),
-        queryParameters: {'searchParam': '  '},
+        queryParameters: {'page': 0, 'size': 100},
       );
 
       await repository.fetchEmployees(searchParam: '  ');
 
-      // 이 리포지토리는 trim을 하지 않아 공백 검색어가 그대로 전달된다.
-      expect(lastRequest().queryParameters, {'searchParam': '  '});
+      expect(lastRequest().queryParameters, {'page': 0, 'size': 100});
     });
 
     test('배열 응답을 Employee 목록으로 매핑한다', () async {
