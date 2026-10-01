@@ -357,39 +357,45 @@ class ApiClient {
       return stored;
     }
 
-    final discovered = await _fetchCurrentSessionMarker();
-    if (discovered == null || discovered.isEmpty) {
+    try {
+      final discovered = await _fetchCurrentSessionMarker();
+      if (discovered == null || discovered.isEmpty) {
+        return null;
+      }
+
+      var saved = false;
+      await _mutateToken(() async {
+        if (expectedGeneration != _authGeneration || _sessionExpired) return;
+        await _storage.write(key: _sessionMarkerKey, value: discovered);
+        saved = true;
+      });
+      return saved ? discovered : null;
+    } on DioException catch (error) {
+      return _handleMarkerDiscoveryFailure(error, expectedGeneration);
+    }
+  }
+
+  Future<String?> _handleMarkerDiscoveryFailure(
+    DioException error,
+    int expectedGeneration,
+  ) async {
+    final status = error.response?.statusCode;
+    if (status == 401 || status == 403) {
+      await _expireSessionOnce(expectedGeneration);
       return null;
     }
-
-    var saved = false;
-    await _mutateToken(() async {
-      if (expectedGeneration != _authGeneration || _sessionExpired) return;
-      await _storage.write(key: _sessionMarkerKey, value: discovered);
-      saved = true;
-    });
-    return saved ? discovered : null;
+    throw error;
   }
 
   Future<String?> _fetchCurrentSessionMarker() async {
-    try {
-      final response = await dio.post(
-        '/api/auth/session-marker',
-        options: Options(headers: const {'X-SSO-Refresh': '1'}),
-      );
-      final data = response.data;
-      if (data is! Map) return null;
-      final marker = data['sessionMarker']?.toString();
-      return marker == null || marker.isEmpty ? null : marker;
-    } on DioException catch (error) {
-      final status = error.response?.statusCode;
-      if (status == 401 || status == 403) {
-        // session-marker는 로그인 상태 복원을 위한 probe다.
-        // refresh cookie가 없거나 이미 무효한 상태는 "비로그인"이라는 정상 결과다.
-        return null;
-      }
-      rethrow;
-    }
+    final response = await dio.post(
+      '/api/auth/session-marker',
+      options: Options(headers: const {'X-SSO-Refresh': '1'}),
+    );
+    final data = response.data;
+    if (data is! Map) return null;
+    final marker = data['sessionMarker']?.toString();
+    return marker == null || marker.isEmpty ? null : marker;
   }
 
   bool _sameSubject(String? beforeToken, LoginResponse? candidate) {

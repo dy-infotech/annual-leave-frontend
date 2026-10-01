@@ -2,7 +2,6 @@ import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/auth/models/auth_models.dart';
 import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:flutter/foundation.dart';
-import 'package:dio/dio.dart';
 
 /// 로그인 세션 상태. 앱 루트에 등록되는 유일한 전역 상태(`Provider`)다.
 ///
@@ -73,14 +72,14 @@ class AuthSession extends ChangeNotifier {
       return;
     }
 
-    final token = await _repository.getToken();
-    if (!_isCurrent(generation)) return;
-    if (token == null) {
-      _resetState();
-      return;
-    }
-
     try {
+      final token = await _repository.getToken();
+      if (!_isCurrent(generation)) return;
+      if (token == null) {
+        _resetState();
+        return;
+      }
+
       final info = await _repository.fetchMyInfo();
       if (!_isCurrent(generation)) return;
 
@@ -89,12 +88,6 @@ class AuthSession extends ChangeNotifier {
       _name = info.name;
       _isLoggedIn = true;
       notifyListeners();
-    } on DioException catch (e) {
-      if (!_isCurrent(generation)) return;
-      if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
-        await _repository.clearToken();
-      }
-      if (_isCurrent(generation)) _resetState();
     } catch (_) {
       if (!_isCurrent(generation)) return;
       await _repository.clearToken();

@@ -114,6 +114,18 @@ void main() {
       expect(session.employeeInfo, isNull);
     });
 
+    test('tryAutoLogin - 세션 복원 자체가 실패해도 예외를 밖으로 흘리지 않는다', () async {
+      fake.storedToken = 'stale.token';
+      fake.getTokenErrorToThrow = Exception('refresh session probe failed');
+      final session = AuthSession(repository: fake);
+
+      await session.tryAutoLogin();
+
+      expect(session.isLoggedIn, isFalse);
+      expect(session.employeeInfo, isNull);
+      expect(fake.storedToken, isNull);
+    });
+
     test('tryAutoLogin - 저장된 토큰이 없으면 로그인 상태가 아니다', () async {
       final session = AuthSession(repository: fake);
 

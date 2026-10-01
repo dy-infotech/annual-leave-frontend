@@ -13,6 +13,7 @@ class FakeAuthRepository implements AuthRepository {
   String? storedToken;
   String? storedSessionMarker;
   Object? saveTokenErrorToThrow;
+  Object? getTokenErrorToThrow;
   Object? discardRefreshSessionErrorToThrow;
   final List<String> discardedSessionMarkers = [];
 
@@ -95,7 +96,10 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<String?> getToken() async => storedToken;
+  Future<String?> getToken() async {
+    if (getTokenErrorToThrow != null) throw getTokenErrorToThrow!;
+    return storedToken;
+  }
 
   @override
   Future<void> clearToken() async {
