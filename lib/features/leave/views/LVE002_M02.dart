@@ -27,10 +27,12 @@ class AllLeaveRequestsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final canViewAll = context.read<AuthSession>().isAdmin;
     return ChangeNotifierProvider(
       create: (_) => AllLeaveRequestsViewModel(
         initialStatus: status,
         initialFilter: filter,
+        canViewAll: canViewAll,
         repository: repository,
       )..load(),
       child: const _AllLeaveRequestsView(),
@@ -164,10 +166,14 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
       {'label': '반려', 'value': 'REJECTED'},
       {'label': '취소', 'value': 'CANCELLED'}
     ];
-    final List<Map<String, String?>> searchFilterList = [
-      {'label': '전체', 'value': '전체'},
-      {'label': '내 신청', 'value': '내 신청'},
-    ];
+    final List<Map<String, String?>> searchFilterList = vm.canViewAll
+        ? [
+            {'label': '전체', 'value': '전체'},
+            {'label': '내 신청', 'value': '내 신청'},
+          ]
+        : [
+            {'label': '내 신청', 'value': '내 신청'},
+          ];
     return Scaffold(
       appBar: AppBar(title: const Text('신청 목록')),
       drawer: const AppDrawer(),
