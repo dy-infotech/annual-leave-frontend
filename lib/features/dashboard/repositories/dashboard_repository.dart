@@ -10,7 +10,7 @@ class DashboardRepository {
 
   /// 대시보드 조회. GET /api/dashboard
   Future<DashboardData> fetchDashboard() async {
-    final response = await _dio.get('/api/dashboard');
+    final response = await _dio.authenticatedGet('/api/dashboard');
     return DashboardData.fromJson(response.data);
   }
 }
