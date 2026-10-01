@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+/// 앱 전체에서 공유하는 색상 팔레트. 화면에서 색을 직접 쓰기보다 이 값을 우선 사용한다.
 class AppColors {
   static const slate = Color(0xFF2B3A4A); // Primary
   static const slateLight = Color(0xFF44576B);
@@ -14,6 +15,8 @@ class AppColors {
   static const divider = Color(0xFFE8E6E1);
 }
 
+/// 앱 공통 Material 3 테마. 슬레이트(남색 계열)를 기준색으로 하고 폰트는 Noto Sans KR을 쓴다.
+/// 버튼, 입력창, 카드 등의 모양을 여기서 한 번에 정의하므로 개별 화면에서는 스타일을 덮어쓰지 않는 것이 좋다.
 class AppTheme {
   static ThemeData get theme {
     final base = ThemeData(useMaterial3: true, brightness: Brightness.light);
@@ -84,6 +87,7 @@ class AppTheme {
               GoogleFonts.notoSansKr(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
+      // 외곽선 버튼의 기본 색은 경고 색(coral)이다. 일반 보조 버튼에는 색을 직접 지정해야 한다.
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.coral,

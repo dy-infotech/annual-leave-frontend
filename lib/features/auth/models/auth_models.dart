@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+/// 로그인 요청 본문. POST /api/auth/signin
 class LoginRequest {
   final String employeeNumber;
   final String password;
@@ -12,11 +13,17 @@ class LoginRequest {
       };
 }
 
+/// 로그인/토큰 갱신 응답. 액세스 토큰(JWT)과 그 안의 사용자 정보를 담는다.
+///
+/// 응답 본문에 값이 없으면 JWT payload(`sub`, `name`, `role`, `exp`)에서 보충한다.
+/// 이 값은 화면 표시와 만료 판단용이며, 서명 검증은 하지 않으므로 권한 판단에 쓰면 안 된다.
 class LoginResponse {
   final String token;
   final int? employeeId;
   final String? name;
   final String? role;
+
+  /// 액세스 토큰의 만료 시각(UTC). 토큰에서 읽지 못하면 null.
   final DateTime? accessTokenExpiresAt;
 
   LoginResponse({
@@ -39,6 +46,8 @@ class LoginResponse {
     );
   }
 
+  /// 액세스 토큰(JWT)의 payload를 디코딩해 [LoginResponse]를 만든다. 서명은 검증하지 않는다.
+  /// 형식이 올바르지 않거나 디코딩에 실패하면 null을 돌려준다.
   static LoginResponse? tryFromAccessToken(String token) {
     try {
       final parts = token.split('.');
@@ -72,6 +81,7 @@ class LoginResponse {
   bool get isAdmin => role == 'ADMIN';
 }
 
+/// 사용 등록 요청 본문. POST /api/auth/signup
 class SignUpRequest {
   final String employeeNumber;
   final String password;
@@ -84,8 +94,11 @@ class SignUpRequest {
       };
 }
 
+/// FCM 토큰 서버 등록 요청 본문. POST /api/admin/auth/sync-fcm-token
 class SyncFcmTokenRequest {
   final String fcmToken;
+
+  /// 기기 종류('Web', 'Android', 'iOS' 등).
   final String deviceOs;
 
   SyncFcmTokenRequest({required this.fcmToken, required this.deviceOs});
@@ -96,14 +109,19 @@ class SyncFcmTokenRequest {
       };
 }
 
+/// 관리자가 등록 신청자를 승인하며 사원 정보를 확정할 때 보내는 요청 본문. (사용자 등록 관리 화면)
 class AdminAuthRegisterRequest {
   final String employeeNumber;
   final String name;
   final String department;
   final String team;
   final String position;
+
+  /// 부여할 역할 코드. `RoleType.code`('ADMIN' 또는 'EMPLOYEE').
   final String role;
   final String email;
+
+  /// 입사일(yyyy-MM-dd).
   final String hireDate;
 
   AdminAuthRegisterRequest(

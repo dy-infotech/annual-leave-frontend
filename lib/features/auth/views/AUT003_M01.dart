@@ -133,7 +133,7 @@ class _FindAccountViewState extends State<_FindAccountView>
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text(
-              '등록된 가입 정보(성함, 이메일)를 입력하시면 \n 아이디를 빌송해 드립니다.',
+              '등록된 가입 정보(성함, 이메일)를 입력하시면 \n 아이디를 발송해 드립니다.',
               textAlign: TextAlign.center,
               style: TextStyle(color: AppColors.textPrimary),
             ),

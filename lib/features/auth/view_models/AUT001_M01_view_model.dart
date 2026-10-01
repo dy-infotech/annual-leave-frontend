@@ -5,6 +5,9 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 /// 로그인 화면(AUT001_M01)의 ViewModel.
+///
+/// 입력 검증, 로그인 요청, "계정 기억하기"(사번은 SharedPreferences, 비밀번호는 보안 저장소) 저장을 담당한다.
+/// 실제 인증과 세션 상태는 [AuthSession]에 위임한다.
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel({
     required AuthSession authSession,
@@ -27,6 +30,9 @@ class LoginViewModel extends ChangeNotifier {
   String? _errorMessage;
   bool _isRememberMe = false;
   bool _disposed = false;
+
+  /// 요청 순번. 저장 정보 불러오기나 로그인이 끝나기 전에 화면이 닫히거나 새 요청이 시작되면
+  /// 늦게 도착한 결과가 상태를 덮어쓰지 않도록 비교하는 데 쓴다.
   int _requestSeq = 0;
 
   bool get isLoading => _isLoading;
@@ -83,6 +89,9 @@ class LoginViewModel extends ChangeNotifier {
   }
 
   /// 로그인. 성공하면 true를 돌려준다. (화면은 대시보드로 이동)
+  ///
+  /// 실패하면 false를 돌려주고 [errorMessage]에 사유를 담는다.
+  /// 로그인 이후의 계정 저장과 공휴일 미리 불러오기는 부가 작업이라 실패해도 로그인 결과에 영향을 주지 않는다.
   Future<bool> login() async {
     if (_disposed || _isLoading) return false;
     if (employeeNumberController.text.isEmpty ||
@@ -113,6 +122,7 @@ class LoginViewModel extends ChangeNotifier {
         debugPrint('계정 저장 정보 갱신 실패: $e');
       }
 
+      // 휴가 신청 화면에서 바로 쓸 수 있도록 공휴일을 미리 조회해 캐시한다.
       try {
         await _holidayRepository.fetchPublicHolidays();
       } catch (_) {
