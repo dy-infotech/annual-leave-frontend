@@ -214,7 +214,7 @@ void main() {
   });
 
   group('SearchEmployeeNumberViewModel - 실패 처리', () {
-    test('조회에 실패해도 로딩을 끄고 기존 목록을 유지한다', () async {
+    test('새 조건 조회에 실패하면 기존 목록을 폐기하고 추가 조회를 막는다', () async {
       repository.employeesToReturn = [emp(employeeNumber: 'A0001')];
 
       final vm = build();
@@ -224,8 +224,14 @@ void main() {
       repository.errorToThrow = Exception('500');
       await vm.fetch();
 
-      expect(vm.items, hasLength(1));
+      expect(vm.items, isEmpty);
+      expect(vm.errorMessage, '사원 목록을 불러오지 못했습니다.');
+      expect(vm.hasMore, isFalse);
       expect(vm.isLoading, isFalse);
+
+      final requestCount = repository.pageRequests.length;
+      await vm.loadMore();
+      expect(repository.pageRequests, hasLength(requestCount));
     });
   });
 }

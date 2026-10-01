@@ -2,7 +2,7 @@ import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:dio/dio.dart';
 
-/// 휴가 신청 관련 API 호출 모음.
+// 휴가 신청 조회와 변경 요청을 담당한다
 class LeaveRepository {
   LeaveRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
@@ -12,12 +12,12 @@ class LeaveRepository {
   static const int _maxCursorBatches = 1000;
 
   Future<LeaveRequestDetail> fetchLeaveRequestDetail(int requestId) async {
-    final response = await _dio.get('/api/leave-requests/$requestId');
+    final response = await _dio.authenticatedGet('/api/leave-requests/$requestId');
     return LeaveRequestDetail.fromJson(response.data);
   }
 
   Future<LeavePeriod> fetchMyLeavePeriod() async {
-    final response = await _dio.get('/api/leave-requests/my/period');
+    final response = await _dio.authenticatedGet('/api/leave-requests/my/period');
     return LeavePeriod.fromJson(Map<String, dynamic>.from(response.data));
   }
 
@@ -30,7 +30,7 @@ class LeaveRepository {
     String? cursorRequestedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/leave-requests/my',
       queryParameters: _pageQuery(
         {
@@ -58,7 +58,7 @@ class LeaveRepository {
     String? cursorRequestedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/leave-requests/all',
       queryParameters: _pageQuery(
         {
@@ -77,8 +77,7 @@ class LeaveRepository {
     return _parseLeavePage(response.data);
   }
 
-  /// 캘린더/중복 검사처럼 범위 내 전체 내역이 필요한 내부 호출용.
-  /// OFFSET 대신 마지막 (requestedAt, requestId) cursor를 이어서 수집한다.
+  // 캘린더와 중복 검사에 필요한 내 신청 목록을 끝까지 수집한다
   Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
     String? status,
     String? startDate,
@@ -96,7 +95,7 @@ class LeaveRepository {
     });
   }
 
-  /// 목록 UI는 fetchAllLeaveRequestsPage를 사용한다.
+  // 조직 전체 신청 목록을 끝까지 수집한다
   Future<List<LeaveRequestListItem>> fetchAllLeaveRequests({
     String? status,
     String? startDate,
@@ -115,14 +114,14 @@ class LeaveRepository {
   }
 
   Future<void> cancelLeaveRequest(int requestId) async {
-    await _dio.delete('/api/leave-requests/$requestId');
+    await _dio.authenticatedDelete('/api/leave-requests/$requestId');
   }
 
   Future<void> submitLeaveRequest(
     LeaveRequestCreate request, {
     String? idempotencyKey,
   }) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/leave-requests',
       data: request.toJson(),
       options: idempotencyKey == null
@@ -148,7 +147,7 @@ class LeaveRepository {
 
     final normalizedTeam = team?.trim();
     final normalizedEmployeeParam = employeeParam?.trim();
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/leave-requests/$normalizedStatus',
       queryParameters: _pageQuery(
         {
@@ -192,7 +191,7 @@ class LeaveRepository {
     String? cursorCreatedAt,
     int? cursorRequestId,
   }) async {
-    final response = await _dio.get(
+    final response = await _dio.authenticatedGet(
       '/api/admin/leave-requests/pending',
       queryParameters: _pageQuery(
         {
@@ -208,6 +207,7 @@ class LeaveRepository {
     return _parsePendingPage(response.data);
   }
 
+  // 결재 대기 목록을 다음 위치가 없을 때까지 수집한다
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
     final result = <PendingLeaveRequest>[];
     String? cursorCreatedAt;
@@ -237,11 +237,11 @@ class LeaveRepository {
   }
 
   Future<void> approveLeaveRequest(int requestId) async {
-    await _dio.post('/api/admin/leave-requests/$requestId/approve');
+    await _dio.authenticatedPost('/api/admin/leave-requests/$requestId/approve');
   }
 
   Future<void> rejectLeaveRequest(int requestId, {String? rejectReason}) async {
-    await _dio.post(
+    await _dio.authenticatedPost(
       '/api/admin/leave-requests/$requestId/reject',
       data: {'rejectReason': rejectReason},
     );
@@ -285,6 +285,7 @@ class LeaveRepository {
     };
   }
 
+  // 목록의 마지막 위치를 이어가며 전체 결과를 수집한다
   Future<List<LeaveRequestListItem>> _collectLeaveCursorPages(
     Future<PageResult<LeaveRequestListItem>> Function(
       String? cursorCreatedAt,

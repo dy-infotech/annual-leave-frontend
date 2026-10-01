@@ -1,23 +1,18 @@
 import 'package:annual_leave_frontend/features/auth/repositories/auth_repository.dart';
 import 'package:flutter/material.dart';
 
-/// 계정 찾기 화면(AUT003_M01)의 ViewModel.
-///
-/// 세 가지 흐름을 한 화면에서 처리한다.
-/// 1) 아이디 찾기: 이름과 이메일로 사번 안내 메일을 받는다.
-/// 2) 비밀번호 재설정 메일 요청: 사번과 이메일로 재설정 토큰 메일을 받는다. 성공하면 [resetRequested]가 true가 된다.
-/// 3) 비밀번호 재설정 확정: 메일로 받은 토큰과 새 비밀번호를 서버에 제출한다.
+// 계정 찾기와 비밀번호 재설정 흐름을 관리한다
 class FindAccountViewModel extends ChangeNotifier {
   FindAccountViewModel({AuthRepository? repository})
       : _repository = repository ?? AuthRepository();
 
   final AuthRepository _repository;
 
-  // 공통 및 아이디 찾기용 컨트롤러
+  // 아이디 찾기 입력값을 관리한다
   final nameController = TextEditingController();
   final emailForIdController = TextEditingController();
 
-  // 비밀번호 찾기용 컨트롤러
+  // 비밀번호 재설정 입력값을 관리한다
   final employeeNoController = TextEditingController();
   final emailForPwController = TextEditingController();
   final resetTokenController = TextEditingController();
@@ -27,7 +22,7 @@ class FindAccountViewModel extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  /// 비밀번호 재설정 메일 요청이 성공했는지 여부. 화면이 토큰/새 비밀번호 입력 단계를 보여주는 기준이다.
+  // 재설정 메일 발송 후 다음 입력 단계를 표시한다
   bool _resetRequested = false;
   bool _disposed = false;
 
@@ -35,13 +30,13 @@ class FindAccountViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get resetRequested => _resetRequested;
 
-  /// 탭 전환 시 에러 메시지 초기화.
+  // 화면 전환 시 이전 오류를 지운다
   void clearInputs() {
     _errorMessage = null;
     notifyListeners();
   }
 
-  /// 아이디 찾기 메일 발송. 성공하면 true를 돌려준다.
+  // 입력값 확인 후 사번 안내 메일을 요청한다
   Future<bool> findId() async {
     if (_disposed || _isLoading) return false;
     if (nameController.text.isEmpty || emailForIdController.text.isEmpty) {
@@ -70,7 +65,7 @@ class FindAccountViewModel extends ChangeNotifier {
     }
   }
 
-  /// 비밀번호 재설정 메일 발송. 성공하면 true를 돌려준다.
+  // 입력값 확인 후 비밀번호 재설정 메일을 요청한다
   Future<bool> sendPasswordResetEmail() async {
     if (_disposed || _isLoading) return false;
     if (employeeNoController.text.isEmpty ||
@@ -101,10 +96,7 @@ class FindAccountViewModel extends ChangeNotifier {
     }
   }
 
-  /// 메일로 받은 재설정 토큰과 새 비밀번호를 제출한다. 성공하면 true를 돌려준다.
-  ///
-  /// 서버 호출 전에 필수값과 새 비밀번호/확인 일치 여부를 검사한다.
-  /// 실패 사유는 토큰 오류와 만료를 구분하지 않고 하나의 문구로 보여준다.
+  // 재설정 토큰과 새 비밀번호를 확인한 뒤 변경을 요청한다
   Future<bool> confirmPasswordReset() async {
     if (_disposed || _isLoading) return false;
     if (resetTokenController.text.trim().isEmpty ||

@@ -5,7 +5,7 @@ import 'package:annual_leave_frontend/features/admin/models/department_team_mode
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 
-/// 부서 및 팀 관리 화면(ADM003_M01)의 ViewModel.
+// 부서와 팀 목록 및 변경 요청 상태를 관리한다
 class DepartmentTeamViewModel extends ChangeNotifier {
   DepartmentTeamViewModel({DepartmentTeamRepository? repository})
       : _repository = repository ?? DepartmentTeamRepository();
@@ -23,7 +23,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
   int _teamRequestSeq = 0;
   bool _disposed = false;
 
-  /// 팀 탭의 부서 필터. null 이면 전체.
+  // 선택한 부서 기준으로 팀 목록을 필터링한다
   int? _teamFilterDeptId;
 
   List<Department> get departments => _departments;
@@ -46,6 +46,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
   List<Team> teamsOfDepartment(int departmentId) =>
       _teams.where((t) => t.departmentId == departmentId).toList();
 
+  // 부서와 팀 목록을 함께 새로고침한다
   Future<void> refreshAll() =>
       Future.wait([fetchDepartments(), fetchTeams()]);
 
@@ -106,6 +107,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     return fallback;
   }
 
+  // 기존 부서 여부에 따라 생성 또는 수정을 요청한다
   Future<String?> submitDepartment(Department? origin, String name) async {
     try {
       if (origin == null) {
@@ -121,6 +123,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     }
   }
 
+  // 부서 삭제 후 전체 조직 목록을 다시 조회한다
   Future<String?> deleteDepartment(Department dept) async {
     try {
       await _repository.deleteDepartment(dept.departmentId);
@@ -131,6 +134,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     }
   }
 
+  // 팀 생성 후 전체 조직 목록을 다시 조회한다
   Future<String?> submitTeamCreate({
     required String teamName,
     required int managerId,
@@ -155,6 +159,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     }
   }
 
+  // 팀 수정 후 전체 조직 목록을 다시 조회한다
   Future<String?> submitTeamUpdate(
     Team origin, {
     required String teamName,
@@ -182,6 +187,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
     }
   }
 
+  // 팀 삭제 후 전체 조직 목록을 다시 조회한다
   Future<String?> deleteTeam(Team team) async {
     try {
       await _repository.deleteTeam(team.teamId);

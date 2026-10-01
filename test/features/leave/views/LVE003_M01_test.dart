@@ -57,6 +57,7 @@ void main() {
     await pumpPendingScreen(tester);
 
     expect(find.text('목록을 불러오지 못했습니다.'), findsOneWidget);
+    expect(find.text('다시 시도'), findsOneWidget);
   });
 
   testWidgets('선택 전 - 하단 승인/반려 버튼이 비활성화된다', (tester) async {

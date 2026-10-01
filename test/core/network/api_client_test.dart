@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:annual_leave_frontend/core/config/api_config.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:dio/dio.dart';
@@ -27,13 +28,17 @@ void main() {
   String? explicitLogoutMarker;
   String? sessionMarker;
   bool failExplicitLogoutFenceWrite = false;
+  Completer<void>? accessTokenReadGate;
+  Completer<void>? accessTokenReadStarted;
 
-  setUp(() {
+  setUp(() async {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
     sessionMarker = 'session-a';
     failExplicitLogoutFenceWrite = false;
+    accessTokenReadGate = null;
+    accessTokenReadStarted = null;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -45,6 +50,12 @@ void main() {
       final sessionKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
+          if (!explicitKey && !sessionKey && accessTokenReadGate != null) {
+            if (accessTokenReadStarted != null && !accessTokenReadStarted!.isCompleted) {
+              accessTokenReadStarted!.complete();
+            }
+            await accessTokenReadGate!.future;
+          }
           if (explicitKey) return explicitLogoutMarker;
           if (sessionKey) return sessionMarker;
           return storedToken;
@@ -73,9 +84,23 @@ void main() {
       return null;
     });
 
-    // ApiClient는 싱글턴이라 dio 인스턴스가 테스트 간 공유된다.
+    // ApiClient는 싱글턴이라 이전 테스트의 메모리 subject/session 상태도 공유된다.
+    // 플랫폼 저장소 mock을 설치한 뒤 공개 API를 통해 로컬 인증 상태를 정상 상태로 되돌린다.
+    final client = ApiClient();
+    await client.saveToken(
+      _validAccessToken,
+      sessionMarker: 'test-reset',
+    );
+    await client.clearToken();
+
+    // 위 reset 과정의 저장소 흔적은 각 테스트의 관찰 대상이 아니다.
+    storedToken = null;
+    explicitLogoutMarker = null;
+    sessionMarker = 'session-a';
+    storageCalls.clear();
+
     // DioAdapter 생성자가 httpClientAdapter를 교체하므로 테스트마다 새로 붙인다.
-    dioAdapter = DioAdapter(dio: ApiClient().dio);
+    dioAdapter = DioAdapter(dio: client.dio);
   });
 
   tearDown(() {
@@ -114,6 +139,95 @@ void main() {
         (storageCalls.first.arguments as Map)['key'],
         'annual_leave_access_token',
       );
+    });
+
+    test('토큰 읽기 대기 중 계정이 바뀌면 이전 요청을 새 계정으로 보내지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      accessTokenReadGate = Completer<void>();
+      accessTokenReadStarted = Completer<void>();
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) => server.reply(200, {}),
+        data: {'leaveType': 'FULL'},
+      );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
+
+      final pending = _captureDioException(
+        () => ApiClient().dio.post(
+          '/api/leave-requests',
+          data: {'leaveType': 'FULL'},
+        ),
+      );
+      await accessTokenReadStarted!.future;
+
+      final generationBeforeSwitch = ApiClient().sessionGeneration;
+      await ApiClient().saveToken(
+        _otherAccessToken,
+        sessionMarker: 'session-b',
+      );
+      expect(ApiClient().sessionGeneration, isNot(generationBeforeSwitch));
+      accessTokenReadGate!.complete();
+
+      final error = await pending;
+      expect(error.type, DioExceptionType.cancel);
+      expect(counter.fetchCount, 0);
+
+      accessTokenReadGate = null;
+      await ApiClient().clearToken();
+    });
+
+    test('요청 생성 뒤 인증 인터셉터 진입 전 계정이 바뀌면 전송하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      final interceptorEntered = Completer<void>();
+      final releaseInterceptor = Completer<void>();
+      final gate = InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          if (!interceptorEntered.isCompleted) interceptorEntered.complete();
+          await releaseInterceptor.future;
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.insert(0, gate);
+
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) => server.reply(200, {}),
+        data: {'leaveType': 'FULL'},
+      );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
+
+      try {
+        final pending = _captureDioException(
+          () => ApiClient().authenticatedRequest(
+            '/api/leave-requests',
+            method: 'POST',
+            data: {'leaveType': 'FULL'},
+          ),
+        );
+        await interceptorEntered.future;
+
+        await ApiClient().saveToken(
+          _otherAccessToken,
+          sessionMarker: 'session-b',
+        );
+        releaseInterceptor.complete();
+
+        final error = await pending;
+        expect(error.type, DioExceptionType.cancel);
+        expect(counter.fetchCount, 0);
+      } finally {
+        ApiClient().dio.interceptors.remove(gate);
+      }
     });
 
     test('저장된 토큰이 없으면 Authorization 헤더를 붙이지 않는다', () async {
@@ -250,6 +364,117 @@ void main() {
       expect(expiredCount, 1);
     });
 
+    test('다른 탭이 저장한 다른 사용자 토큰은 전송하거나 삭제하지 않고 현재 탭만 만료한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      // 같은 origin의 다른 탭이 사용자 8로 로그인해 shared secure storage를 교체한 상황.
+      // 현재 ApiClient 인스턴스는 사용자 7에 바인딩된 상태를 유지한다.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': '현재 탭 세션 변경'}),
+      );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.type, DioExceptionType.cancel);
+      expect(error.response, isNull);
+      expect(counter.fetchCount, 0);
+      expect(
+        error.requestOptions.headers.containsKey('Authorization'),
+        isFalse,
+      );
+      expect(expiredCount, 1);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+
+      // 다음 테스트에 싱글턴의 로컬 만료 상태를 남기지 않는다.
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+    });
+
+    test('A 요청의 401 뒤 shared storage가 B로 바뀌어도 A mutation을 B 계정으로 재전송하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      var mutationCalls = 0;
+      String? retriedAuthorization;
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) {
+          mutationCalls++;
+          if (mutationCalls == 1) {
+            // A 요청이 서버에 도착한 뒤 다른 탭 B가 shared storage를 교체한다.
+            storedToken = _otherAccessToken;
+            sessionMarker = 'session-b';
+            server.reply(401, {'message': 'access token 만료'});
+            return;
+          }
+          server.reply(200, {'ok': true});
+        },
+        data: Matchers.any,
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(409, {'message': 'session marker mismatch'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+
+      final capture = InterceptorsWrapper(
+        onRequest: (options, handler) {
+          if (options.path == '/api/leave-requests' &&
+              options.extra['authRetried'] == true) {
+            retriedAuthorization = options.headers['Authorization'] as String?;
+          }
+          handler.next(options);
+        },
+      );
+      ApiClient().dio.interceptors.add(capture);
+
+      try {
+        final error = await _captureDioException(
+          () => ApiClient().authenticatedRequest<dynamic>(
+            '/api/leave-requests',
+            method: 'POST',
+            data: {'leaveType': 'ANNUAL'},
+          ),
+        );
+
+        expect(error.type, DioExceptionType.cancel);
+        expect(error.response, isNull);
+        expect(mutationCalls, 1);
+        expect(retriedAuthorization, isNull);
+        expect(storedToken, _otherAccessToken);
+        expect(sessionMarker, 'session-b');
+      } finally {
+        ApiClient().dio.interceptors.remove(capture);
+        await ApiClient().saveToken(
+          _validAccessToken,
+          sessionMarker: 'session-a',
+        );
+      }
+    });
+
     test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
       await ApiClient().saveToken(
         _validAccessToken,
@@ -279,7 +504,8 @@ void main() {
       );
 
       expect(error.response?.statusCode, 401);
-      expect(storedToken, isNull);
+      expect(storedToken, _validAccessToken);
+      expect(sessionMarker, 'session-a');
       expect(expiredCount, 1);
     });
 
@@ -316,8 +542,56 @@ void main() {
 
       expect(error.response?.statusCode, 401);
       expect(refreshCalls, 1);
-      expect(storedToken, isNull);
+      expect(storedToken, _validAccessToken);
+      expect(sessionMarker, 'session-a');
       expect(expiredCount, 1);
+    });
+
+    test('A refresh 실패 전에 B shared session이 저장되면 B 토큰과 marker를 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) => server.reply(401, {'message': 'refresh session 만료'}),
+      );
+
+      final refreshEntered = Completer<void>();
+      final releaseRefresh = Completer<void>();
+      final gated = GatedPathAdapter(
+        dioAdapter,
+        path: '/api/auth/refresh',
+        entered: refreshEntered,
+        release: releaseRefresh,
+      );
+      ApiClient().dio.httpClientAdapter = gated;
+
+      final pending = _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+      await refreshEntered.future;
+
+      // 다른 탭은 별도 ApiClient 인스턴스이므로 이 탭의 generation을 올리지 않고
+      // same-origin shared storage만 사용자 8 세션으로 교체한다.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      releaseRefresh.complete();
+
+      final error = await pending;
+      expect(error.response?.statusCode, 401);
+      expect(expiredCount, 1);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
     });
 
     test('marker가 없는 기존 세션은 cookie marker를 조회한 뒤 refresh한다', () async {
@@ -435,6 +709,33 @@ void main() {
   });
 
   group('명시 로그아웃 SSO 복구', () {
+    test('다른 탭이 shared session을 교체한 뒤 stale logout은 새 세션을 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      // 현재 탭 메모리는 A에 바인딩된 채, 다른 탭 B가 same-origin shared
+      // secure storage를 새 세션으로 교체한 상황.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      explicitLogoutMarker = '0';
+
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(204, null),
+      );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
+
+      await ApiClient().logoutSession();
+
+      expect(counter.fetchCount, 0);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+      expect(explicitLogoutMarker, '0');
+    });
+
     test('로그아웃 뒤 다른 앱이 만든 새 shared SSO session을 다시 발견한다', () async {
       await ApiClient().saveToken(
         _validAccessToken,
@@ -522,6 +823,29 @@ void main() {
     });
 
   group('부분 로그인 refresh session 폐기', () {
+    test('partial login cleanup 뒤 clearToken도 다른 탭 replacement를 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      explicitLogoutMarker = '0';
+
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(204, null),
+      );
+
+      await ApiClient().discardRefreshSession('session-partial');
+      await ApiClient().clearToken();
+
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+      expect(explicitLogoutMarker, '0');
+    });
+
     test('서버 revoke가 실패해도 marker fence가 남는다', () async {
       dioAdapter.onPost(
         '/api/auth/logout',
@@ -583,6 +907,21 @@ void main() {
       expect(storedToken, isNull);
     });
 
+    test('clearToken은 다른 탭이 교체한 shared session을 삭제하지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+
+      await ApiClient().clearToken();
+
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+    });
+
     test('saveToken 후 getToken으로 같은 값을 다시 읽을 수 있다', () async {
       await ApiClient().saveToken('round.trip.token');
 
@@ -600,4 +939,56 @@ Future<DioException> _captureDioException(
     return error;
   }
   fail('DioException이 발생하지 않았다');
+}
+
+
+class CountingAdapter implements HttpClientAdapter {
+  CountingAdapter(this.delegate);
+
+  final HttpClientAdapter delegate;
+  int fetchCount = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    fetchCount++;
+    return delegate.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) => delegate.close(force: force);
+}
+
+
+class GatedPathAdapter implements HttpClientAdapter {
+  GatedPathAdapter(
+    this.delegate, {
+    required this.path,
+    required this.entered,
+    required this.release,
+  });
+
+  final HttpClientAdapter delegate;
+  final String path;
+  final Completer<void> entered;
+  final Completer<void> release;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) async {
+    if (options.path == path) {
+      if (!entered.isCompleted) entered.complete();
+      await release.future;
+    }
+    return delegate.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) => delegate.close(force: force);
 }

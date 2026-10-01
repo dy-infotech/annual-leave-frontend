@@ -262,7 +262,22 @@ class _AdminSearchLeaveRequestsViewState
             child: vm.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : vm.items.isEmpty
+                : vm.errorMessage != null
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(vm.errorMessage!,
+                                style: const TextStyle(color: AppColors.textMuted)),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: vm.fetch,
+                              child: const Text('다시 시도'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : vm.items.isEmpty
                     ? const Center(
                         child: Text('조회된 내역이 없습니다.',
                             style: TextStyle(color: AppColors.textMuted)))

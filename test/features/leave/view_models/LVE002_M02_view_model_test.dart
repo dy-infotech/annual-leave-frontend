@@ -112,6 +112,30 @@ void main() {
           {'status': 'APPROVED', 'startDate': yearStart, 'endDate': yearEnd});
     });
 
+    test('연도가 바뀐 뒤 재조회하면 새 당해년도 조건을 사용한다', () async {
+      var now = DateTime(2026, 12, 31);
+      final vm = AllLeaveRequestsViewModel(
+        repository: fake,
+        now: () => now,
+      );
+
+      await vm.load();
+      expect(fake.allLeaveRequestQueries.last, {
+        'status': null,
+        'startDate': '2026-01-01',
+        'endDate': '2026-12-31',
+      });
+
+      now = DateTime(2027, 1, 1);
+      await vm.fetch();
+
+      expect(fake.allLeaveRequestQueries.last, {
+        'status': null,
+        'startDate': '2027-01-01',
+        'endDate': '2027-12-31',
+      });
+    });
+
     test('setDateRange - 기간이 바뀐 경우에만 재조회한다', () async {
       final vm = AllLeaveRequestsViewModel(repository: fake);
       await vm.load();
@@ -191,9 +215,9 @@ void main() {
       final vm = AllLeaveRequestsViewModel(repository: fake);
       await vm.load();
 
-      final ok = await vm.cancel(11);
+      final result = await vm.cancel(11);
 
-      expect(ok, isTrue);
+      expect(result, CancelResult.succeeded);
       expect(fake.cancelledIds, [11]);
       expect(fake.allLeaveRequestQueries, hasLength(2));
     });
@@ -217,26 +241,50 @@ void main() {
           item('APPROVED', '2026-09-30'), 'A0001', now: now), isFalse);
     });
 
-    test('조회 실패 - 예외를 잡지 않고 그대로 전파한다', () async {
-      // fetch에는 catch가 없어 오류 메시지를 남기지 못하고 예외가 올라온다.
-      // 화면에 실패를 알릴 수단이 없는 상태를 기록해 둔다.
-      fake.errorToThrow = Exception('network');
+    test('조회 실패 - 기존 행을 비우고 오류 상태로 고정하며 loadMore를 막는다', () async {
       final vm = AllLeaveRequestsViewModel(repository: fake);
+      await vm.load();
+      expect(vm.items, isNotEmpty);
 
-      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      fake.errorToThrow = Exception('network');
+      vm.setFilter('APPROVED');
+      await Future<void>.delayed(Duration.zero);
+
       expect(vm.items, isEmpty);
-      expect(vm.isLoading, isFalse); // finally로 로딩 상태는 해제된다
+      expect(vm.loadError, isNotNull);
+      expect(vm.hasMore, isFalse);
+
+      final callCount = fake.allLeaveRequestQueries.length;
+      await vm.loadMore();
+      expect(fake.allLeaveRequestQueries, hasLength(callCount));
     });
 
-    test('조회 실패 후 다시 조회에 성공하면 목록이 채워진다', () async {
-      fake.errorToThrow = Exception('network');
+    test('조회 실패 후 다시 조회에 성공하면 오류를 지우고 새 조건 목록만 채운다', () async {
       final vm = AllLeaveRequestsViewModel(repository: fake);
-      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      await vm.load();
+
+      fake.errorToThrow = Exception('network');
+      vm.setFilter('APPROVED');
+      await Future<void>.delayed(Duration.zero);
 
       fake.errorToThrow = null;
       await vm.fetch();
 
+      expect(vm.loadError, isNull);
       expect(vm.items, isNotEmpty);
+      expect(fake.allLeaveRequestQueries.last['status'], 'APPROVED');
+    });
+
+    test('취소 API 성공 후 재조회 실패는 취소 실패로 오인하지 않는다', () async {
+      final vm = AllLeaveRequestsViewModel(repository: fake);
+      await vm.load();
+
+      fake.errorToThrow = Exception('refresh failed');
+      final result = await vm.cancel(11);
+
+      expect(result, CancelResult.succeededRefreshFailed);
+      expect(fake.cancelledIds, [11]);
+      expect(vm.loadError, isNotNull);
     });
   });
 }

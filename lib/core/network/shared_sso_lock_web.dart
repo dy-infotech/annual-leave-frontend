@@ -1,9 +1,15 @@
 import 'dart:async';
 import 'dart:html' as html;
+import 'dart:js_interop';
+import 'package:web/web.dart' as web;
 import 'dart:math';
 
 const _lockKey = 'dy_sso_cookie_mutation_lock';
-const _lease = Duration(seconds: 30);
+
+// Web Locks API를 지원하지 않는 구형 브라우저에서만 사용하는 fallback lease.
+// 주 경로는 navigator.locks의 origin-wide exclusive lock이다.
+const _lease = Duration(minutes: 2);
+const _heartbeatInterval = Duration(seconds: 10);
 const _retryDelay = Duration(milliseconds: 25);
 const _settleDelay = Duration(milliseconds: 15);
 
@@ -30,7 +36,44 @@ String _newOwner() {
   );
 }
 
-Future<T> withSharedSsoMutation<T>(Future<T> Function() action) async {
+bool _isOwner(String owner) {
+  return _parseLock(html.window.localStorage[_lockKey])?.owner == owner;
+}
+
+void _renewLease(String owner) {
+  final current = _parseLock(html.window.localStorage[_lockKey]);
+  if (current?.owner != owner) return;
+
+  final renewedUntil =
+      DateTime.now().millisecondsSinceEpoch + _lease.inMilliseconds;
+  html.window.localStorage[_lockKey] = '$owner|$renewedUntil';
+}
+
+web.LockManager? _webLockManager() {
+  final lockManager = web.window.navigator.locks;
+  return lockManager;
+}
+
+Future<T> _withWebLock<T>(
+  web.LockManager lockManager,
+  Future<T> Function() action,
+) async {
+  late T result;
+
+  final callback = ((web.Lock? _) {
+    return action().then<void>((value) {
+      result = value;
+    }).toJS;
+  }).toJS;
+
+  await lockManager.request(
+    _lockKey,
+    callback,
+  ).toDart;
+  return result;
+}
+
+Future<T> _withFallbackLease<T>(Future<T> Function() action) async {
   final owner = _newOwner();
 
   while (true) {
@@ -39,17 +82,20 @@ Future<T> withSharedSsoMutation<T>(Future<T> Function() action) async {
 
     if (current == null || current.expiresAt <= now) {
       final expiresAt = now + _lease.inMilliseconds;
-      final candidate = '$owner|$expiresAt';
-      html.window.localStorage[_lockKey] = candidate;
+      html.window.localStorage[_lockKey] = '$owner|$expiresAt';
 
-      // localStorage에는 CAS가 없으므로 잠깐 양보한 뒤 소유권을 다시 확인한다.
-      // 같은 origin의 여러 탭/앱이 동시에 썼다면 마지막 writer만 진입한다.
+      // localStorage에는 CAS가 없으므로 이 경로는 구형 브라우저 호환용 fallback이다.
       await Future<void>.delayed(_settleDelay);
-      if (html.window.localStorage[_lockKey] == candidate) {
+      if (_isOwner(owner)) {
+        final heartbeat = Timer.periodic(
+          _heartbeatInterval,
+          (_) => _renewLease(owner),
+        );
         try {
           return await action();
         } finally {
-          if (html.window.localStorage[_lockKey] == candidate) {
+          heartbeat.cancel();
+          if (_isOwner(owner)) {
             html.window.localStorage.remove(_lockKey);
           }
         }
@@ -58,4 +104,13 @@ Future<T> withSharedSsoMutation<T>(Future<T> Function() action) async {
 
     await Future<void>.delayed(_retryDelay);
   }
+}
+
+Future<T> withSharedSsoMutation<T>(Future<T> Function() action) {
+  final lockManager = _webLockManager();
+  if (lockManager != null) {
+    // 같은 origin의 모든 탭/창에서 브라우저가 보장하는 exclusive lock을 사용한다.
+    return _withWebLock(lockManager, action);
+  }
+  return _withFallbackLease(action);
 }

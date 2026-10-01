@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM004_D01_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -272,6 +274,20 @@ void main() {
       expect(await vm.saveChanges(), isTrue);
       expect(vm.isEditing, isFalse);
       expect(vm.isSaving, isFalse);
+    });
+
+    test('저장 응답 대기 중 dispose되어도 성공 응답을 성공으로 유지한다', () async {
+      final completer = Completer<int?>();
+      repository.updateFuture = completer.future;
+      final vm = build(emp());
+      vm.nameController.text = '  변경 이름  ';
+
+      final saving = vm.saveChanges();
+      await Future<void>.delayed(Duration.zero);
+      vm.dispose();
+      completer.complete(204);
+
+      expect(await saving, isTrue);
     });
 
     test('성공이 아닌 상태코드면 수정 모드를 유지하고 false를 돌려준다', () async {

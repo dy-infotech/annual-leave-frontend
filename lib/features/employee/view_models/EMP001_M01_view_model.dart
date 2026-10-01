@@ -1,8 +1,9 @@
 import 'package:annual_leave_frontend/features/employee/repositories/employee_repository.dart';
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-/// 내 정보 화면(EMP001_M01)의 ViewModel.
+// 내 정보 수정과 요청 상태를 관리한다
 class MyInfoViewModel extends ChangeNotifier {
   MyInfoViewModel({
     required AuthSession authProvider,
@@ -29,14 +30,14 @@ class MyInfoViewModel extends ChangeNotifier {
   String? get emailErrorMessage => _emailErrorMessage;
   bool get isEditingEmail => _isEditingEmail;
 
-  /// 이메일 편집 시작. 기존 이메일을 입력란에 채운다.
+  // 현재 이메일을 입력값에 채우고 편집을 시작한다
   void startEditingEmail() {
     emailController.text = _authProvider.employeeInfo?.email ?? '';
     _isEditingEmail = true;
     notifyListeners();
   }
 
-  /// 비밀번호 변경. 검증 통과 후 API 호출까지 성공하면 true를 돌려준다.
+  // 입력값 확인 후 비밀번호 변경을 요청한다
   Future<bool> changePassword() async {
     if (_disposed || _isSubmitting) return false;
     if (currentPasswordController.text.isEmpty ||
@@ -59,32 +60,44 @@ class MyInfoViewModel extends ChangeNotifier {
 
     _isSubmitting = true;
     _errorMessage = null;
+    final sessionGeneration = _authProvider.captureGeneration();
     notifyListeners();
 
     try {
-      await _repository.changePassword(
-        currentPassword: currentPasswordController.text,
-        newPassword: newPasswordController.text,
-      );
-      if (_disposed) return true;
-      currentPasswordController.clear();
-      newPasswordController.clear();
-      newPasswordConfirmController.clear();
+      try {
+        await _repository.changePassword(
+          currentPassword: currentPasswordController.text,
+          newPassword: newPasswordController.text,
+        );
+      } catch (e) {
+        if (!_disposed) {
+          _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
+        }
+        return false;
+      }
 
-      // 비밀번호 hash 변경으로 기존 JWT credentialVersion이 즉시 무효화된다.
-      // 성공 응답 직후 로컬 세션도 종료해 다음 API의 갑작스러운 401을 피한다.
-      await _authProvider.logout();
+      // 서버 변경 성공 후 현재 로컬 세션을 정리한다
+      if (!_disposed) {
+        currentPasswordController.clear();
+        newPasswordController.clear();
+        newPasswordConfirmController.clear();
+      }
+
+      try {
+        await _authProvider.logoutIfCurrent(sessionGeneration);
+      } catch (e) {
+        if (kDebugMode) {
+          debugPrint('[AUTH] 비밀번호 변경 후 로컬 로그아웃 정리 실패: $e');
+        }
+      }
       return true;
-    } catch (e) {
-      _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
-      return false;
     } finally {
       _isSubmitting = false;
       if (!_disposed) notifyListeners();
     }
   }
 
-  /// 이메일 변경. 성공 시 세션의 이메일도 갱신하고 편집 모드를 종료한다.
+  // 이메일 변경 후 현재 세션 정보도 갱신한다
   Future<bool> changeEmail() async {
     if (_disposed || _isSubmitting) return false;
     if (emailController.text.isEmpty) {
@@ -102,6 +115,7 @@ class MyInfoViewModel extends ChangeNotifier {
 
     _isSubmitting = true;
     _emailErrorMessage = null;
+    final sessionGeneration = _authProvider.captureGeneration();
     notifyListeners();
 
     try {
@@ -109,7 +123,7 @@ class MyInfoViewModel extends ChangeNotifier {
       await _repository.changeEmail(requestedEmail);
       if (_disposed) return true;
 
-      await _authProvider.updateEmail(requestedEmail);
+      _authProvider.updateEmailIfCurrent(sessionGeneration, requestedEmail);
       if (_disposed) return true;
 
       emailController.clear();

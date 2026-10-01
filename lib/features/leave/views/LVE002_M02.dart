@@ -119,9 +119,14 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
     );
 
     if (confirmed == true) {
-      final ok = await vm.cancel(item.requestId);
-      messenger.showSnackBar(SnackBar(
-          content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
+      final result = await vm.cancel(item.requestId);
+      final message = switch (result) {
+        CancelResult.succeeded => '신청이 취소되었습니다.',
+        CancelResult.succeededRefreshFailed =>
+          '신청이 취소되었습니다. 목록 새로고침에 실패했습니다.',
+        CancelResult.failed => '취소 처리에 실패했습니다.',
+      };
+      messenger.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -354,11 +359,28 @@ class _AllLeaveRequestsViewState extends State<_AllLeaveRequestsView>
             child: vm.isLoading
                 ? const Center(
                     child: CircularProgressIndicator(color: AppColors.slate))
-                : vm.items.isEmpty
-                    ? const Center(
-                        child: Text('조회된 내역이 없습니다.',
-                            style: TextStyle(color: AppColors.textMuted)))
-                    : Theme(
+                : vm.loadError != null && vm.items.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              vm.loadError!,
+                              style: const TextStyle(color: AppColors.coral),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: vm.fetch,
+                              child: const Text('다시 시도'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : vm.items.isEmpty
+                        ? const Center(
+                            child: Text('조회된 내역이 없습니다.',
+                                style: TextStyle(color: AppColors.textMuted)))
+                        : Theme(
                         data: Theme.of(context).copyWith(
                           scrollbarTheme: ScrollbarThemeData(
                             thumbColor: WidgetStatePropertyAll(

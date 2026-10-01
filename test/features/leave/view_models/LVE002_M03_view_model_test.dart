@@ -139,6 +139,8 @@ void main() {
       await vm.fetch();
 
       expect(vm.errorMessage, '목록을 불러오지 못했습니다.');
+      expect(vm.items, isEmpty);
+      expect(vm.hasMore, isFalse);
       expect(vm.isLoading, isFalse);
     });
   });

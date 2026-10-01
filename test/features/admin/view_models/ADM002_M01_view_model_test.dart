@@ -11,7 +11,7 @@ void main() {
         ..['role'] = role);
 
   group('canAssignAdminRole - 관리자 역할 부여 규칙', () {
-    test('대표 직급(사장 또는 대표이사)이면서 관리자인 접속자만 부여할 수 있다', () {
+    test('대표 직급이면 PM 역할과 무관하게 관리자 역할을 부여할 수 있다', () {
       expect(
         SignupManageViewModel.canAssignAdminRole(
             currentUser: user(position: '사장', role: 'ADMIN')),
@@ -25,7 +25,7 @@ void main() {
       expect(
         SignupManageViewModel.canAssignAdminRole(
             currentUser: user(position: '사장', role: 'EMPLOYEE')),
-        isFalse,
+        isTrue,
       );
       expect(
         SignupManageViewModel.canAssignAdminRole(

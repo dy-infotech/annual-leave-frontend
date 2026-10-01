@@ -2,6 +2,8 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/foundation.dart';
 
+enum ApprovalMutationResult { failed, succeeded, succeededRefreshFailed }
+
 class PendingApprovalViewModel extends ChangeNotifier {
   PendingApprovalViewModel({LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();
@@ -50,11 +52,13 @@ class PendingApprovalViewModel extends ChangeNotifier {
     _notify();
   }
 
+  // 결재 대기 목록의 첫 페이지를 다시 조회한다
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
     _isLoadingMore = false;
-    _hasMore = true;
+    _requests = [];
+    _hasMore = false;
     _totalCount = 0;
     _cursorCreatedAt = null;
     _cursorRequestId = null;
@@ -74,6 +78,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     } catch (_) {
       if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
+      _hasMore = false;
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
@@ -82,8 +87,9 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 목록에 다음 결재 대기 페이지를 이어 붙인다
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
      final seq = _requestSeq;
     _isLoadingMore = true;
     _notify();
@@ -103,6 +109,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     } catch (_) {
       if (!_disposed && seq == _requestSeq) {
         _errorMessage = '추가 목록을 불러오지 못했습니다.';
+        _hasMore = false;
       }
     } finally {
       if (!_disposed && seq == _requestSeq) {
@@ -122,24 +129,28 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
-  Future<bool> approve(int requestId) async {
-    if (_processingIds.contains(requestId)) return false;
+  // 승인 처리 후 결재 대기 목록을 다시 조회한다
+  Future<ApprovalMutationResult> approve(int requestId) async {
+    if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);
     _notify();
     try {
       await _repository.approveLeaveRequest(requestId);
       await fetch();
-      return true;
+      return _errorMessage == null
+          ? ApprovalMutationResult.succeeded
+          : ApprovalMutationResult.succeededRefreshFailed;
     } catch (_) {
-      return false;
+      return ApprovalMutationResult.failed;
     } finally {
       _processingIds.remove(requestId);
       _notify();
     }
   }
 
-  Future<bool> reject(int requestId, String reason) async {
-    if (_processingIds.contains(requestId)) return false;
+  // 반려 처리 후 결재 대기 목록을 다시 조회한다
+  Future<ApprovalMutationResult> reject(int requestId, String reason) async {
+    if (_processingIds.contains(requestId)) return ApprovalMutationResult.failed;
     _processingIds.add(requestId);
     _notify();
     try {
@@ -148,9 +159,11 @@ class PendingApprovalViewModel extends ChangeNotifier {
         rejectReason: reason.isEmpty ? null : reason,
       );
       await fetch();
-      return true;
+      return _errorMessage == null
+          ? ApprovalMutationResult.succeeded
+          : ApprovalMutationResult.succeededRefreshFailed;
     } catch (_) {
-      return false;
+      return ApprovalMutationResult.failed;
     } finally {
       _processingIds.remove(requestId);
       _notify();

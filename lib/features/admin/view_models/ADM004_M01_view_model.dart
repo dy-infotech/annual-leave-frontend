@@ -3,7 +3,7 @@ import 'package:annual_leave_frontend/features/admin/repositories/admin_employee
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:flutter/material.dart';
 
-/// 사원 사번 조회 화면(ADM004_M01)의 ViewModel.
+// 사원 조회 조건과 목록 상태를 관리한다
 class SearchEmployeeNumberViewModel extends ChangeNotifier {
   SearchEmployeeNumberViewModel({
     AdminEmployeeRepository? repository,
@@ -21,6 +21,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int _nextPage = 0;
+  String? _errorMessage;
   bool _disposed = false;
   int _requestSeq = 0;
   int _teamRequestSeq = 0;
@@ -28,20 +29,21 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   String _appliedStatus = 'ALL';
   String _appliedTeamFilter = '전체';
 
-  // 등록 상태 검색 조건 ('ALL', 'REGISTERED', 'UNREGISTERED')
+  // 등록 상태 검색 조건을 관리한다
   String _selectedStatus = 'ALL';
 
-  // 팀 검색조건
+  // 팀 검색 조건을 관리한다
   final List<String> _filterTeamList = ['전체'];
   String _selectedTeamFilter = '전체';
 
-  /// 사번/성명 검색어. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
+  // 사번과 성명 검색어를 화면과 함께 관리한다
   final TextEditingController searchParamController = TextEditingController();
 
   List<Employee> get items => _items;
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+  String? get errorMessage => _errorMessage;
   String get selectedStatus => _selectedStatus;
   List<String> get filterTeamList => _filterTeamList;
   String get selectedTeamFilter => _selectedTeamFilter;
@@ -60,7 +62,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     fetch();
   }
 
-  /// 기초 코드에서 팀 목록 조회. (현재 화면 진입 시에는 사용하지 않음, 기존 코드 유지)
+  // 필요할 때 기초 코드에서 팀 목록을 불러온다
   Future<void> fetchCommonTeams() async {
     final seq = ++_teamRequestSeq;
     try {
@@ -78,6 +80,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     }
   }
 
+  // 팀 목록과 사원 목록을 순서대로 불러온다
   Future<void> load() async {
     await fetchCommonTeams();
     await fetch();
@@ -101,6 +104,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     );
   }
 
+  // 현재 검색 조건으로 첫 페이지를 다시 조회한다
   Future<void> fetch() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
@@ -109,7 +113,9 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     _appliedStatus = _selectedStatus;
     _appliedTeamFilter = _selectedTeamFilter;
     _nextPage = 0;
-    _hasMore = true;
+    _items = [];
+    _hasMore = false;
+    _errorMessage = null;
     _isLoading = true;
     _isLoadingMore = false;
     notifyListeners();
@@ -119,9 +125,13 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
       if (_disposed || seq != _requestSeq) return;
 
       _items = page;
+      _errorMessage = null;
       _hasMore = page.length == _pageSize;
       if (page.isNotEmpty) _nextPage = 1;
     } catch (e) {
+      if (_disposed || seq != _requestSeq) return;
+      _errorMessage = '사원 목록을 불러오지 못했습니다.';
+      _hasMore = false;
       debugPrint('사원 리스트 조회 실패: $e');
     } finally {
       if (!_disposed && seq == _requestSeq) {
@@ -131,8 +141,9 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 검색 조건을 유지한 채 다음 페이지를 조회한다
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
 
     final seq = _requestSeq;
     final pageNumber = _nextPage;
@@ -151,6 +162,10 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
       _hasMore = page.length == _pageSize;
       if (page.isNotEmpty) _nextPage++;
     } catch (e) {
+      if (!_disposed && seq == _requestSeq) {
+        _errorMessage = '추가 사원 목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
       debugPrint('추가 사원 목록 조회 실패: $e');
     } finally {
       if (!_disposed && seq == _requestSeq) {

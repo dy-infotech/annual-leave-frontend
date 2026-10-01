@@ -86,9 +86,14 @@ class _MyLeaveRequestsViewState extends State<_MyLeaveRequestsView> {
     );
 
     if (confirmed == true) {
-      final ok = await vm.cancel(item.requestId);
-      messenger.showSnackBar(SnackBar(
-          content: Text(ok ? '신청이 취소되었습니다.' : '취소 처리에 실패했습니다.')));
+      final result = await vm.cancel(item.requestId);
+      final message = switch (result) {
+        CancelResult.succeeded => '신청이 취소되었습니다.',
+        CancelResult.succeededRefreshFailed =>
+          '신청이 취소되었습니다. 목록 새로고침에 실패했습니다.',
+        CancelResult.failed => '취소 처리에 실패했습니다.',
+      };
+      messenger.showSnackBar(SnackBar(content: Text(message)));
     }
   }
 
@@ -193,6 +198,20 @@ class _MyLeaveRequestsViewState extends State<_MyLeaveRequestsView> {
           Expanded(
             child: vm.isLoading
                 ? const Center(child: CircularProgressIndicator(color: AppColors.slate))
+                : vm.loadError != null && vm.items.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(vm.loadError!, style: const TextStyle(color: AppColors.coral)),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: vm.retry,
+                          child: const Text('다시 시도'),
+                        ),
+                      ],
+                    ),
+                  )
                 : vm.items.isEmpty
                 ? const Center(child: Text('신청 내역이 없습니다.', style: TextStyle(color: AppColors.textMuted)))
                 : ListView.builder(

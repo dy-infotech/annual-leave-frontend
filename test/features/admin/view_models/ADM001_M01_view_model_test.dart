@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM001_M01_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -86,6 +88,40 @@ void main() {
       expect(vm.isLoading, isFalse);
     });
 
+    test('새 첫 페이지 조회는 진행 중인 이전 loadMore 결과를 폐기한다', () async {
+      repository.employeesByPage[0] = List.generate(
+        50,
+        (index) => emp(
+          employeeNumber: 'A${(index + 1).toString().padLeft(4, '0')}',
+          name: '기존${index + 1}',
+        ),
+      );
+      commonCodes.codesToReturn = {'accessibleTeam': <String>[]};
+
+      final vm = build();
+      await vm.fetchEmployees();
+      expect(vm.hasMoreEmployees, isTrue);
+
+      final stalePage = Completer<List<Employee>>();
+      repository.employeePageFutures[1] = stalePage.future;
+      final loadMore = vm.loadMoreEmployees();
+      await Future<void>.delayed(Duration.zero);
+
+      repository.employeesByPage[0] = [
+        emp(employeeNumber: 'B0001', name: '최신'),
+      ];
+      final refresh = vm.fetchEmployees();
+      await refresh;
+
+      stalePage.complete([
+        emp(employeeNumber: 'A0051', name: '늦은응답'),
+      ]);
+      await loadMore;
+
+      expect(vm.employees.map((e) => e.employeeNumber), ['B0001']);
+      expect(vm.selectedEmployee?.employeeNumber, 'B0001');
+    });
+
     test('selectEmployee - 검색 입력란을 "이름 직급 사번" 형식으로 채운다', () async {
       final vm = build();
 
@@ -95,6 +131,38 @@ void main() {
 
       expect(vm.employeeInfoController.text, '김철수 대리 A0002');
       expect(vm.selectedEmployee?.employeeNumber, 'A0002');
+    });
+
+    test('서버 검색 - 최초 50명 밖 사원도 검색 후 선택 목록에 유지한다', () async {
+      repository.employeesToReturn = List.generate(
+        51,
+        (index) => emp(
+          employeeNumber: 'A${(index + 1).toString().padLeft(4, '0')}',
+          name: index == 50 ? '검색대상' : '사원${index + 1}',
+        ),
+      );
+      commonCodes.codesToReturn = {
+        'accessibleTeam': ['SI사업팀'],
+      };
+
+      final vm = build();
+      await vm.fetchEmployees();
+      expect(vm.employees, hasLength(50));
+
+      final found = await vm.searchEmployeesPage(
+        '검색대상',
+        page: 0,
+        size: 50,
+      );
+      expect(found, hasLength(1));
+      expect(found.single.employeeNumber, 'A0051');
+
+      expect(vm.selectEmployee(found.single), isTrue);
+      await settle();
+
+      expect(vm.selectedEmployee?.employeeNumber, 'A0051');
+      expect(vm.employees.any((e) => e.employeeNumber == 'A0051'), isTrue);
+      expect(repository.pageRequests.last['searchParam'], '검색대상');
     });
 
     test('selectEmployeeByName - 이름이 일치하면 인덱스를, 없으면 -1을 돌려준다', () async {

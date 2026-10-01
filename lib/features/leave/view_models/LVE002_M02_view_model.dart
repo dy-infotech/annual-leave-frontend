@@ -4,18 +4,28 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/material.dart';
 
+enum CancelResult {
+  failed,
+  succeeded,
+  succeededRefreshFailed,
+}
+
+// 조직 전체와 내 휴가 신청 목록 상태를 관리한다
 class AllLeaveRequestsViewModel extends ChangeNotifier {
   AllLeaveRequestsViewModel({
     this.initialStatus,
     this.initialFilter,
     this.canViewAll = true,
     LeaveRepository? repository,
-  }) : _repository = repository ?? LeaveRepository();
+    DateTime Function()? now,
+  })  : _repository = repository ?? LeaveRepository(),
+        _now = now ?? DateTime.now;
 
   final String? initialStatus;
   final String? initialFilter;
   final bool canViewAll;
   final LeaveRepository _repository;
+  final DateTime Function() _now;
 
   static const int _pageSize = LeaveRepository.defaultPageSize;
 
@@ -24,13 +34,13 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   bool _isLoadingMore = false;
   bool _hasMore = true;
   int _totalCount = 0;
+  String? _loadError;
   String? _cursorRequestedAt;
   int? _cursorRequestId;
   String? _statusFilter;
   DateTimeRange? _dateRange;
   String _buttonLabel = '전체';
   final Set<int> _processingIds = {};
-  final DateTime _today = DateTime.now();
   int _requestSeq = 0;
   bool _disposed = false;
 
@@ -39,6 +49,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
   int get totalCount => _totalCount;
+  String? get loadError => _loadError;
   String? get statusFilter => _statusFilter;
   DateTimeRange? get dateRange => _dateRange;
   String get buttonLabel => _buttonLabel;
@@ -48,6 +59,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     if (!_disposed) notifyListeners();
   }
 
+  // 초기 필터를 적용한 뒤 첫 목록을 조회한다
   Future<void> load() async {
     _statusFilter = initialStatus;
     if (!canViewAll) {
@@ -58,10 +70,11 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     await fetch();
   }
 
+  // 현재 보기 조건과 기간에 맞는 목록 페이지를 조회한다
   Future<PageResult<LeaveRequestListItem>> _fetchPage({
     bool continueFromCursor = false,
   }) {
-    final year = _today.year;
+    final year = _now().year;
     var startDate = formatDate(DateTime(year, 1, 1));
     var endDate = formatDate(DateTime(year, 12, 31));
     if (_dateRange != null) {
@@ -92,22 +105,31 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
           );
   }
 
+  // 현재 조건으로 목록을 처음부터 다시 조회한다
   Future<void> fetch() async {
     final seq = ++_requestSeq;
     _isLoading = true;
     _isLoadingMore = false;
-    _hasMore = true;
+    _items = [];
+    _hasMore = false;
     _totalCount = 0;
     _cursorRequestedAt = null;
     _cursorRequestId = null;
+    _loadError = null;
     _notify();
 
     try {
       final page = await _fetchPage();
       if (_disposed || seq != _requestSeq) return;
-      _items = page.items;
+      _items = List.of(page.items);
       _totalCount = page.totalCount;
+      _loadError = null;
       _applyPageCursor(page.items, page.hasMore);
+    } catch (_) {
+      if (!_disposed && seq == _requestSeq) {
+        _loadError = '목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
@@ -116,8 +138,9 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     }
   }
 
+  // 현재 조건을 유지한 채 다음 목록을 이어서 조회한다
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _loadError != null) return;
 
     final seq = _requestSeq;
      _isLoadingMore = true;
@@ -130,7 +153,13 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
       _items.addAll(
           page.items.where((item) => existingIds.add(item.requestId)));
       _totalCount = page.totalCount;
+      _loadError = null;
       _applyPageCursor(page.items, page.hasMore);
+    } catch (_) {
+      if (!_disposed && seq == _requestSeq) {
+        _loadError = '추가 목록을 불러오지 못했습니다.';
+        _hasMore = false;
+      }
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoadingMore = false;
@@ -155,6 +184,7 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(fetch());
   }
 
+  // 전체 목록과 내 신청 보기 전환 후 목록을 다시 조회한다
   void setButtonLabel(String label) {
     if (!canViewAll && label != '내 신청') return;
     if (_buttonLabel == label) return;
@@ -176,15 +206,23 @@ class AllLeaveRequestsViewModel extends ChangeNotifier {
     unawaited(fetch());
   }
 
-  Future<bool> cancel(int requestId) async {
-    _processingIds.add(requestId);
+  // 내 신청을 취소한 뒤 현재 목록을 다시 조회한다
+  Future<CancelResult> cancel(int requestId) async {
+    if (!_processingIds.add(requestId)) {
+      return CancelResult.failed;
+    }
     _notify();
     try {
-      await _repository.cancelLeaveRequest(requestId);
+      try {
+        await _repository.cancelLeaveRequest(requestId);
+      } catch (_) {
+        return CancelResult.failed;
+      }
+
       await fetch();
-      return true;
-    } catch (_) {
-      return false;
+      return _loadError == null
+          ? CancelResult.succeeded
+          : CancelResult.succeededRefreshFailed;
     } finally {
       _processingIds.remove(requestId);
       _notify();

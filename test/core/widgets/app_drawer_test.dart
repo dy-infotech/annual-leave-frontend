@@ -114,12 +114,15 @@ void main() {
       }
     });
 
-    testWidgets('대표 직급이어도 역할이 ADMIN이 아니면 관리자 영역이 숨는다', (tester) async {
+    testWidgets('대표 직급은 PM 역할이 없어도 인사권 메뉴를 보되 결재 대기는 숨긴다', (tester) async {
       await pumpDrawer(tester, info: employee(role: 'EMPLOYEE', position: '사장'));
 
-      expect(find.text('관리자 전용 Menu'), findsNothing);
-      for (final label in [...adminMenus, ...ceoMenus]) {
-        expect(find.text(label), findsNothing);
+      expect(find.text('관리자 전용 Menu'), findsOneWidget);
+      expect(find.text('결재 대기 목록'), findsNothing);
+      expect(find.text('사용자 등록 관리'), findsOneWidget);
+      expect(find.text('사용자 정보 조회'), findsOneWidget);
+      for (final label in ceoMenus) {
+        expect(find.text(label), findsOneWidget);
       }
     });
   });

@@ -11,6 +11,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
   final List<bool?> fetchRegistered = [];
   final List<Map<String, Object?>> pageRequests = [];
   final Map<int, List<Employee>> employeesByPage = {};
+  final Map<int, Future<List<Employee>>> employeePageFutures = {};
 
   @override
   Future<List<Employee>> fetchEmployees({
@@ -45,6 +46,9 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
     });
     if (errorToThrow != null) throw errorToThrow!;
 
+    final delayedPage = employeePageFutures[page];
+    if (delayedPage != null) return delayedPage;
+
     final explicitPage = employeesByPage[page];
     if (explicitPage != null) return explicitPage;
 
@@ -77,6 +81,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
 
   int? updateStatusCodeToReturn = 200;
   Object? updateErrorToThrow;
+  Future<int?>? updateFuture;
   final List<({String employeeNumber, Map<String, dynamic> data})> updates = [];
 
   @override
@@ -84,6 +89,7 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
       String employeeNumber, Map<String, dynamic> data) async {
     updates.add((employeeNumber: employeeNumber, data: data));
     if (updateErrorToThrow != null) throw updateErrorToThrow!;
+    if (updateFuture != null) return updateFuture!;
     return updateStatusCodeToReturn;
   }
 
