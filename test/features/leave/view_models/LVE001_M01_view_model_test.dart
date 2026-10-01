@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/leave/models/enums/LeaveType.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
@@ -57,6 +59,12 @@ void main() {
 
       expect(fakeAuth.fetchMyInfoCount, 1);
       expect(fake.myLeaveRequestQueries, hasLength(1));
+      final year = DateTime.now().year.toString();
+      expect(fake.myLeaveRequestQueries.single, {
+        'status': null,
+        'startDate': '$year-01-01',
+        'endDate': '$year-12-31',
+      });
     });
   });
 
@@ -885,6 +893,23 @@ void main() {
 
       expect(results, [true, false]);
       expect(fake.submittedRequests, hasLength(1));
+    });
+
+    test('신청 성공 후 화면 갱신 중에도 두 번째 제출을 막는다', () async {
+      final vm = buildVm();
+      selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
+      fakeAuth.fetchMyInfoCompleter = Completer<void>();
+
+      final first = vm.submit();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(vm.isSubmitting, isTrue);
+      expect(await vm.submit(), isFalse);
+      expect(fake.submittedRequests, hasLength(1));
+
+      fakeAuth.fetchMyInfoCompleter!.complete();
+      expect(await first, isTrue);
+      expect(vm.isSubmitting, isFalse);
     });
 
     test('제출 실패 후 다시 제출하면 이전 오류 메시지가 지워진다', () async {
