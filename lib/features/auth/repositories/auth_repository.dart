@@ -15,17 +15,20 @@ class AuthRepository {
   ///
   /// 응답 토큰 저장은 AuthSession이 세대 검증을 마친 뒤 수행한다.
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
-    final response = await _apiClient.runSharedSsoMutation(() {
-      return _apiClient.dio.post(
-        '/api/auth/signin',
-        data: LoginRequest(
-          employeeNumber: employeeNumber,
-          password: password,
-        ).toJson(),
-      );
-    });
+    final response = await _apiClient.dio.post(
+      '/api/auth/signin',
+      data: LoginRequest(
+        employeeNumber: employeeNumber,
+        password: password,
+      ).toJson(),
+    );
     return LoginResponse.fromJson(response.data);
   }
+
+  /// refresh cookie 생성과 shared access-token/session-marker 저장을 같은
+  /// cross-tab SSO 임계구역에서 완료하기 위한 공통 진입점.
+  Future<T> runSharedSsoMutation<T>(Future<T> Function() action) =>
+      _apiClient.runSharedSsoMutation(action);
 
   /// 내 정보 조회. GET /api/employees/me
   Future<Employee> fetchMyInfo() async {
