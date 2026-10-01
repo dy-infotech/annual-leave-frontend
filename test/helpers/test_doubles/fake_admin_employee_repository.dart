@@ -44,8 +44,35 @@ class FakeAdminEmployeeRepository implements AdminEmployeeRepository {
       'registered': registered,
     });
     if (errorToThrow != null) throw errorToThrow!;
-    return employeesByPage[page] ??
-        (page == 0 ? employeesToReturn : <Employee>[]);
+
+    final explicitPage = employeesByPage[page];
+    if (explicitPage != null) return explicitPage;
+
+    var filtered = employeesToReturn;
+    final keyword = searchParam?.trim() ?? '';
+    if (keyword.isNotEmpty) {
+      final lower = keyword.toLowerCase();
+      filtered = filtered
+          .where((employee) =>
+              employee.employeeNumber.toLowerCase().contains(lower) ||
+              employee.name.toLowerCase().contains(lower))
+          .toList();
+    }
+    final teamName = team?.trim() ?? '';
+    if (teamName.isNotEmpty) {
+      filtered =
+          filtered.where((employee) => employee.team == teamName).toList();
+    }
+    if (registered != null) {
+      filtered = filtered
+          .where((employee) => employee.isRegisted == registered)
+          .toList();
+    }
+
+    final from = page * size;
+    if (from >= filtered.length) return <Employee>[];
+    final to = (from + size).clamp(0, filtered.length);
+    return filtered.sublist(from, to);
   }
 
   int? updateStatusCodeToReturn = 200;
