@@ -126,7 +126,9 @@ void main() {
 
       expect(vm.items, hasLength(51));
       expect(vm.hasMore, isFalse);
-      expect(fake.adminSearchPageRequests.last, {'page': 1, 'size': 50});
+      expect(fake.adminSearchPageRequests.last, {'page': 0, 'size': 50});
+      expect(fake.adminSearchCursorRequests.last['cursorCreatedAt'], isNotNull);
+      expect(fake.adminSearchCursorRequests.last['cursorRequestId'], isNotNull);
       expect(fake.adminSearchQueries.last['employeeParam'], '홍길동');
     });
 
