@@ -76,7 +76,7 @@ void main() {
     expect(fake.myLeaveRequestQueries, isEmpty);
   });
 
-  testWidgets('일반 직원은 전체 모드가 숨겨지고 첫 조회부터 내 신청 API만 호출한다',
+  testWidgets('일반 직원도 전체 목록을 기본 조회하고 내 신청 필터를 선택할 수 있다',
       (tester) async {
     final me = Employee.fromJson(fixtureJson('admin/employee.json'));
 
@@ -86,12 +86,11 @@ void main() {
       isAdmin: false,
     );
 
-    expect(fake.allLeaveRequestQueries, isEmpty);
-    expect(fake.myLeaveRequestQueries, [
+    expect(fake.allLeaveRequestQueries, [
       {'status': null, 'startDate': yearStart, 'endDate': yearEnd},
     ]);
-    // 상태 드롭다운에도 '전체' 텍스트가 있으므로 라디오 개수로 범위 토글을 검증한다.
-    expect(find.byType(Radio<String>), findsOneWidget);
+    expect(fake.myLeaveRequestQueries, isEmpty);
+    expect(find.byType(Radio<String>), findsNWidgets(2));
     expect(find.text('내 신청'), findsOneWidget);
   });
 
