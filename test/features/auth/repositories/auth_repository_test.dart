@@ -321,17 +321,23 @@ void main() {
   group('토큰 위임', () {
     test('getToken은 공통 refresh session으로 access token을 복구한다', () async {
       dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-a'}),
+      );
+      dioAdapter.onPost(
         '/api/auth/refresh',
         (server) => server.reply(200, {
           'token': _validAccessToken,
           'employeeId': 7,
           'name': '홍길동',
           'role': 'ADMIN',
+          'ssoSessionMarker': 'session-a',
         }),
       );
 
       expect(await repository.getToken(), _validAccessToken);
       expect(storedToken, _validAccessToken);
+      expect(storedSessionMarker, 'session-a');
     });
 
     test('clearToken은 저장된 토큰을 삭제한다', () async {
