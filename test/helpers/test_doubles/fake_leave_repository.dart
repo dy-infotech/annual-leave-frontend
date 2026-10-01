@@ -35,7 +35,7 @@ class FakeLeaveRepository implements LeaveRepository {
   }
 
   @override
-  Future<List<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
@@ -47,7 +47,11 @@ class FakeLeaveRepository implements LeaveRepository {
     myLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
     if (errorToThrow != null) throw errorToThrow!;
-    return myLeaveRequestsToReturn;
+    return PageResult(
+      items: myLeaveRequestsToReturn,
+      totalCount: myLeaveRequestsToReturn.length,
+      hasMore: myLeaveRequestsToReturn.length == size,
+    );
   }
 
   @override
@@ -72,7 +76,7 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, String?>> allLeaveRequestQueries = [];
 
   @override
-  Future<List<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
@@ -84,7 +88,11 @@ class FakeLeaveRepository implements LeaveRepository {
     allLeaveRequestQueries
         .add({'status': status, 'startDate': startDate, 'endDate': endDate});
     if (errorToThrow != null) throw errorToThrow!;
-    return allLeaveRequestsToReturn;
+    return PageResult(
+      items: allLeaveRequestsToReturn,
+      totalCount: allLeaveRequestsToReturn.length,
+      hasMore: allLeaveRequestsToReturn.length == size,
+    );
   }
 
   @override
@@ -120,7 +128,7 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, Object?>> adminSearchCursorRequests = [];
 
   @override
-  Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
     required String? status,
     required String? team,
     String? employeeParam,
@@ -139,8 +147,16 @@ class FakeLeaveRepository implements LeaveRepository {
     if (errorToThrow != null) throw errorToThrow!;
     final logicalPage =
         cursorCreatedAt != null && cursorRequestId != null ? 1 : page;
-    return adminSearchResultsByPage[logicalPage] ??
-        adminSearchResultsToReturn;
+    final items =
+        adminSearchResultsByPage[logicalPage] ?? adminSearchResultsToReturn;
+    return PageResult(
+      items: items,
+      totalCount: adminSearchResultsByPage.isEmpty
+          ? adminSearchResultsToReturn.length
+          : adminSearchResultsByPage.values.fold<int>(
+              0, (sum, pageItems) => sum + pageItems.length),
+      hasMore: items.length == size,
+    );
   }
 
   @override
@@ -164,7 +180,7 @@ class FakeLeaveRepository implements LeaveRepository {
   final List<Map<String, String?>> rejections = [];
 
   @override
-  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
+  Future<PageResult<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = LeaveRepository.defaultPageSize,
     String? cursorCreatedAt,
@@ -172,7 +188,11 @@ class FakeLeaveRepository implements LeaveRepository {
   }) async {
     pendingFetchCount++;
     if (errorToThrow != null) throw errorToThrow!;
-    return pendingRequestsToReturn;
+    return PageResult(
+      items: pendingRequestsToReturn,
+      totalCount: pendingRequestsToReturn.length,
+      hasMore: pendingRequestsToReturn.length == size,
+    );
   }
 
   @override
