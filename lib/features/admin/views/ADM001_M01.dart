@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/admin_employee_repository.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:annual_leave_frontend/features/admin/view_models/ADM001_M01_view_model.dart';
+import 'package:annual_leave_frontend/features/admin/models/employee.dart';
+import 'package:annual_leave_frontend/features/admin/widgets/employee_picker_dialog.dart';
 import 'package:provider/provider.dart';
 import 'package:annual_leave_frontend/core/theme/app_theme.dart';
 import 'package:annual_leave_frontend/core/widgets/app_drawer.dart';
@@ -445,10 +447,11 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                         height: 28,
                         child: TextField(
                           controller: _vm.employeeInfoController,
+                          readOnly: true,
                           textAlign: TextAlign.end,
                           style: const TextStyle(fontSize: 12),
                           decoration: InputDecoration(
-                            hintText: '사용자 이름 입력 또는 선택',
+                            hintText: '사용자 검색 또는 선택',
                             hintStyle: const TextStyle(
                               fontSize: 12,
                             ),
@@ -460,8 +463,11 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(6),
                             ),
+                            suffixIcon: const Icon(Icons.search, size: 16),
+                            suffixIconConstraints:
+                                const BoxConstraints(minWidth: 28, minHeight: 28),
                           ),
-                          onChanged: _selectEmployeeByName,
+                          onTap: _pickEmployee,
                         ),
                       ),
                     ),
@@ -474,22 +480,41 @@ class _AdminSettingsViewState extends State<_AdminSettingsView> {
     );
   }
 
-  void _selectEmployeeByName(String value) {
-    final hadChanges = _vm.hasChanges;
-    final index = _vm.selectEmployeeByName(value);
-
-    if (index == -1) {
-      if (hadChanges && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('현재 직원의 변경사항을 저장한 뒤 다른 직원을 선택해 주세요.'),
-          ),
-        );
-      }
+  Future<void> _pickEmployee() async {
+    if (_vm.hasChanges) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('현재 직원의 변경사항을 저장한 뒤 다른 직원을 선택해 주세요.'),
+        ),
+      );
       return;
     }
 
-    _scrollToEmployee(index);
+    final picked = await showDialog<Employee>(
+      context: context,
+      builder: (_) => EmployeePickerDialog(
+        title: '사원 검색',
+        searchPageFn: _vm.searchEmployeesPage,
+      ),
+    );
+    if (!mounted || picked == null) return;
+
+    final selected = _vm.selectEmployee(picked);
+    if (!selected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('서버 상태를 다시 조회한 뒤 직원을 선택해 주세요.'),
+        ),
+      );
+      return;
+    }
+
+    final index = _vm.employees.indexWhere(
+      (employee) => employee.employeeNumber == picked.employeeNumber,
+    );
+    if (index >= 0) {
+      _scrollToEmployee(index);
+    }
   }
 
   void _scrollToEmployee(int index) {
