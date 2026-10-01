@@ -15,6 +15,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   final AdminEmployeeRepository _repository;
   final CommonCodeRepository _commonCodeRepository;
 
+  static const int _pageSize = 50;
+
   List<Employee> _employees = [];
   Employee? _selectedEmployee;
 
@@ -26,6 +28,9 @@ class AdminSettingsViewModel extends ChangeNotifier {
   String? _selectedGeneralTeam;
   String? _selectedManagedTeam;
   bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _hasMoreEmployees = true;
+  int _nextEmployeePage = 0;
   bool _needsReconcile = false;
   int _teamLoadSeq = 0;
   bool _disposed = false;
@@ -40,6 +45,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   String? get selectedGeneralTeam => _selectedGeneralTeam;
   String? get selectedManagedTeam => _selectedManagedTeam;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMoreEmployees => _hasMoreEmployees;
   bool get needsReconcile => _needsReconcile;
   bool get hasChanges => _changedTeams.isNotEmpty;
 
@@ -49,10 +56,16 @@ class AdminSettingsViewModel extends ChangeNotifier {
 
   Future<void> fetchEmployees() async {
     _isLoading = true;
+    _isLoadingMore = false;
+    _hasMoreEmployees = true;
+    _nextEmployeePage = 0;
     _notify();
 
     try {
-      final fetched = await _repository.fetchEmployees();
+      final fetched = await _repository.fetchEmployeesPage(
+        page: 0,
+        size: _pageSize,
+      );
       if (_disposed) return;
 
       final previousNumber = _selectedEmployee?.employeeNumber;
@@ -67,6 +80,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
       }
 
       _employees = fetched;
+      _hasMoreEmployees = fetched.length == _pageSize;
+      if (fetched.isNotEmpty) _nextEmployeePage = 1;
       _selectedEmployee = selected;
       if (selected == null) {
         _generalTeams = [];
@@ -90,6 +105,40 @@ class AdminSettingsViewModel extends ChangeNotifier {
     } finally {
       if (!_disposed) {
         _isLoading = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> loadMoreEmployees() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMoreEmployees) {
+      return;
+    }
+
+    final pageNumber = _nextEmployeePage;
+    _isLoadingMore = true;
+    _notify();
+    try {
+      final page = await _repository.fetchEmployeesPage(
+        page: pageNumber,
+        size: _pageSize,
+      );
+      if (_disposed) return;
+
+      final existingNumbers =
+          _employees.map((employee) => employee.employeeNumber).toSet();
+      _employees.addAll(
+        page.where(
+          (employee) => existingNumbers.add(employee.employeeNumber),
+        ),
+      );
+      _hasMoreEmployees = page.length == _pageSize;
+      if (page.isNotEmpty) _nextEmployeePage++;
+    } catch (e) {
+      debugPrint('추가 사원 로드 실패: $e');
+    } finally {
+      if (!_disposed) {
+        _isLoadingMore = false;
         _notify();
       }
     }
