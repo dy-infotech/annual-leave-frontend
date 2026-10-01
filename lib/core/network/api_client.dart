@@ -592,6 +592,17 @@ class ApiClient {
     return _storage.read(key: _tokenKey);
   }
 
+  /// 현재 refresh session marker를 돌려준다.
+  /// 구버전 로컬 세션처럼 marker가 아직 저장되지 않았다면 HttpOnly cookie의
+  /// 현재 session을 조회해 안전하게 bootstrap한다.
+  Future<String?> getSessionMarker() async {
+    await _tokenMutation;
+    final generation = _authGeneration;
+    final stored = await _storage.read(key: _sessionMarkerKey);
+    if (stored != null && stored.isNotEmpty) return stored;
+    return _resolveRefreshSessionMarker(generation);
+  }
+
   /// 저장된 토큰을 삭제하고 세션 세대를 올린다. 서버 호출 없이 로컬 상태만 정리한다.
   /// (서버 폐기까지 필요한 로그아웃은 [logoutSession] 사용)
   Future<void> clearToken() async {
