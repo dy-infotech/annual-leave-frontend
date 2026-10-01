@@ -39,20 +39,20 @@ void main() {
   }
 
   group('SearchEmployeeNumberViewModel - 팀 필터 목록', () {
-    test('검색어가 없으면 조회 결과의 팀을 중복 제거하고 가나다순으로 담는다', () async {
+    test('초기 load는 기초 코드의 접근 가능 팀 목록을 사용한다', () async {
+      commonCodes.codesToReturn = <String, dynamic>{
+        'accessibleTeam': ['SI사업팀', 'BI사업팀', '인프라팀'],
+      };
       repository.employeesToReturn = [
         emp(employeeNumber: 'A0001', team: '인프라팀'),
-        emp(employeeNumber: 'A0002', team: 'SI사업팀'),
-        emp(employeeNumber: 'A0003', team: 'BI사업팀'),
-        emp(employeeNumber: 'A0004', team: 'SI사업팀'),
-        emp(employeeNumber: 'A0005', team: '  '),
       ];
 
       final vm = build();
-      await vm.fetch();
+      await vm.load();
 
-      expect(vm.filterTeamList, ['전체', 'BI사업팀', 'SI사업팀', '인프라팀']);
+      expect(vm.filterTeamList, ['전체', 'SI사업팀', 'BI사업팀', '인프라팀']);
       expect(repository.fetchQueries, ['']);
+      expect(commonCodes.fetchCount, 1);
       expect(vm.isLoading, isFalse);
     });
 
@@ -117,16 +117,17 @@ void main() {
       expect(vm.items.map((e) => e.employeeNumber), ['A0001']);
     });
 
-    test('팀 필터 - 공백과 " 팀" 표기를 무시하고 비교한다', () async {
+    test('팀 필터는 서버 조회 조건으로 전달한다', () async {
       repository.employeesToReturn = [
-        emp(employeeNumber: 'A0001', team: 'SI 사업팀'),
+        emp(employeeNumber: 'A0001', team: 'SI사업팀'),
         emp(employeeNumber: 'A0002', team: 'BI사업팀'),
       ];
 
       final vm = build();
-      vm.setTeamFilter('SI사업 팀');
+      vm.setTeamFilter('SI사업팀');
       await settle();
 
+      expect(repository.fetchTeams.last, 'SI사업팀');
       expect(vm.items.map((e) => e.employeeNumber), ['A0001']);
     });
 
