@@ -59,6 +59,7 @@ class MyInfoViewModel extends ChangeNotifier {
 
     _isSubmitting = true;
     _errorMessage = null;
+    final sessionGeneration = _authProvider.captureGeneration();
     notifyListeners();
 
     try {
@@ -73,7 +74,7 @@ class MyInfoViewModel extends ChangeNotifier {
 
       // 비밀번호 hash 변경으로 기존 JWT credentialVersion이 즉시 무효화된다.
       // 성공 응답 직후 로컬 세션도 종료해 다음 API의 갑작스러운 401을 피한다.
-      await _authProvider.logout();
+      await _authProvider.logoutIfCurrent(sessionGeneration);
       return true;
     } catch (e) {
       _errorMessage = '현재 비밀번호가 일치하지 않거나 변경에 실패했습니다.';
@@ -102,6 +103,7 @@ class MyInfoViewModel extends ChangeNotifier {
 
     _isSubmitting = true;
     _emailErrorMessage = null;
+    final sessionGeneration = _authProvider.captureGeneration();
     notifyListeners();
 
     try {
@@ -109,7 +111,7 @@ class MyInfoViewModel extends ChangeNotifier {
       await _repository.changeEmail(requestedEmail);
       if (_disposed) return true;
 
-      await _authProvider.updateEmail(requestedEmail);
+      _authProvider.updateEmailIfCurrent(sessionGeneration, requestedEmail);
       if (_disposed) return true;
 
       emailController.clear();
