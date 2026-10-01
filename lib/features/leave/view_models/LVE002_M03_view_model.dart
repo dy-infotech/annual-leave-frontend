@@ -111,7 +111,8 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     final seq = ++_requestSeq;
     _isLoading = true;
     _isLoadingMore = false;
-    _hasMore = true;
+    _items = [];
+    _hasMore = false;
     _totalCount = 0;
     _cursorCreatedAt = null;
     _cursorRequestId = null;
@@ -127,6 +128,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     } catch (_) {
       if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
+      _hasMore = false;
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
@@ -136,7 +138,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
   }
 
   Future<void> loadMore() async {
-    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore || _errorMessage != null) return;
      final seq = _requestSeq;
     _isLoadingMore = true;
     _notify();
@@ -151,6 +153,7 @@ class AdminSearchLeaveRequestsViewModel extends ChangeNotifier {
     } catch (_) {
       if (!_disposed && seq == _requestSeq) {
         _errorMessage = '추가 목록을 불러오지 못했습니다.';
+        _hasMore = false;
       }
     } finally {
       if (!_disposed && seq == _requestSeq) {
