@@ -97,6 +97,16 @@ class LeaveRequestViewModel extends ChangeNotifier {
     }
   }
 
+  static String _formatDate(DateTime date) =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
+  Future<List<LeaveRequestListItem>> _fetchMyRequestsForLeavePeriod() {
+    return _repository.fetchMyLeaveRequests(
+      startDate: _formatDate(_leavePeriodStart),
+      endDate: _formatDate(_leavePeriodEnd),
+    );
+  }
+
   /// 화면 진입 시 1회 호출한다.
   Future<void> load() async {
     if (_disposed) return;
@@ -117,7 +127,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
     try {
       // 캘린더에 별표를 표시하기 위한 내 휴가 신청 목록 조회
-      final requests = await _repository.fetchMyLeaveRequests();
+      final requests = await _fetchMyRequestsForLeavePeriod();
       if (_disposed || seq != _requestSeq) return;
       _myRequests = requests;
     } catch (_) {
@@ -283,7 +293,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
     if (refresh) {
       try {
-        final requests = await _repository.fetchMyLeaveRequests();
+        final requests = await _fetchMyRequestsForLeavePeriod();
         if (_disposed) return false;
         _myRequests = requests;
         notifyListeners();
@@ -313,6 +323,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
   /// 휴가 신청 제출. 성공 시 데이터를 갱신하고 선택 상태를 초기화한다.
   Future<bool> submit() async {
     if (_disposed || _isSubmitting) return false;
+
+    final seq = ++_requestSeq;
     _isSubmitting = true;
     _errorMessage = null;
     notifyListeners();
@@ -329,31 +341,37 @@ class LeaveRequestViewModel extends ChangeNotifier {
       final result = await _submitLeaveRequest(request);
       if (result case Err(:final failure)) {
         _errorMessage = failure.message;
-        return false; // 신청 실패 시 여기서 종료 (갱신 또는 초기화 진행 안 함)
+        return false;
       }
+
+      if (_disposed || seq != _requestSeq) return true;
+
+      // 신청 자체는 이미 성공했다. 이후 화면 갱신 실패는 신청 실패로 바꾸지 않는다.
+      try {
+        await _authProvider.fetchMyInfo();
+        if (_disposed || seq != _requestSeq) return true;
+
+        final requests = await _fetchMyRequestsForLeavePeriod();
+        if (_disposed || seq != _requestSeq) return true;
+        _myRequests = requests;
+      } catch (_) {
+        // 다음 명시적 새로고침에서 복구한다.
+      }
+
+      if (_disposed || seq != _requestSeq) return true;
+
+      _startDate = null;
+      _endDate = null;
+      _useDaysText = '0';
+      _selectedLeaveType = LeaveType.full;
+      reasonController.clear();
+      return true;
     } finally {
-      _isSubmitting = false;
-      if (!_disposed) notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isSubmitting = false;
+        notifyListeners();
+      }
     }
-
-    if (_disposed) return true;
-
-    // 데이터 갱신
-    try {
-      await _authProvider.fetchMyInfo(); // 잔여 연차 차감 반영
-      _myRequests = await _repository.fetchMyLeaveRequests(); // 캘린더 별표 반영
-    } catch (_) {
-      // 이 시점에서 신청은 완료됐기 때문에 갱신 실패의 경우 무시
-    }
-
-    // 선택한 상태 초기화
-    _startDate = null;
-    _endDate = null;
-    _useDaysText = '0';
-    _selectedLeaveType = LeaveType.full;
-    reasonController.clear();
-    notifyListeners();
-    return true;
   }
 
   // 특정 날짜의 휴가 신청 상태 (오전/오후 각각의 상태)
