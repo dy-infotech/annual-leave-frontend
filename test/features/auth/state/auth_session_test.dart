@@ -26,6 +26,11 @@ void main() {
       expect(fake.signInCalls, [
         {'employeeNumber': 'A0001', 'password': 'pw'},
       ]);
+      expect(
+        fake.saveTokenInsideSharedSsoMutation,
+        isTrue,
+        reason: 'signin refresh cookie와 shared token/marker는 같은 SSO lock에서 확정돼야 한다.',
+      );
       expect(session.isLoggedIn, isTrue);
       expect(session.name, '홍길동');
       expect(session.isAdmin, isFalse);
