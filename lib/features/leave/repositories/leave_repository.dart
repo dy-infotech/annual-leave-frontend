@@ -21,7 +21,7 @@ class LeaveRepository {
     return LeavePeriod.fromJson(Map<String, dynamic>.from(response.data));
   }
 
-  Future<List<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchMyLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
@@ -46,12 +46,10 @@ class LeaveRepository {
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
-  Future<List<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> fetchAllLeaveRequestsPage({
     String? status,
     String? startDate,
     String? endDate,
@@ -76,9 +74,7 @@ class LeaveRepository {
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
   /// 캘린더/중복 검사처럼 범위 내 전체 내역이 필요한 내부 호출용.
@@ -135,7 +131,7 @@ class LeaveRepository {
     );
   }
 
-  Future<List<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
+  Future<PageResult<LeaveRequestListItem>> searchAdminLeaveRequestsPage({
     required String? status,
     required String? team,
     String? employeeParam,
@@ -170,9 +166,7 @@ class LeaveRepository {
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => LeaveRequestListItem.fromJson(json))
-        .toList();
+    return _parseLeavePage(response.data);
   }
 
   Future<List<LeaveRequestListItem>> searchAdminLeaveRequests({
@@ -192,7 +186,7 @@ class LeaveRepository {
     });
   }
 
-  Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
+  Future<PageResult<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = defaultPageSize,
     String? cursorCreatedAt,
@@ -211,9 +205,7 @@ class LeaveRepository {
         size: size,
       ),
     );
-    return (response.data as List)
-        .map((json) => PendingLeaveRequest.fromJson(json))
-        .toList();
+    return _parsePendingPage(response.data);
   }
 
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequests() async {
@@ -222,16 +214,16 @@ class LeaveRepository {
     int? cursorRequestId;
 
     for (var batch = 0; batch < _maxCursorBatches; batch++) {
-      final items = await fetchPendingLeaveRequestsPage(
+      final page = await fetchPendingLeaveRequestsPage(
         page: 0,
         cursorCreatedAt: cursorCreatedAt,
         cursorRequestId: cursorRequestId,
       );
-      result.addAll(items);
-      if (items.length < defaultPageSize) return result;
-      if (items.isEmpty) return result;
+      result.addAll(page.items);
+      if (!page.hasMore) return result;
+      if (page.items.isEmpty) return result;
 
-      final last = items.last;
+      final last = page.items.last;
       final nextCursorCreatedAt = last.createdAt;
       final nextCursorRequestId = last.requestId;
       if (nextCursorCreatedAt == cursorCreatedAt &&
@@ -255,6 +247,32 @@ class LeaveRepository {
     );
   }
 
+  PageResult<LeaveRequestListItem> _parseLeavePage(dynamic data) {
+    final json = Map<String, dynamic>.from(data as Map);
+    final items = (json['items'] as List? ?? const [])
+        .map((item) => LeaveRequestListItem.fromJson(
+            Map<String, dynamic>.from(item as Map)))
+        .toList();
+    return PageResult(
+      items: items,
+      totalCount: (json['totalCount'] as num?)?.toInt() ?? 0,
+      hasMore: json['hasMore'] == true,
+    );
+  }
+
+  PageResult<PendingLeaveRequest> _parsePendingPage(dynamic data) {
+    final json = Map<String, dynamic>.from(data as Map);
+    final items = (json['items'] as List? ?? const [])
+        .map((item) => PendingLeaveRequest.fromJson(
+            Map<String, dynamic>.from(item as Map)))
+        .toList();
+    return PageResult(
+      items: items,
+      totalCount: (json['totalCount'] as num?)?.toInt() ?? 0,
+      hasMore: json['hasMore'] == true,
+    );
+  }
+
   Map<String, dynamic> _pageQuery(
     Map<String, dynamic> base, {
     required int page,
@@ -268,7 +286,7 @@ class LeaveRepository {
   }
 
   Future<List<LeaveRequestListItem>> _collectLeaveCursorPages(
-    Future<List<LeaveRequestListItem>> Function(
+    Future<PageResult<LeaveRequestListItem>> Function(
       String? cursorCreatedAt,
       int? cursorRequestId,
     ) fetchPage,
@@ -278,12 +296,12 @@ class LeaveRepository {
     int? cursorRequestId;
 
     for (var batch = 0; batch < _maxCursorBatches; batch++) {
-      final items = await fetchPage(cursorCreatedAt, cursorRequestId);
-      result.addAll(items);
-      if (items.length < defaultPageSize) return result;
-      if (items.isEmpty) return result;
+      final page = await fetchPage(cursorCreatedAt, cursorRequestId);
+      result.addAll(page.items);
+      if (!page.hasMore) return result;
+      if (page.items.isEmpty) return result;
 
-      final last = items.last;
+      final last = page.items.last;
       final nextCursorCreatedAt = last.requestedAt;
       final nextCursorRequestId = last.requestId;
       if (nextCursorCreatedAt == cursorCreatedAt &&
