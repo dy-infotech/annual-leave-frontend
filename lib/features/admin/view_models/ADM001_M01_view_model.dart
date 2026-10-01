@@ -33,6 +33,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
   int _nextEmployeePage = 0;
   bool _needsReconcile = false;
   int _teamLoadSeq = 0;
+  int _employeeLoadSeq = 0;
   bool _disposed = false;
 
   /// 사용자 이름 검색 입력. 조회 시점의 값을 그대로 쓰기 위해 VM이 소유한다.
@@ -55,6 +56,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   }
 
   Future<void> fetchEmployees() async {
+    if (_disposed) return;
+    final seq = ++_employeeLoadSeq;
     _isLoading = true;
     _isLoadingMore = false;
     _hasMoreEmployees = true;
@@ -66,7 +69,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
         page: 0,
         size: _pageSize,
       );
-      if (_disposed) return;
+      if (_disposed || seq != _employeeLoadSeq) return;
 
       final previousNumber = _selectedEmployee?.employeeNumber;
       Employee? selected;
@@ -97,13 +100,13 @@ class AdminSettingsViewModel extends ChangeNotifier {
       }
       _notify();
 
-      if (selected != null) {
+      if (selected != null && seq == _employeeLoadSeq) {
         await fetchEmployeeTeams();
       }
     } catch (e) {
       debugPrint('사원 로드 실패: $e');
     } finally {
-      if (!_disposed) {
+      if (!_disposed && seq == _employeeLoadSeq) {
         _isLoading = false;
         _notify();
       }
@@ -115,6 +118,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
       return;
     }
 
+    final seq = _employeeLoadSeq;
     final pageNumber = _nextEmployeePage;
     _isLoadingMore = true;
     _notify();
@@ -123,7 +127,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
         page: pageNumber,
         size: _pageSize,
       );
-      if (_disposed) return;
+      if (_disposed || seq != _employeeLoadSeq) return;
 
       final existingNumbers =
           _employees.map((employee) => employee.employeeNumber).toSet();
@@ -137,7 +141,7 @@ class AdminSettingsViewModel extends ChangeNotifier {
     } catch (e) {
       debugPrint('추가 사원 로드 실패: $e');
     } finally {
-      if (!_disposed) {
+      if (!_disposed && seq == _employeeLoadSeq) {
         _isLoadingMore = false;
         _notify();
       }
@@ -421,6 +425,8 @@ class AdminSettingsViewModel extends ChangeNotifier {
   @override
   void dispose() {
     _disposed = true;
+    _employeeLoadSeq++;
+    _teamLoadSeq++;
     employeeInfoController.dispose();
     super.dispose();
   }
