@@ -131,7 +131,7 @@ class ApiClient {
           try {
             final refreshed = await _refreshAccessTokenSingleFlight(
               requestGeneration,
-              await _storage.read(key: _tokenKey),
+              _bearerToken(error.requestOptions.headers['Authorization']),
             );
             if (refreshed != null && requestGeneration == _authGeneration) {
               final retry = error.requestOptions;
@@ -304,6 +304,14 @@ class ApiClient {
   /// 액세스 토큰 없이 호출되며, 401이어도 갱신 후 재시도하지 않는다.
   bool _isAuthenticationRequest(RequestOptions options) {
     return options.path.startsWith('/api/auth/');
+  }
+
+  String? _bearerToken(Object? authorization) {
+    if (authorization is! String) return null;
+    const prefix = 'Bearer ';
+    return authorization.startsWith(prefix)
+        ? authorization.substring(prefix.length)
+        : null;
   }
 
   /// 액세스 토큰 갱신을 single-flight로 수행한다.
