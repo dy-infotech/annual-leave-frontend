@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/core/config/api_config.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:dio/dio.dart';
@@ -27,6 +29,8 @@ void main() {
   String? explicitLogoutMarker;
   String? sessionMarker;
   bool failExplicitLogoutFenceWrite = false;
+  Completer<String?>? blockedAccessTokenRead;
+  Completer<void>? accessTokenReadStarted;
 
   setUp(() {
     storageCalls = <MethodCall>[];
@@ -34,6 +38,8 @@ void main() {
     explicitLogoutMarker = null;
     sessionMarker = 'session-a';
     failExplicitLogoutFenceWrite = false;
+    blockedAccessTokenRead = null;
+    accessTokenReadStarted = null;
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -45,6 +51,12 @@ void main() {
       final sessionKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
+          if (!explicitKey && !sessionKey && blockedAccessTokenRead != null) {
+            if (accessTokenReadStarted != null && !accessTokenReadStarted!.isCompleted) {
+              accessTokenReadStarted!.complete();
+            }
+            return blockedAccessTokenRead!.future;
+          }
           if (explicitKey) return explicitLogoutMarker;
           if (sessionKey) return sessionMarker;
           return storedToken;
@@ -114,6 +126,46 @@ void main() {
         (storageCalls.first.arguments as Map)['key'],
         'annual_leave_access_token',
       );
+    });
+
+    test('토큰 읽기 대기 중 계정이 바뀌면 이전 요청을 새 계정으로 보내지 않는다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      blockedAccessTokenRead = Completer<String?>();
+      accessTokenReadStarted = Completer<void>();
+      var sentToAdapter = false;
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) {
+          sentToAdapter = true;
+          return server.reply(200, {});
+        },
+        data: {'leaveType': 'FULL'},
+      );
+
+      final pending = _captureDioException(
+        () => ApiClient().dio.post(
+          '/api/leave-requests',
+          data: {'leaveType': 'FULL'},
+        ),
+      );
+      await accessTokenReadStarted!.future;
+
+      await ApiClient().saveToken(
+        _otherAccessToken,
+        sessionMarker: 'session-b',
+      );
+      blockedAccessTokenRead!.complete(_validAccessToken);
+
+      final error = await pending;
+      expect(error.type, DioExceptionType.cancel);
+      expect(sentToAdapter, isFalse);
+
+      blockedAccessTokenRead = null;
+      await ApiClient().clearToken();
     });
 
     test('저장된 토큰이 없으면 Authorization 헤더를 붙이지 않는다', () async {
