@@ -29,7 +29,10 @@ class AuthRepository {
 
   /// 내 정보 조회. GET /api/employees/me
   Future<Employee> fetchMyInfo() async {
-    final response = await _apiClient.dio.get('/api/employees/me');
+    final response = await _apiClient.authenticatedRequest(
+      '/api/employees/me',
+      method: 'GET',
+    );
     return Employee.fromJson(response.data);
   }
 
