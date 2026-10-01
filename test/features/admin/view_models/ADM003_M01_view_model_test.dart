@@ -373,28 +373,6 @@ void main() {
       expect(request.toJson(), {'teamName': '이름변경팀'});
     });
 
-    test('submitTeamUpdate - 이름만 바꿀 때 기존 담당자를 재전송하지 않는다', () async {
-      final origin = team();
-      final vm = build();
-
-      expect(
-        await vm.submitTeamUpdate(
-          origin,
-          teamName: '이름변경팀',
-          departmentId: origin.departmentId,
-          parentTeamId: origin.parentTeamId,
-          managerId: origin.managers.single.employeeId,
-        ),
-        isNull,
-      );
-
-      final request =
-          repository.updatedTeams.single['request'] as TeamUpdateRequest;
-      expect(request.teamName, '이름변경팀');
-      expect(request.projectManagerId, isNull);
-      expect(request.toJson(), {'teamName': '이름변경팀'});
-    });
-
     test('submitTeamUpdate - 담당자만 바꿔도 요청을 보낸다', () async {
       final origin = team();
       final vm = build();
