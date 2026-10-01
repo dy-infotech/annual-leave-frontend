@@ -35,6 +35,9 @@ class FakeAuthRepository implements AuthRepository {
   int logoutCalls = 0;
 
   @override
+  Future<T> runSharedSsoMutation<T>(Future<T> Function() action) => action();
+
+  @override
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
     signInCalls.add({'employeeNumber': employeeNumber, 'password': password});
     if (signInErrorToThrow != null) throw signInErrorToThrow!;
