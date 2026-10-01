@@ -5,9 +5,14 @@ import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 
 /// 로그인 사용자 정보를 고정 값으로 돌려주는 AuthSession 대역.
 class FakeAuthSession extends AuthSession {
-  FakeAuthSession({Employee? employeeInfo}) : _fakeEmployeeInfo = employeeInfo;
+  FakeAuthSession({
+    Employee? employeeInfo,
+    bool? isAdmin,
+  })  : _fakeEmployeeInfo = employeeInfo,
+        _fakeIsAdmin = isAdmin ?? employeeInfo?.role == 'ADMIN';
 
   final Employee? _fakeEmployeeInfo;
+  final bool _fakeIsAdmin;
 
   int fetchMyInfoCount = 0;
   Completer<void>? fetchMyInfoCompleter;
@@ -19,6 +24,9 @@ class FakeAuthSession extends AuthSession {
 
   @override
   Employee? get employeeInfo => _fakeEmployeeInfo;
+
+  @override
+  bool get isAdmin => _fakeIsAdmin;
 
   @override
   Future<void> fetchMyInfo() async {
