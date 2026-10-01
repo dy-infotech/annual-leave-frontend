@@ -99,6 +99,7 @@ class AuthSession extends ChangeNotifier {
   /// 실패하면 저장된 토큰을 지우고 예외를 다시 던진다. (화면이 메시지를 표시)
   Future<void> login(String employeeNumber, String password) async {
     final generation = ++_generation;
+    var localSessionSaved = false;
     _resetState(notify: false);
 
     try {
@@ -108,7 +109,11 @@ class AuthSession extends ChangeNotifier {
         throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
       }
 
-      await _repository.saveToken(loginResponse.token);
+      await _repository.saveToken(
+        loginResponse.token,
+        ssoSessionMarker: loginResponse.ssoSessionMarker,
+      );
+      localSessionSaved = true;
       if (!_isCurrent(generation)) {
         throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
       }
@@ -125,7 +130,14 @@ class AuthSession extends ChangeNotifier {
       notifyListeners();
     } catch (_) {
       if (_isCurrent(generation)) {
-        await _repository.clearToken();
+        // /signin 성공 뒤 /me 등이 실패한 경우 refresh cookie/session까지 함께 폐기한다.
+        // 아직 로컬에 session marker를 저장하기 전 실패라면 새 세션을 잘못 건드리지 않도록
+        // 서버 revoke 없이 로컬 토큰만 정리한다.
+        if (localSessionSaved) {
+          await _repository.logout();
+        } else {
+          await _repository.clearToken();
+        }
         if (_isCurrent(generation)) _resetState();
       }
       rethrow;
