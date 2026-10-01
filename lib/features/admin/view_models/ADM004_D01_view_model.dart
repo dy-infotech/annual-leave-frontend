@@ -268,7 +268,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
 
   /// 편집 가능한 현재 상태만 desired로 보내고, 마지막 조회 상태를 expected로 함께 전송한다.
   Future<bool> saveChanges() async {
-    if (_isSaving) return false;
+    if (_disposed || _isSaving) return false;
 
     _isSaving = true;
     _lastSaveMessage = null;
@@ -304,7 +304,10 @@ class EmployeeDetailViewModel extends ChangeNotifier {
         },
       );
 
-      if (statusCode == 200 || statusCode == 204) {
+      final committed = statusCode == 200 || statusCode == 204;
+      if (_disposed) return committed;
+
+      if (committed) {
         _expectedEmployeeState = Map<String, dynamic>.from(desiredState);
         _isEditing = false;
 
@@ -338,6 +341,7 @@ class EmployeeDetailViewModel extends ChangeNotifier {
       }
       return false;
     } catch (e) {
+      if (_disposed) return false;
       debugPrint('사원 정보 저장 실패: $e');
       _lastSaveMessage = '사원 정보 저장에 실패했습니다.';
       return false;
