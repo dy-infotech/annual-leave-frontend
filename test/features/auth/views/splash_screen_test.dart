@@ -19,16 +19,18 @@ class _StubAuthSession extends AuthSession {
   final Object? errorToThrow;
 
   int tryAutoLoginCount = 0;
+  bool? lastAutoLoginEnabled;
   bool _isLoggedIn = false;
 
   @override
   bool get isLoggedIn => _isLoggedIn;
 
   @override
-  Future<void> tryAutoLogin() async {
+  Future<void> tryAutoLogin({bool enabled = true}) async {
     tryAutoLoginCount++;
+    lastAutoLoginEnabled = enabled;
     if (errorToThrow != null) throw errorToThrow!;
-    _isLoggedIn = loggedIn;
+    _isLoggedIn = enabled && loggedIn;
   }
 }
 
@@ -75,6 +77,7 @@ void main() {
     await pumpUntilFound(tester, find.text('dashboard-stub'));
 
     expect(session.tryAutoLoginCount, 1);
+    expect(session.lastAutoLoginEnabled, isTrue);
     expect(find.text('dashboard-stub'), findsOneWidget);
     expect(find.text('login-stub'), findsNothing);
   });
@@ -95,7 +98,8 @@ void main() {
     final session = await pumpSplash(tester, loggedIn: true);
     await tester.pumpAndSettle();
 
-    expect(session.tryAutoLoginCount, 0);
+    expect(session.tryAutoLoginCount, 1);
+    expect(session.lastAutoLoginEnabled, isFalse);
     expect(find.text('login-stub'), findsOneWidget);
     expect(find.text('dashboard-stub'), findsNothing);
   });
