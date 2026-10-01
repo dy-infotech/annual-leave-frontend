@@ -271,6 +271,33 @@ void main() {
       });
     });
 
+    test('idempotencyKey를 넘기면 Idempotency-Key 헤더로 전송한다', () async {
+      dioAdapter.onPost(
+        '/api/leave-requests',
+        (server) => server.reply(201, {}),
+        data: {
+          'leaveType': 'FULL',
+          'startDate': '2026-08-10',
+          'endDate': '2026-08-11',
+          'useDays': 2.0,
+          'leaveReason': null,
+        },
+      );
+
+      await repository.submitLeaveRequest(
+        LeaveRequestCreate(
+          leaveType: 'FULL',
+          startDate: DateTime(2026, 8, 10),
+          endDate: DateTime(2026, 8, 11),
+          useDays: 2.0,
+          leaveReason: null,
+        ),
+        idempotencyKey: 'leave-command-1',
+      );
+
+      expect(lastRequest().headers['Idempotency-Key'], 'leave-command-1');
+    });
+
     test('사유가 있는 휴가는 leaveReason이 본문에 담긴다', () async {
       dioAdapter.onPost(
         '/api/leave-requests',
