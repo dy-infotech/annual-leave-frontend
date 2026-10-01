@@ -14,10 +14,19 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   final AdminEmployeeRepository _repository;
   final CommonCodeRepository _commonCodeRepository;
 
+  static const int _pageSize = 50;
+
   List<Employee> _items = [];
   bool _isLoading = true;
+  bool _isLoadingMore = false;
+  bool _hasMore = true;
+  int _nextPage = 0;
   bool _disposed = false;
   int _requestSeq = 0;
+  int _teamRequestSeq = 0;
+  String _appliedKeyword = '';
+  String _appliedStatus = 'ALL';
+  String _appliedTeamFilter = '전체';
 
   // 등록 상태 검색 조건 ('ALL', 'REGISTERED', 'UNREGISTERED')
   String _selectedStatus = 'ALL';
@@ -31,6 +40,8 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
 
   List<Employee> get items => _items;
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get hasMore => _hasMore;
   String get selectedStatus => _selectedStatus;
   List<String> get filterTeamList => _filterTeamList;
   String get selectedTeamFilter => _selectedTeamFilter;
@@ -51,10 +62,10 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
 
   /// 기초 코드에서 팀 목록 조회. (현재 화면 진입 시에는 사용하지 않음, 기존 코드 유지)
   Future<void> fetchCommonTeams() async {
-    final seq = ++_requestSeq;
+    final seq = ++_teamRequestSeq;
     try {
       final data = await _commonCodeRepository.fetchCommonCodes();
-      if (_disposed || seq != _requestSeq) return;
+      if (_disposed || seq != _teamRequestSeq) return;
       final List<String> fetchedTeams =
           List<String>.from(data['accessibleTeam'] ?? data['team'] ?? []);
 
@@ -67,61 +78,83 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> load() async {
+    await fetchCommonTeams();
+    await fetch();
+  }
+
+  bool? _registeredFilter(String status) {
+    return switch (status) {
+      'REGISTERED' => true,
+      'UNREGISTERED' => false,
+      _ => null,
+    };
+  }
+
+  Future<List<Employee>> _fetchPage(int page) {
+    return _repository.fetchEmployeesPage(
+      searchParam: _appliedKeyword,
+      team: _appliedTeamFilter == '전체' ? null : _appliedTeamFilter,
+      registered: _registeredFilter(_appliedStatus),
+      page: page,
+      size: _pageSize,
+    );
+  }
+
   Future<void> fetch() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
-    final keyword = searchParamController.text.trim();
-    final status = _selectedStatus;
-    final teamFilter = _selectedTeamFilter;
 
+    _appliedKeyword = searchParamController.text.trim();
+    _appliedStatus = _selectedStatus;
+    _appliedTeamFilter = _selectedTeamFilter;
+    _nextPage = 0;
+    _hasMore = true;
     _isLoading = true;
+    _isLoadingMore = false;
     notifyListeners();
+
     try {
-      final List<Employee> allFetchedItems = await _repository.fetchEmployees(
-        searchParam: keyword,
-      );
+      final page = await _fetchPage(0);
       if (_disposed || seq != _requestSeq) return;
 
-      // 검색 조건이 없을 때(최초 로드 시), 전체 사원 데이터에서 전사 팀 리스트를 동적으로 추출하여 드롭다운을 채웁니다.
-      if (keyword.isEmpty) {
-        final List<String> extractedTeams = allFetchedItems
-            .map((emp) => emp.team.trim())
-            .where((team) => team.isNotEmpty)
-            .toSet() // 중복 제거
-            .toList();
-
-        extractedTeams.sort(); // 가나다 순 정렬
-
-        _filterTeamList.clear();
-        _filterTeamList.add('전체');
-        _filterTeamList.addAll(extractedTeams);
-      }
-
-      List<Employee> processedItems = allFetchedItems;
-
-      // 팀 필터링 적용 (기준 문자열 공백 제거 비교)
-      if (teamFilter != '전체') {
-        processedItems = processedItems
-            .where((emp) => emp.team.replaceAll(' ', '').contains(
-                teamFilter.replaceAll(' 팀', '').replaceAll(' ', '')))
-            .toList();
-      }
-
-      // 등록 / 미등록 조건 상태 필터링 연동
-      if (status == 'ALL') {
-        _items = processedItems;
-      } else if (status == 'REGISTERED') {
-        _items =
-            processedItems.where((item) => item.isRegisted == true).toList();
-      } else if (status == 'UNREGISTERED') {
-        _items =
-            processedItems.where((item) => item.isRegisted != true).toList();
-      }
+      _items = page;
+      _hasMore = page.length == _pageSize;
+      if (page.isNotEmpty) _nextPage = 1;
     } catch (e) {
-      print('사원 리스트 조회 실패: $e');
+      debugPrint('사원 리스트 조회 실패: $e');
     } finally {
       if (!_disposed && seq == _requestSeq) {
         _isLoading = false;
+        notifyListeners();
+      }
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (_disposed || _isLoading || _isLoadingMore || !_hasMore) return;
+
+    final seq = _requestSeq;
+    final pageNumber = _nextPage;
+    _isLoadingMore = true;
+    notifyListeners();
+
+    try {
+      final page = await _fetchPage(pageNumber);
+      if (_disposed || seq != _requestSeq) return;
+
+      final existingNumbers =
+          _items.map((item) => item.employeeNumber).toSet();
+      _items.addAll(
+        page.where((item) => existingNumbers.add(item.employeeNumber)),
+      );
+      _hasMore = page.length == _pageSize;
+      if (page.isNotEmpty) _nextPage++;
+    } catch (e) {
+      debugPrint('추가 사원 목록 조회 실패: $e');
+    } finally {
+      if (!_disposed && seq == _requestSeq) {
+        _isLoadingMore = false;
         notifyListeners();
       }
     }
