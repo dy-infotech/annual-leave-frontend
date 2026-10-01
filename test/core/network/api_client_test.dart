@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:annual_leave_frontend/core/config/api_config.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
@@ -32,7 +33,7 @@ void main() {
   Completer<void>? accessTokenReadGate;
   Completer<void>? accessTokenReadStarted;
 
-  setUp(() {
+  setUp(() async {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
@@ -85,9 +86,23 @@ void main() {
       return null;
     });
 
-    // ApiClient는 싱글턴이라 dio 인스턴스가 테스트 간 공유된다.
+    // ApiClient는 싱글턴이라 이전 테스트의 메모리 subject/session 상태도 공유된다.
+    // 플랫폼 저장소 mock을 설치한 뒤 공개 API를 통해 로컬 인증 상태를 정상 상태로 되돌린다.
+    final client = ApiClient();
+    await client.saveToken(
+      _validAccessToken,
+      sessionMarker: 'test-reset',
+    );
+    await client.clearToken();
+
+    // 위 reset 과정의 저장소 흔적은 각 테스트의 관찰 대상이 아니다.
+    storedToken = null;
+    explicitLogoutMarker = null;
+    sessionMarker = 'session-a';
+    storageCalls.clear();
+
     // DioAdapter 생성자가 httpClientAdapter를 교체하므로 테스트마다 새로 붙인다.
-    dioAdapter = DioAdapter(dio: ApiClient().dio);
+    dioAdapter = DioAdapter(dio: client.dio);
   });
 
   tearDown(() {
@@ -136,15 +151,13 @@ void main() {
 
       accessTokenReadGate = Completer<void>();
       accessTokenReadStarted = Completer<void>();
-      var sentToAdapter = false;
       dioAdapter.onPost(
         '/api/leave-requests',
-        (server) {
-          sentToAdapter = true;
-          return server.reply(200, {});
-        },
+        (server) => server.reply(200, {}),
         data: {'leaveType': 'FULL'},
       );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
 
       final pending = _captureDioException(
         () => ApiClient().dio.post(
@@ -164,7 +177,7 @@ void main() {
 
       final error = await pending;
       expect(error.type, DioExceptionType.cancel);
-      expect(sentToAdapter, isFalse);
+      expect(counter.fetchCount, 0);
 
       accessTokenReadGate = null;
       await ApiClient().clearToken();
@@ -319,14 +332,12 @@ void main() {
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
       });
-      var sentToAdapter = false;
       dioAdapter.onGet(
         '/api/employees/me',
-        (server) {
-          sentToAdapter = true;
-          return server.reply(401, {'message': '현재 탭 세션 변경'});
-        },
+        (server) => server.reply(401, {'message': '현재 탭 세션 변경'}),
       );
+      final counter = CountingAdapter(dioAdapter);
+      ApiClient().dio.httpClientAdapter = counter;
 
       final error = await _captureDioException(
         () => ApiClient().dio.get('/api/employees/me'),
@@ -334,7 +345,7 @@ void main() {
 
       expect(error.type, DioExceptionType.cancel);
       expect(error.response, isNull);
-      expect(sentToAdapter, isFalse);
+      expect(counter.fetchCount, 0);
       expect(
         error.requestOptions.headers.containsKey('Authorization'),
         isFalse,
@@ -700,4 +711,25 @@ Future<DioException> _captureDioException(
     return error;
   }
   fail('DioException이 발생하지 않았다');
+}
+
+
+class CountingAdapter implements HttpClientAdapter {
+  CountingAdapter(this.delegate);
+
+  final HttpClientAdapter delegate;
+  int fetchCount = 0;
+
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    fetchCount++;
+    return delegate.fetch(options, requestStream, cancelFuture);
+  }
+
+  @override
+  void close({bool force = false}) => delegate.close(force: force);
 }
