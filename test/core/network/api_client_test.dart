@@ -756,6 +756,29 @@ void main() {
     });
 
   group('부분 로그인 refresh session 폐기', () {
+    test('partial login cleanup 뒤 clearToken도 다른 탭 replacement를 보존한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+      explicitLogoutMarker = '0';
+
+      dioAdapter.onPost(
+        '/api/auth/logout',
+        (server) => server.reply(204, null),
+      );
+
+      await ApiClient().discardRefreshSession('session-partial');
+      await ApiClient().clearToken();
+
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+      expect(explicitLogoutMarker, '0');
+    });
+
     test('서버 revoke가 실패해도 marker fence가 남는다', () async {
       dioAdapter.onPost(
         '/api/auth/logout',
