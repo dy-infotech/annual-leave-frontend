@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:annual_leave_frontend/core/config/api_config.dart';
 import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:dio/dio.dart';
