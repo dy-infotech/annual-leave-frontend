@@ -345,26 +345,22 @@ void main() {
           });
         },
       );
-      // 재시도되는 원 GET도 성공시킨다.
-      var getCount = 0;
+      // 원 요청/재시도 자체는 계속 401이어도 marker bootstrap과 refresh 수행 여부는
+      // 저장소/헤더로 독립 검증한다. (mock adapter의 동일 route 순차 응답에 의존하지 않음)
       dioAdapter.onGet(
         '/api/employees/me',
-        (server) {
-          getCount++;
-          if (getCount == 1) {
-            server.reply(401, {'message': 'access token 만료'});
-          } else {
-            server.reply(200, {});
-          }
-        },
+        (server) => server.reply(401, {'message': 'access token 만료'}),
       );
 
       try {
-        final response = await ApiClient().dio.get('/api/employees/me');
+        final error = await _captureDioException(
+          () => ApiClient().dio.get('/api/employees/me'),
+        );
 
-        expect(response.statusCode, 200);
+        expect(error.response?.statusCode, 401);
         expect(refreshMarker, 'bootstrapped');
         expect(sessionMarker, 'bootstrapped');
+        expect(storedToken, _validAccessToken);
       } finally {
         ApiClient().dio.interceptors.remove(captureRefreshHeader);
       }
