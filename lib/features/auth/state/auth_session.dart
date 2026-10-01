@@ -108,12 +108,13 @@ class AuthSession extends ChangeNotifier {
   /// 실패하면 저장된 토큰을 지우고 예외를 다시 던진다. (화면이 메시지를 표시)
   Future<void> login(String employeeNumber, String password) async {
     final generation = ++_generation;
-    var localSessionSaved = false;
+    LoginResponse? issuedSession;
     _resetState(notify: false);
 
     try {
       final loginResponse =
           await _repository.signIn(employeeNumber, password);
+      issuedSession = loginResponse;
       if (!_isCurrent(generation)) {
         throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
       }
@@ -122,7 +123,6 @@ class AuthSession extends ChangeNotifier {
         loginResponse.token,
         ssoSessionMarker: loginResponse.ssoSessionMarker,
       );
-      localSessionSaved = true;
       if (!_isCurrent(generation)) {
         throw StateError('인증 요청이 새 세션으로 대체되었습니다.');
       }
@@ -138,14 +138,23 @@ class AuthSession extends ChangeNotifier {
       _isLoggedIn = true;
       notifyListeners();
     } catch (_) {
+      // signin 응답까지 받았다면 secure-storage 저장 실패를 포함해 서버에 생긴
+      // refresh session을 marker-bound background revoke로 정리한다.
+      // 그 사이 다른 로그인 cookie가 들어왔으면 서버가 marker mismatch로 no-op 처리한다.
+      final marker = issuedSession?.ssoSessionMarker;
+      if (marker != null && marker.isNotEmpty) {
+        try {
+          await _repository.discardRefreshSession(marker);
+        } catch (_) {
+          // 원래 로그인 실패를 가리지 않는다. orphan session은 TTL로 최종 정리된다.
+        }
+      }
+
       if (_isCurrent(generation)) {
-        // /signin 성공 뒤 /me 등이 실패한 경우 refresh cookie/session까지 함께 폐기한다.
-        // 아직 로컬에 session marker를 저장하기 전 실패라면 새 세션을 잘못 건드리지 않도록
-        // 서버 revoke 없이 로컬 토큰만 정리한다.
-        if (localSessionSaved) {
-          await _repository.logout();
-        } else {
+        try {
           await _repository.clearToken();
+        } catch (_) {
+          // secure storage 장애가 원인인 경우 cleanup 실패가 원래 예외를 덮지 않게 한다.
         }
         if (_isCurrent(generation)) _resetState();
       }
