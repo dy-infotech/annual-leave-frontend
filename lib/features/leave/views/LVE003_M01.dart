@@ -36,6 +36,7 @@ class _PendingApprovalView extends StatefulWidget {
 class _PendingApprovalViewState extends State<_PendingApprovalView>
     with RouteAware {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _rejectReasonController = TextEditingController();
 
   @override
   void initState() {
@@ -62,6 +63,7 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
   @override
   void dispose() {
     _scrollController.dispose();
+    _rejectReasonController.dispose();
     routeObserver.unsubscribe(this);
     super.dispose();
   }
@@ -123,7 +125,7 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
     if (req == null) return;
 
     final messenger = ScaffoldMessenger.of(context);
-    final controller = TextEditingController();
+    _rejectReasonController.clear();
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -141,7 +143,7 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
             ),
             const SizedBox(height: 16),
             TextField(
-              controller: controller,
+              controller: _rejectReasonController,
               decoration: const InputDecoration(hintText: '반려 사유 (선택 입력)'),
               maxLength: 200,
               maxLines: 3,
@@ -164,8 +166,7 @@ class _PendingApprovalViewState extends State<_PendingApprovalView>
       ),
     );
 
-    final rejectReason = controller.text.trim();
-    controller.dispose();
+    final rejectReason = _rejectReasonController.text.trim();
 
     if (confirmed == true) {
       final result = await vm.reject(req.requestId, rejectReason);
