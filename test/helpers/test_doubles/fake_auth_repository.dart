@@ -5,6 +5,8 @@ import 'package:annual_leave_frontend/features/auth/repositories/auth_repository
 /// AuthRepository 인메모리 페이크.
 class FakeAuthRepository implements AuthRepository {
   Object? signInErrorToThrow;
+  Future<LoginResponse> Function(String employeeNumber, String password)?
+      signInHandler;
   final List<Map<String, String>> signInCalls = [];
   LoginResponse signInResponse = LoginResponse(
       token: 'test.token', employeeId: 1, name: '홍길동', role: 'EMPLOYEE');
@@ -16,6 +18,7 @@ class FakeAuthRepository implements AuthRepository {
   Object? getTokenErrorToThrow;
   Object? discardRefreshSessionErrorToThrow;
   final List<String> discardedSessionMarkers = [];
+  final List<bool> discardClearLocalStates = [];
 
   Object? signUpErrorToThrow;
   final List<Map<String, String>> signUpCalls = [];
@@ -35,6 +38,8 @@ class FakeAuthRepository implements AuthRepository {
   Future<LoginResponse> signIn(String employeeNumber, String password) async {
     signInCalls.add({'employeeNumber': employeeNumber, 'password': password});
     if (signInErrorToThrow != null) throw signInErrorToThrow!;
+    final handler = signInHandler;
+    if (handler != null) return handler(employeeNumber, password);
     return signInResponse;
   }
 
@@ -80,8 +85,12 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> discardRefreshSession(String sessionMarker) async {
+  Future<void> discardRefreshSession(
+    String sessionMarker, {
+    bool clearLocalState = true,
+  }) async {
     discardedSessionMarkers.add(sessionMarker);
+    discardClearLocalStates.add(clearLocalState);
     if (discardRefreshSessionErrorToThrow != null) {
       throw discardRefreshSessionErrorToThrow!;
     }
