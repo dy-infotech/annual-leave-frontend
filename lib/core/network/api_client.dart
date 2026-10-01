@@ -382,7 +382,11 @@ class ApiClient {
             return null;
           }
         } on DioException catch (probeError) {
-          return _handleRefreshFailure(probeError, expectedGeneration);
+          return _handleRefreshFailure(
+            probeError,
+            expectedGeneration,
+            expectedSessionMarker: expectedSessionMarker,
+          );
         }
 
         await Future<void>.delayed(const Duration(milliseconds: 200));
@@ -406,10 +410,18 @@ class ApiClient {
             options: refreshOptions(),
           );
         } on DioException catch (retryError) {
-          return _handleRefreshFailure(retryError, expectedGeneration);
+          return _handleRefreshFailure(
+            retryError,
+            expectedGeneration,
+            expectedSessionMarker: expectedSessionMarker,
+          );
         }
       } else {
-        return _handleRefreshFailure(error, expectedGeneration);
+        return _handleRefreshFailure(
+          error,
+          expectedGeneration,
+          expectedSessionMarker: expectedSessionMarker,
+        );
       }
     }
 
@@ -496,11 +508,15 @@ class ApiClient {
   /// 그 외(네트워크 오류, 5xx 등)는 일시 장애일 수 있으므로 세션을 유지한 채 예외를 다시 던진다.
   Future<LoginResponse?> _handleRefreshFailure(
     DioException error,
-    int expectedGeneration,
-  ) async {
+    int expectedGeneration, {
+    String? expectedSessionMarker,
+  }) async {
     final status = error.response?.statusCode;
     if (status == 401 || status == 403) {
-      await _expireSessionOnce(expectedGeneration);
+      await _expireRefreshFailureSession(
+        expectedGeneration,
+        expectedSessionMarker: expectedSessionMarker,
+      );
       return null;
     }
     throw error;
@@ -819,6 +835,46 @@ class ApiClient {
       await action();
     } finally {
       completer.complete();
+    }
+  }
+
+  /// refresh 401/403으로 공유 저장소를 지우기 직전에 아직 이 탭이 관찰하던
+  /// token/session marker의 소유권이 유지되는지 확인한다. 다른 탭의 로그인으로
+  /// subject나 marker가 교체됐다면 현재 탭만 만료하고 새 세션 저장소는 보존한다.
+  Future<void> _expireRefreshFailureSession(
+    int expectedGeneration, {
+    String? expectedSessionMarker,
+  }) async {
+    int? expiredGeneration;
+    await _mutateToken(() async {
+      if (_sessionExpired || expectedGeneration != _authGeneration) return;
+
+      final storedToken = await _storage.read(key: _tokenKey);
+      final storedMarker = await _storage.read(key: _sessionMarkerKey);
+      final storedEmployeeId =
+          LoginResponse.tryFromAccessToken(storedToken)?.employeeId;
+
+      final subjectReplaced = _boundEmployeeId != null &&
+          storedEmployeeId != null &&
+          storedEmployeeId != _boundEmployeeId;
+      final markerReplaced = expectedSessionMarker != null &&
+          storedMarker != null &&
+          storedMarker != expectedSessionMarker;
+      final replacementSession = subjectReplaced || markerReplaced;
+
+      _sessionExpired = true;
+      _boundEmployeeId = null;
+      expiredGeneration = ++_authGeneration;
+
+      if (!replacementSession) {
+        await _storage.delete(key: _tokenKey);
+        await _storage.delete(key: _sessionMarkerKey);
+      }
+    });
+
+    final generation = expiredGeneration;
+    if (generation != null && generation == _authGeneration) {
+      await _unauthorizedHandler?.call(generation);
     }
   }
 
