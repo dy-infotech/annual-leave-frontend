@@ -250,6 +250,46 @@ void main() {
       expect(expiredCount, 1);
     });
 
+    test('다른 탭이 저장한 다른 사용자 토큰은 전송하거나 삭제하지 않고 현재 탭만 만료한다', () async {
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+
+      // 같은 origin의 다른 탭이 사용자 8로 로그인해 shared secure storage를 교체한 상황.
+      // 현재 ApiClient 인스턴스는 사용자 7에 바인딩된 상태를 유지한다.
+      storedToken = _otherAccessToken;
+      sessionMarker = 'session-b';
+
+      var expiredCount = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': '현재 탭 세션 변경'}),
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(
+        error.requestOptions.headers.containsKey('Authorization'),
+        isFalse,
+      );
+      expect(expiredCount, 1);
+      expect(storedToken, _otherAccessToken);
+      expect(sessionMarker, 'session-b');
+
+      // 다음 테스트에 싱글턴의 로컬 만료 상태를 남기지 않는다.
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
+    });
+
     test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
       await ApiClient().saveToken(
         _validAccessToken,
