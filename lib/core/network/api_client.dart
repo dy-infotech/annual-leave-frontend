@@ -569,8 +569,22 @@ class ApiClient {
   /// 서버 revoke가 일시 실패해도 같은 cookie session이 앱 재시작 뒤 부활하지 않도록
   /// 먼저 session marker 기반 durable fence를 남긴다. fence 저장 자체가 실패한 경우에는
   /// 서버 revoke 성공을 필수로 하여 둘 다 실패한 상태를 조용히 넘기지 않는다.
-  Future<void> discardRefreshSession(String sessionMarker) async {
+  Future<void> discardRefreshSession(
+    String sessionMarker, {
+    bool clearLocalState = true,
+  }) async {
     if (sessionMarker.isEmpty) return;
+
+    if (!clearLocalState) {
+      // 이미 더 새로운 AuthSession generation이 활성화된 경우다.
+      // 옛 refresh session은 marker-bound background revoke만 시도하고,
+      // 현재 탭의 access token / session marker / explicit-logout fence는 절대 건드리지 않는다.
+      await _revokeLoggedOutSession(
+        sessionMarker: sessionMarker,
+        swallowFailure: true,
+      );
+      return;
+    }
 
     final discard = await _markExplicitLogout(
       sessionMarkerOverride: sessionMarker,
