@@ -27,6 +27,8 @@ class LeaveRepository {
     String? endDate,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/my',
@@ -35,6 +37,10 @@ class LeaveRepository {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestedAt': cursorRequestedAt,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
@@ -51,6 +57,8 @@ class LeaveRepository {
     String? endDate,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorRequestedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/leave-requests/all',
@@ -59,6 +67,10 @@ class LeaveRepository {
           if (status != null) 'status': status,
           if (startDate != null) 'startDate': startDate,
           if (endDate != null) 'endDate': endDate,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestedAt': cursorRequestedAt,
+          if (cursorRequestedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
@@ -124,6 +136,8 @@ class LeaveRepository {
     String? employeeParam,
     int page = 0,
     int size = defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     final normalizedStatus = status?.trim().toLowerCase();
     if (normalizedStatus != 'approved' && normalizedStatus != 'rejected') {
@@ -142,6 +156,10 @@ class LeaveRepository {
           if (normalizedEmployeeParam != null &&
               normalizedEmployeeParam.isNotEmpty)
             'employeeParam': normalizedEmployeeParam,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorCreatedAt': cursorCreatedAt,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
         },
         page: page,
         size: size,
@@ -170,11 +188,18 @@ class LeaveRepository {
   Future<List<PendingLeaveRequest>> fetchPendingLeaveRequestsPage({
     int page = 0,
     int size = defaultPageSize,
+    String? cursorCreatedAt,
+    int? cursorRequestId,
   }) async {
     final response = await _dio.get(
       '/api/admin/leave-requests/pending',
       queryParameters: _pageQuery(
-        const {},
+        {
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorCreatedAt': cursorCreatedAt,
+          if (cursorCreatedAt != null && cursorRequestId != null)
+            'cursorRequestId': cursorRequestId,
+        },
         page: page,
         size: size,
       ),
