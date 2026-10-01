@@ -72,6 +72,25 @@ class DepartmentTeamRepository {
 
   // ------------------------------------------------------------ 사원
 
+  Future<List<Employee>> searchEmployeesPage(
+    String? keyword, {
+    int page = 0,
+    int size = 50,
+  }) async {
+    final q = keyword?.trim() ?? '';
+    final response = await _dio.get(
+      '/api/admin/employees/all',
+      queryParameters: {
+        if (q.isNotEmpty) 'searchParam': q,
+        'page': page,
+        'size': size,
+      },
+    );
+    return (response.data as List)
+        .map((json) => Employee.fromJson(json))
+        .toList();
+  }
+
   /// 담당자 선택용 사원 검색. 검색어는 사번 또는 성명 부분 일치.
   Future<List<Employee>> searchEmployees(String? keyword) async {
     final q = keyword?.trim() ?? '';
