@@ -105,9 +105,13 @@ class MyInfoViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _repository.changeEmail(emailController.text);
+      final requestedEmail = emailController.text;
+      await _repository.changeEmail(requestedEmail);
+      if (_disposed) return true;
 
-      await _authProvider.updateEmail(emailController.text);
+      await _authProvider.updateEmail(requestedEmail);
+      if (_disposed) return true;
+
       emailController.clear();
       _isEditingEmail = false;
       return true;

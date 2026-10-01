@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/employee/view_models/EMP001_M01_view_model.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -186,5 +188,29 @@ void main() {
       expect(vm.emailController.text, 'new@example.com');
       expect(vm.isSubmitting, isFalse);
     });
+
+    test('이메일 변경 요청 중 dispose되어도 controller를 다시 만지지 않는다', () async {
+      final delayed = _DelayedEmployeeRepository();
+      final vm =
+          MyInfoViewModel(authProvider: session, repository: delayed);
+      vm.emailController.text = 'new@example.com';
+
+      final change = vm.changeEmail();
+      vm.dispose();
+      delayed.completer.complete();
+
+      await expectLater(change, completion(isTrue));
+      expect(session.updatedEmails, isEmpty);
+    });
   });
+}
+
+class _DelayedEmployeeRepository extends FakeEmployeeRepository {
+  final Completer<void> completer = Completer<void>();
+
+  @override
+  Future<void> changeEmail(String email) {
+    emailChanges.add(email);
+    return completer.future;
+  }
 }

@@ -15,21 +15,38 @@ class LeaveRequestDetailViewModel extends ChangeNotifier {
   LeaveRequestDetail? _detail;
   bool _isLoading = true;
   String? _errorMessage;
+  bool _disposed = false;
+  int _requestSeq = 0;
 
   LeaveRequestDetail? get detail => _detail;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
   Future<void> load() async {
+    if (_disposed) return;
+    final seq = ++_requestSeq;
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
     try {
-      _detail = await _repository.fetchLeaveRequestDetail(requestId);
+      final detail = await _repository.fetchLeaveRequestDetail(requestId);
+      if (_disposed || seq != _requestSeq) return;
+      _detail = detail;
     } catch (e) {
+      if (_disposed || seq != _requestSeq) return;
       _errorMessage = '상세 정보를 불러오지 못했습니다.';
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_disposed && seq == _requestSeq) {
+        _isLoading = false;
+        notifyListeners();
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _requestSeq++;
+    super.dispose();
   }
 }
