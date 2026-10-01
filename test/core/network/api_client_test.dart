@@ -417,6 +417,8 @@ void main() {
   });
 
   test('restoreSession - refresh cookie가 없으면 비로그인으로 정상 처리한다', () async {
+    sessionMarker = null;
+
     dioAdapter.onPost(
       '/api/auth/session-marker',
       (server) => server.reply(
