@@ -63,6 +63,7 @@ class ApiClient {
   bool _explicitlyLoggedOut = false;
   int _authGeneration = 0;
   int? _boundEmployeeId;
+  String? _boundSessionMarker;
   Future<void> _tokenMutation = Future<void>.value();
   Future<LoginResponse?>? _refreshInFlight;
 
@@ -462,6 +463,7 @@ class ApiClient {
       await _mutateToken(() async {
         if (expectedGeneration != _authGeneration || _sessionExpired) return;
         await _storage.write(key: _sessionMarkerKey, value: discovered);
+        _boundSessionMarker = discovered;
         saved = true;
       });
       return saved ? discovered : null;
@@ -535,8 +537,10 @@ class ApiClient {
       await _storage.write(key: _tokenKey, value: token);
       _boundEmployeeId = LoginResponse.tryFromAccessToken(token)?.employeeId;
       if (sessionMarker == null || sessionMarker.isEmpty) {
+        _boundSessionMarker = null;
         await _storage.delete(key: _sessionMarkerKey);
       } else {
+        _boundSessionMarker = sessionMarker;
         await _storage.write(key: _sessionMarkerKey, value: sessionMarker);
       }
       replaced = true;
@@ -568,6 +572,7 @@ class ApiClient {
     if (token != null && !_isExpiringSoon(token)) {
       final restored = LoginResponse.tryFromAccessToken(token);
       _boundEmployeeId = restored?.employeeId;
+      _boundSessionMarker = await _storage.read(key: _sessionMarkerKey);
       return restored;
     }
 
@@ -577,6 +582,7 @@ class ApiClient {
       if (token != null && !_isExpired(token)) {
         final restored = LoginResponse.tryFromAccessToken(token);
         _boundEmployeeId = restored?.employeeId;
+        _boundSessionMarker = await _storage.read(key: _sessionMarkerKey);
         return restored;
       }
       rethrow;
@@ -631,6 +637,7 @@ class ApiClient {
       _explicitlyLoggedOut = false;
       await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.write(key: _sessionMarkerKey, value: currentMarker);
+      _boundSessionMarker = currentMarker;
       await _storage.delete(key: _loggedOutSessionMarkerKey);
       activated = true;
     });
@@ -739,8 +746,10 @@ class ApiClient {
       await _storage.write(key: _tokenKey, value: token);
       _boundEmployeeId = LoginResponse.tryFromAccessToken(token)?.employeeId;
       if (sessionMarker == null || sessionMarker.isEmpty) {
+        _boundSessionMarker = null;
         await _storage.delete(key: _sessionMarkerKey);
       } else {
+        _boundSessionMarker = sessionMarker;
         await _storage.write(key: _sessionMarkerKey, value: sessionMarker);
       }
     });
@@ -770,6 +779,7 @@ class ApiClient {
       _authGeneration++;
       _sessionExpired = false;
       _boundEmployeeId = null;
+      _boundSessionMarker = null;
       await _storage.delete(key: _tokenKey);
       await _storage.delete(key: _sessionMarkerKey);
     });
@@ -865,6 +875,7 @@ class ApiClient {
 
       _sessionExpired = true;
       _boundEmployeeId = null;
+      _boundSessionMarker = null;
       expiredGeneration = ++_authGeneration;
 
       if (!replacementSession) {
@@ -887,6 +898,7 @@ class ApiClient {
       if (_sessionExpired || expectedGeneration != _authGeneration) return;
       _sessionExpired = true;
       _boundEmployeeId = null;
+      _boundSessionMarker = null;
       expiredGeneration = ++_authGeneration;
     });
 
@@ -909,6 +921,7 @@ class ApiClient {
       _authGeneration++;
       _sessionExpired = false;
       _boundEmployeeId = null;
+      _boundSessionMarker = null;
       _explicitlyLoggedOut = true;
 
       // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
