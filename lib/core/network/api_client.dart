@@ -268,15 +268,40 @@ class ApiClient {
     int expectedGeneration,
     String? beforeToken,
   ) async {
+    final expectedSessionMarker =
+        await _resolveRefreshSessionMarker(expectedGeneration);
+    if (expectedSessionMarker == null ||
+        expectedGeneration != _authGeneration) {
+      return null;
+    }
+
+    Options refreshOptions() => Options(headers: {
+          'X-SSO-Refresh': '1',
+          'X-SSO-Session-Marker': expectedSessionMarker,
+        });
+
     Response<dynamic> response;
     try {
-      // X-SSO-Refresh 헤더는 서버의 SSO 갱신 요청 규약이다. 제거하면 갱신이 거부될 수 있다.
       response = await dio.post(
         '/api/auth/refresh',
-        options: Options(headers: const {'X-SSO-Refresh': '1'}),
+        options: refreshOptions(),
       );
     } on DioException catch (error) {
       if (error.response?.statusCode == 409) {
+        // 같은 origin의 다른 로그인/앱이 HttpOnly cookie를 바꿨다면
+        // 현재 access token의 marker와 cookie session marker가 달라진다.
+        // 그 세션을 재시도하거나 회전시키지 않고 현재 로컬 세션만 만료한다.
+        try {
+          final currentCookieMarker = await _fetchCurrentSessionMarker();
+          if (currentCookieMarker == null ||
+              currentCookieMarker != expectedSessionMarker) {
+            await _expireSessionOnce(expectedGeneration);
+            return null;
+          }
+        } on DioException catch (probeError) {
+          return _handleRefreshFailure(probeError, expectedGeneration);
+        }
+
         await Future<void>.delayed(const Duration(milliseconds: 200));
 
         // 다른 탭이 이미 새 토큰을 저장했다면 중복 갱신하지 않고 그 토큰을 쓴다.
@@ -295,7 +320,7 @@ class ApiClient {
         try {
           response = await dio.post(
             '/api/auth/refresh',
-            options: Options(headers: const {'X-SSO-Refresh': '1'}),
+            options: refreshOptions(),
           );
         } on DioException catch (retryError) {
           return _handleRefreshFailure(retryError, expectedGeneration);
@@ -322,6 +347,39 @@ class ApiClient {
     );
     if (!replaced) return null;
     return refreshed;
+  }
+
+  Future<String?> _resolveRefreshSessionMarker(
+    int expectedGeneration,
+  ) async {
+    final stored = await _storage.read(key: _sessionMarkerKey);
+    if (stored != null && stored.isNotEmpty) {
+      return stored;
+    }
+
+    final discovered = await _fetchCurrentSessionMarker();
+    if (discovered == null || discovered.isEmpty) {
+      return null;
+    }
+
+    var saved = false;
+    await _mutateToken(() async {
+      if (expectedGeneration != _authGeneration || _sessionExpired) return;
+      await _storage.write(key: _sessionMarkerKey, value: discovered);
+      saved = true;
+    });
+    return saved ? discovered : null;
+  }
+
+  Future<String?> _fetchCurrentSessionMarker() async {
+    final response = await dio.post(
+      '/api/auth/session-marker',
+      options: Options(headers: const {'X-SSO-Refresh': '1'}),
+    );
+    final data = response.data;
+    if (data is! Map) return null;
+    final marker = data['sessionMarker']?.toString();
+    return marker == null || marker.isEmpty ? null : marker;
   }
 
   bool _sameSubject(String? beforeToken, LoginResponse? candidate) {

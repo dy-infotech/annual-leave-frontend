@@ -31,7 +31,7 @@ void main() {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
-    sessionMarker = null;
+    sessionMarker = 'session-a';
     ApiClient().setUnauthorizedHandler(null);
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -272,6 +272,90 @@ void main() {
       expect(error.response?.statusCode, 401);
       expect(storedToken, isNull);
       expect(expiredCount, 1);
+    });
+
+    test('refresh 409 뒤 cookie session marker가 다르면 로컬 세션만 만료한다', () async {
+      storedToken = _validAccessToken;
+      sessionMarker = 'session-a';
+      var expiredCount = 0;
+      var refreshCalls = 0;
+      ApiClient().setUnauthorizedHandler((_) async {
+        expiredCount++;
+      });
+
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) {
+          refreshCalls++;
+          server.reply(409, {'message': 'session marker mismatch'});
+        },
+      );
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'session-b'}),
+      );
+
+      final error = await _captureDioException(
+        () => ApiClient().dio.get('/api/employees/me'),
+      );
+
+      expect(error.response?.statusCode, 401);
+      expect(refreshCalls, 1);
+      expect(storedToken, isNull);
+      expect(expiredCount, 1);
+    });
+
+    test('marker가 없는 기존 세션은 cookie marker를 조회한 뒤 refresh한다', () async {
+      storedToken = _validAccessToken;
+      sessionMarker = null;
+      var refreshMarker = '';
+
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) => server.reply(401, {'message': 'access token 만료'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/session-marker',
+        (server) => server.reply(200, {'sessionMarker': 'bootstrapped'}),
+      );
+      dioAdapter.onPost(
+        '/api/auth/refresh',
+        (server) {
+          refreshMarker =
+              server.requestOptions.headers['X-SSO-Session-Marker']?.toString() ??
+                  '';
+          server.reply(200, {
+            'token': _validAccessToken,
+            'employeeId': 7,
+            'name': '홍길동',
+            'role': 'ADMIN',
+            'ssoSessionMarker': 'bootstrapped',
+          });
+        },
+      );
+      // 재시도되는 원 GET도 성공시킨다.
+      var getCount = 0;
+      dioAdapter.onGet(
+        '/api/employees/me',
+        (server) {
+          getCount++;
+          if (getCount == 1) {
+            server.reply(401, {'message': 'access token 만료'});
+          } else {
+            server.reply(200, {});
+          }
+        },
+      );
+
+      final response = await ApiClient().dio.get('/api/employees/me');
+
+      expect(response.statusCode, 200);
+      expect(refreshMarker, 'bootstrapped');
+      expect(sessionMarker, 'bootstrapped');
     });
 
     test('공개 로그인 요청의 401은 기존 세션 만료로 처리하지 않는다', () async {
