@@ -1,4 +1,4 @@
-import 'dart:async' show StreamSubscription;
+import 'dart:async' show Completer, StreamSubscription;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/services.dart' show PlatformException;
@@ -49,6 +49,19 @@ class FcmService {
 
   StreamSubscription? _foregroundNotificationSubscription;
   StreamSubscription? _openedNotificationSubscription;
+  Future<void> _lifecycleMutation = Future<void>.value();
+
+  Future<T> _serializeLifecycle<T>(Future<T> Function() action) async {
+    final previous = _lifecycleMutation;
+    final completer = Completer<void>();
+    _lifecycleMutation = completer.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      completer.complete();
+    }
+  }
 
   /// 알림 권한 요청 → FCM token 발급 → 서버 동기화 → 알림 리스너 등록을 수행한다.
   ///
@@ -57,7 +70,10 @@ class FcmService {
   /// - 리스너는 이미 등록돼 있으면 다시 등록하지 않는다. (`??=`)
   /// - 권한 거부, 브라우저 차단, token 발급 지연(10초) 등은 로그만 남기고 조용히 넘어간다.
   ///   알림을 못 받아도 앱 사용에는 영향이 없어야 하기 때문이다.
-  Future<void> registerTokenAndListeners() async {
+  Future<void> registerTokenAndListeners() =>
+      _serializeLifecycle(_registerTokenAndListeners);
+
+  Future<void> _registerTokenAndListeners() async {
     final messaging = FirebaseMessaging.instance;
     try {
       var settings = await messaging.getNotificationSettings();
@@ -171,6 +187,15 @@ class FcmService {
   /// [expectedAuthGeneration]이 주어지면 각 단계 사이에서 현재 세션 세대와 비교해,
   /// 그 사이 새 로그인이 시작됐다면 즉시 중단한다. (새 세션의 token/설정을 지우지 않기 위함)
   Future<void> clearLocalStateAfterSessionExpiry({
+    int? expectedAuthGeneration,
+  }) =>
+      _serializeLifecycle(
+        () => _clearLocalStateAfterSessionExpiry(
+          expectedAuthGeneration: expectedAuthGeneration,
+        ),
+      );
+
+  Future<void> _clearLocalStateAfterSessionExpiry({
     int? expectedAuthGeneration,
   }) async {
     if (expectedAuthGeneration != null &&
