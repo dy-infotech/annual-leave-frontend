@@ -13,6 +13,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
   bool _isLoading = true;
   bool _isLoadingMore = false;
   bool _hasMore = true;
+  int _totalCount = 0;
   String? _cursorCreatedAt;
   int? _cursorRequestId;
   String? _errorMessage;
@@ -25,6 +26,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isLoadingMore => _isLoadingMore;
   bool get hasMore => _hasMore;
+  int get totalCount => _totalCount;
   String? get errorMessage => _errorMessage;
   int? get selectedRequestId => _selectedRequestId;
   bool get hasSelection => _selectedRequestId != null;
@@ -53,6 +55,7 @@ class PendingApprovalViewModel extends ChangeNotifier {
     _isLoading = true;
     _isLoadingMore = false;
     _hasMore = true;
+    _totalCount = 0;
     _cursorCreatedAt = null;
     _cursorRequestId = null;
     _errorMessage = null;
@@ -65,8 +68,9 @@ class PendingApprovalViewModel extends ChangeNotifier {
         size: _pageSize,
       );
       if (_disposed || seq != _requestSeq) return;
-      _requests = page;
-      _applyPageCursor(page);
+      _requests = page.items;
+      _totalCount = page.totalCount;
+      _applyPageCursor(page.items, page.hasMore);
     } catch (_) {
       if (_disposed || seq != _requestSeq) return;
       _errorMessage = '목록을 불러오지 못했습니다.';
@@ -92,8 +96,10 @@ class PendingApprovalViewModel extends ChangeNotifier {
       );
       if (_disposed || seq != _requestSeq) return;
       final existingIds = _requests.map((item) => item.requestId).toSet();
-      _requests.addAll(page.where((item) => existingIds.add(item.requestId)));
-      _applyPageCursor(page);
+      _requests.addAll(
+          page.items.where((item) => existingIds.add(item.requestId)));
+      _totalCount = page.totalCount;
+      _applyPageCursor(page.items, page.hasMore);
     } catch (_) {
       if (!_disposed && seq == _requestSeq) {
         _errorMessage = '추가 목록을 불러오지 못했습니다.';
@@ -106,8 +112,9 @@ class PendingApprovalViewModel extends ChangeNotifier {
     }
   }
 
-  void _applyPageCursor(List<PendingLeaveRequest> page) {
-    _hasMore = page.length == _pageSize;
+  void _applyPageCursor(
+      List<PendingLeaveRequest> page, bool hasMore) {
+    _hasMore = hasMore;
     if (page.isNotEmpty) {
       final last = page.last;
       _cursorCreatedAt = last.createdAt;
