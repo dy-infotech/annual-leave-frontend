@@ -11,6 +11,7 @@ class FakeAuthRepository implements AuthRepository {
 
   Employee? myInfoToReturn;
   String? storedToken;
+  String? storedSessionMarker;
 
   Object? signUpErrorToThrow;
   final List<Map<String, String>> signUpCalls = [];
@@ -65,8 +66,12 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> saveToken(String token) async {
+  Future<void> saveToken(
+    String token, {
+    String? ssoSessionMarker,
+  }) async {
     storedToken = token;
+    storedSessionMarker = ssoSessionMarker;
   }
 
   @override
@@ -74,6 +79,7 @@ class FakeAuthRepository implements AuthRepository {
     logoutCalls++;
     if (logoutErrorToThrow != null) throw logoutErrorToThrow!;
     storedToken = null;
+    storedSessionMarker = null;
   }
 
   @override
@@ -82,5 +88,6 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<void> clearToken() async {
     storedToken = null;
+    storedSessionMarker = null;
   }
 }
