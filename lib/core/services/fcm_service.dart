@@ -1,6 +1,7 @@
 import 'dart:async' show Completer, StreamSubscription;
 import 'package:flutter/foundation.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:dio/dio.dart' show Options;
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:shared_preferences/shared_preferences.dart'
     show SharedPreferences;
@@ -117,15 +118,23 @@ class FcmService {
                 TargetPlatform.linux => 'Linux',
                 TargetPlatform.fuchsia => 'Fuchsia',
               };
-        await _apiClient.dio.post(
-          '/api/admin/auth/sync-fcm-token',
-          data: SyncFcmTokenRequest(
-            fcmToken: token,
-            deviceOs: deviceOs,
-          ).toJson(),
-        );
-        await prefs.setString(fcmTokenKey, token);
-        _lastSyncedAuthGeneration = currentGeneration;
+        final authSessionMarker = await _apiClient.getSessionMarker();
+        if (authSessionMarker != null && authSessionMarker.isNotEmpty) {
+          await _apiClient.dio.post(
+            '/api/admin/auth/sync-fcm-token',
+            data: SyncFcmTokenRequest(
+              fcmToken: token,
+              deviceOs: deviceOs,
+            ).toJson(),
+            options: Options(headers: {
+              'X-SSO-Session-Marker': authSessionMarker,
+            }),
+          );
+          await prefs.setString(fcmTokenKey, token);
+          _lastSyncedAuthGeneration = currentGeneration;
+        } else {
+          debugPrint('FCM sync skipped: SSO session marker is unavailable');
+        }
       }
     } on PlatformException catch (e) {
       // 시크릿 모드 등 브라우저에서 차단한 경우 에러 잡아내기
