@@ -28,11 +28,13 @@ void main() {
   late Interceptor captureInterceptor;
   String? storedToken;
   String? explicitLogoutMarker;
+  String? storedSessionMarker;
 
   setUp(() {
     storageCalls = <MethodCall>[];
     storedToken = null;
     explicitLogoutMarker = null;
+    storedSessionMarker = null;
 
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(secureStorageChannel, (call) async {
@@ -40,12 +42,17 @@ void main() {
       final args = call.arguments as Map?;
       final key = args?['key'] as String?;
       final explicitKey = key == 'annual_leave_explicit_logout';
+      final sessionMarkerKey = key == 'annual_leave_sso_session_marker';
       switch (call.method) {
         case 'read':
-          return explicitKey ? explicitLogoutMarker : storedToken;
+          if (explicitKey) return explicitLogoutMarker;
+          if (sessionMarkerKey) return storedSessionMarker;
+          return storedToken;
         case 'write':
           if (explicitKey) {
             explicitLogoutMarker = args?['value'] as String?;
+          } else if (sessionMarkerKey) {
+            storedSessionMarker = args?['value'] as String?;
           } else {
             storedToken = args?['value'] as String?;
           }
@@ -53,6 +60,8 @@ void main() {
         case 'delete':
           if (explicitKey) {
             explicitLogoutMarker = null;
+          } else if (sessionMarkerKey) {
+            storedSessionMarker = null;
           } else {
             storedToken = null;
           }
