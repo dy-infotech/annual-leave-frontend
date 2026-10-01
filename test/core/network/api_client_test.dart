@@ -279,8 +279,10 @@ void main() {
     });
 
     test('refresh 409 뒤 cookie session marker가 다르면 로컬 세션만 만료한다', () async {
-      storedToken = _validAccessToken;
-      sessionMarker = 'session-a';
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
       var expiredCount = 0;
       var refreshCalls = 0;
       ApiClient().setUnauthorizedHandler((_) async {
@@ -314,8 +316,7 @@ void main() {
     });
 
     test('marker가 없는 기존 세션은 cookie marker를 조회한 뒤 refresh한다', () async {
-      storedToken = _validAccessToken;
-      sessionMarker = null;
+      await ApiClient().saveToken(_validAccessToken);
       var refreshMarker = '';
       final captureRefreshHeader = InterceptorsWrapper(
         onRequest: (options, handler) {
