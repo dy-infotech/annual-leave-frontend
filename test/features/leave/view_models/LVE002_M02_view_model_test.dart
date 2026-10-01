@@ -112,6 +112,30 @@ void main() {
           {'status': 'APPROVED', 'startDate': yearStart, 'endDate': yearEnd});
     });
 
+    test('연도가 바뀐 뒤 재조회하면 새 당해년도 조건을 사용한다', () async {
+      var now = DateTime(2026, 12, 31);
+      final vm = AllLeaveRequestsViewModel(
+        repository: fake,
+        now: () => now,
+      );
+
+      await vm.load();
+      expect(fake.allLeaveRequestQueries.last, {
+        'status': null,
+        'startDate': '2026-01-01',
+        'endDate': '2026-12-31',
+      });
+
+      now = DateTime(2027, 1, 1);
+      await vm.fetch();
+
+      expect(fake.allLeaveRequestQueries.last, {
+        'status': null,
+        'startDate': '2027-01-01',
+        'endDate': '2027-12-31',
+      });
+    });
+
     test('setDateRange - 기간이 바뀐 경우에만 재조회한다', () async {
       final vm = AllLeaveRequestsViewModel(repository: fake);
       await vm.load();
