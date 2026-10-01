@@ -44,16 +44,43 @@ void main() {
       expect(session.employeeInfo?.role, 'ADMIN');
     });
 
-    test('login 후 내 정보 조회가 실패하면 토큰과 세션을 롤백한다', () async {
+    test('login 후 내 정보 조회가 실패하면 발급된 refresh session만 정리한다', () async {
+      fake.signInResponse = LoginResponse(
+        token: 'test.token',
+        employeeId: 1,
+        name: '홍길동',
+        role: 'EMPLOYEE',
+        ssoSessionMarker: 'session-a',
+      );
       fake.myInfoToReturn = null;
       final session = AuthSession(repository: fake);
 
       await expectLater(session.login('A0001', 'pw'), throwsA(isA<Exception>()));
 
+      expect(fake.discardedSessionMarkers, ['session-a']);
+      expect(fake.logoutCalls, 0);
       expect(fake.storedToken, isNull);
       expect(session.isLoggedIn, isFalse);
       expect(session.name, isNull);
       expect(session.employeeInfo, isNull);
+    });
+
+    test('login 토큰 저장 실패도 signin에서 발급된 refresh session을 정리한다', () async {
+      fake.signInResponse = LoginResponse(
+        token: 'test.token',
+        employeeId: 1,
+        name: '홍길동',
+        role: 'EMPLOYEE',
+        ssoSessionMarker: 'session-a',
+      );
+      fake.saveTokenErrorToThrow = Exception('secure storage failure');
+      final session = AuthSession(repository: fake);
+
+      await expectLater(session.login('A0001', 'pw'), throwsA(isA<Exception>()));
+
+      expect(fake.discardedSessionMarkers, ['session-a']);
+      expect(fake.logoutCalls, 0);
+      expect(session.isLoggedIn, isFalse);
     });
 
     test('tryAutoLogin - 저장된 토큰이 없으면 로그인 상태가 아니다', () async {
