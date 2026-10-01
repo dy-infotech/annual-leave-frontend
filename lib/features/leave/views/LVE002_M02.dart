@@ -27,7 +27,7 @@ class AllLeaveRequestsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final canViewAll = context.read<AuthSession>().isAdmin;
+    const canViewAll = true;
     return ChangeNotifierProvider(
       create: (_) => AllLeaveRequestsViewModel(
         initialStatus: status,
