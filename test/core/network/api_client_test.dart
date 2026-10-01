@@ -317,16 +317,22 @@ void main() {
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
       });
+      var sentToAdapter = false;
       dioAdapter.onGet(
         '/api/employees/me',
-        (server) => server.reply(401, {'message': '현재 탭 세션 변경'}),
+        (server) {
+          sentToAdapter = true;
+          return server.reply(401, {'message': '현재 탭 세션 변경'});
+        },
       );
 
       final error = await _captureDioException(
         () => ApiClient().dio.get('/api/employees/me'),
       );
 
-      expect(error.response?.statusCode, 401);
+      expect(error.type, DioExceptionType.cancel);
+      expect(error.response, isNull);
+      expect(sentToAdapter, isFalse);
       expect(
         error.requestOptions.headers.containsKey('Authorization'),
         isFalse,
