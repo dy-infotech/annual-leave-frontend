@@ -10,6 +10,6 @@ class SignupManageRepository {
 
   /// 신규 사용자 등록. POST /api/admin/auth/register
   Future<void> registerUser(AdminAuthRegisterRequest request) async {
-    await _dio.post('/api/admin/auth/register', data: request.toJson());
+    await _dio.authenticatedPost('/api/admin/auth/register', data: request.toJson());
   }
 }
