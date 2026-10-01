@@ -248,7 +248,7 @@ class _AdminSearchLeaveRequestsViewState
                 // 💡 실제 리스트 데이터인 items의 길이를 가져와 동적으로 건수를 표시합니다. (조회건수)
 
                 Text(
-                  '${vm.items.length}건',
+                  '${vm.totalCount}건',
                   style: const TextStyle(
                     fontSize: 13,
                     color: AppColors.slate, // 강조하고 싶은 테마 색상으로 지정 가능합니다.
