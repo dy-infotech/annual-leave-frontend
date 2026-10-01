@@ -85,6 +85,7 @@ void main() {
       await vm.loadSavedAccountInfo();
 
       expect(vm.isRememberMe, isFalse);
+      expect(vm.isAutoLoginEnabled, isTrue);
       expect(vm.employeeNumberController.text, isEmpty);
       expect(vm.passwordController.text, isEmpty);
       // 저장을 안 한 상태에서는 암호 저장소를 읽지 않는다.
@@ -134,6 +135,22 @@ void main() {
       expect(vm.isRememberMe, isTrue);
       expect(notified, 3);
     });
+
+    test('자동 로그인 설정을 저장값에서 불러오고 독립적으로 토글한다', () async {
+      SharedPreferences.setMockInitialValues({'autoLoginEnabled': false});
+
+      final vm = build();
+      await vm.loadSavedAccountInfo();
+
+      expect(vm.isRememberMe, isFalse);
+      expect(vm.isAutoLoginEnabled, isFalse);
+
+      vm.setAutoLoginEnabled(true);
+      expect(vm.isAutoLoginEnabled, isTrue);
+
+      vm.toggleAutoLogin();
+      expect(vm.isAutoLoginEnabled, isFalse);
+    });
   });
 
   group('LoginViewModel - 로그인', () {
@@ -179,6 +196,21 @@ void main() {
       expect(prefs.getString('savedEmployeeNumber'), 'A0001');
       expect(secureStore.containsKey('savedPassword'), isFalse);
       expect(secureMethods, contains('delete'));
+    });
+
+    test('성공 + 자동 로그인 해제 - 사번 저장과 무관하게 설정을 별도로 저장한다', () async {
+      final vm = build();
+      vm.employeeNumberController.text = 'A0001';
+      vm.passwordController.text = 'pw1234';
+      vm.setRememberMe(false);
+      vm.setAutoLoginEnabled(false);
+
+      expect(await vm.login(), isTrue);
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool('isRememberMe'), isNull);
+      expect(prefs.getString('savedEmployeeNumber'), isNull);
+      expect(prefs.getBool('autoLoginEnabled'), isFalse);
     });
 
     test('성공 + 계정 저장 해제 - 저장돼 있던 사번과 비밀번호를 모두 지운다', () async {
