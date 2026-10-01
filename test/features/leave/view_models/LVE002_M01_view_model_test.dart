@@ -81,9 +81,9 @@ void main() {
       final vm = MyLeaveRequestsViewModel(repository: fake);
       await vm.load();
 
-      final ok = await vm.cancel(11);
+      final result = await vm.cancel(11);
 
-      expect(ok, isTrue);
+      expect(result, CancelResult.succeeded);
       expect(fake.cancelledIds, [11]);
       expect(fake.myLeaveRequestQueries, hasLength(2));
       expect(vm.isProcessing(11), isFalse);
@@ -94,36 +94,50 @@ void main() {
       final vm = MyLeaveRequestsViewModel(repository: fake);
       await vm.load();
 
-      final ok = await vm.cancel(11);
+      final result = await vm.cancel(11);
 
-      expect(ok, isFalse);
+      expect(result, CancelResult.failed);
       expect(vm.isProcessing(11), isFalse);
     });
 
-    test('조회 실패 - 예외를 잡지 않고 그대로 전파한다', () async {
-      // 현재 _fetch에는 catch가 없어 오류 메시지를 남기지 못하고 예외가 올라온다.
-      // 화면에 실패를 알릴 수단이 없는 상태를 기록해 둔다.
-      fake.errorToThrow = Exception('network');
+    test('조회 실패 - 기존 행을 비우고 오류 상태로 유지한다', () async {
       final vm = MyLeaveRequestsViewModel(repository: fake);
+      await vm.load();
+      expect(vm.items, isNotEmpty);
 
-      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      fake.errorToThrow = Exception('network');
+      vm.setFilter('APPROVED');
+      await Future<void>.delayed(Duration.zero);
+
       expect(vm.items, isEmpty);
-      expect(vm.isLoading, isFalse); // finally로 로딩 상태는 해제된다
+      expect(vm.loadError, isNotNull);
+      expect(vm.hasMore, isFalse);
     });
 
-    test('조회 실패 후 다시 조회에 성공하면 목록이 채워진다', () async {
+    test('조회 실패 후 다시 조회에 성공하면 오류를 지우고 목록이 채워진다', () async {
       fake.errorToThrow = Exception('network');
       final vm = MyLeaveRequestsViewModel(repository: fake);
-      await expectLater(vm.load(), throwsA(isA<Exception>()));
+      await vm.load();
+      expect(vm.loadError, isNotNull);
 
       fake.errorToThrow = null;
-      fake.myLeaveRequestsToReturn = [
-        LeaveRequestListItem.fromJson(
-            fixtureJson('leave/leave_request_list_item.json')),
-      ];
+      await vm.retry();
+
+      expect(vm.loadError, isNull);
+      expect(vm.items, hasLength(1));
+    });
+
+    test('취소 API 성공 후 재조회 실패는 부분 성공으로 반환한다', () async {
+      final vm = MyLeaveRequestsViewModel(repository: fake);
       await vm.load();
 
-      expect(vm.items, hasLength(1));
+      fake.errorToThrow = Exception('refresh failed');
+      final result = await vm.cancel(11);
+
+      expect(result, CancelResult.succeededRefreshFailed);
+      expect(fake.cancelledIds, [11]);
+      expect(vm.loadError, isNotNull);
+      expect(vm.isProcessing(11), isFalse);
     });
 
     test('isCancelable - 대기 또는 아직 시작하지 않은 승인 건을 취소할 수 있다', () {
