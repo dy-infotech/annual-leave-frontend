@@ -61,6 +61,7 @@ class ApiClient {
   bool _sessionExpired = false;
   bool _explicitlyLoggedOut = false;
   int _authGeneration = 0;
+  int? _boundEmployeeId;
   Future<void> _tokenMutation = Future<void>.value();
   Future<LoginResponse?>? _refreshInFlight;
 
@@ -185,6 +186,24 @@ class ApiClient {
       final generation = _authGeneration;
       var token = await _storage.read(key: _tokenKey);
       if (generation != _authGeneration || barrier != _tokenMutation) continue;
+
+      final storedEmployeeId = token == null
+          ? null
+          : LoginResponse.tryFromAccessToken(token)?.employeeId;
+      final boundEmployeeId = _boundEmployeeId;
+      if (boundEmployeeId != null &&
+          storedEmployeeId != null &&
+          storedEmployeeId != boundEmployeeId) {
+        // 다른 탭의 로그인으로 shared storage 토큰 사용자가 바뀐 경우,
+        // 새 탭의 토큰은 삭제하지 않고 현재 탭의 화면 세션만 만료한다.
+        await _expireLocalSessionOnly(generation);
+        options.headers.remove('Authorization');
+        options.extra.remove(_authGenerationKey);
+        return;
+      }
+
+      // 아직 현재 탭의 subject가 정해지지 않은 복원/legacy 경로만 현재 토큰에 바인딩한다.
+      _boundEmployeeId ??= storedEmployeeId;
 
       // 만료 임박 토큰은 요청 전에 갱신한다.
       if (token != null && _isExpiringSoon(token)) {
@@ -434,6 +453,7 @@ class ApiClient {
     await _mutateToken(() async {
       if (expectedGeneration != _authGeneration || _sessionExpired) return;
       await _storage.write(key: _tokenKey, value: token);
+      _boundEmployeeId = LoginResponse.tryFromAccessToken(token)?.employeeId;
       if (sessionMarker == null || sessionMarker.isEmpty) {
         await _storage.delete(key: _sessionMarkerKey);
       } else {
@@ -466,14 +486,18 @@ class ApiClient {
     _explicitlyLoggedOut = false;
     final token = await _storage.read(key: _tokenKey);
     if (token != null && !_isExpiringSoon(token)) {
-      return LoginResponse.tryFromAccessToken(token);
+      final restored = LoginResponse.tryFromAccessToken(token);
+      _boundEmployeeId = restored?.employeeId;
+      return restored;
     }
 
     try {
       return await _refreshAccessTokenSingleFlight(generation, token);
     } on DioException {
       if (token != null && !_isExpired(token)) {
-        return LoginResponse.tryFromAccessToken(token);
+        final restored = LoginResponse.tryFromAccessToken(token);
+        _boundEmployeeId = restored?.employeeId;
+        return restored;
       }
       rethrow;
     }
@@ -633,6 +657,7 @@ class ApiClient {
       await _storage.write(key: _explicitLogoutKey, value: '0');
       await _storage.delete(key: _loggedOutSessionMarkerKey);
       await _storage.write(key: _tokenKey, value: token);
+      _boundEmployeeId = LoginResponse.tryFromAccessToken(token)?.employeeId;
       if (sessionMarker == null || sessionMarker.isEmpty) {
         await _storage.delete(key: _sessionMarkerKey);
       } else {
@@ -664,6 +689,7 @@ class ApiClient {
     await _mutateToken(() async {
       _authGeneration++;
       _sessionExpired = false;
+      _boundEmployeeId = null;
       await _storage.delete(key: _tokenKey);
       await _storage.delete(key: _sessionMarkerKey);
     });
@@ -732,6 +758,23 @@ class ApiClient {
     }
   }
 
+  /// 다른 탭이 shared storage의 로그인 사용자를 바꾼 경우 현재 탭의 UI 세션만 만료한다.
+  /// 새 탭이 저장한 access token/session marker는 삭제하지 않는다.
+  Future<void> _expireLocalSessionOnly(int expectedGeneration) async {
+    int? expiredGeneration;
+    await _mutateToken(() async {
+      if (_sessionExpired || expectedGeneration != _authGeneration) return;
+      _sessionExpired = true;
+      _boundEmployeeId = null;
+      expiredGeneration = ++_authGeneration;
+    });
+
+    final generation = expiredGeneration;
+    if (generation != null && generation == _authGeneration) {
+      await _unauthorizedHandler?.call(generation);
+    }
+  }
+
   /// 세션을 만료 처리한다. 이미 만료됐거나 [expectedGeneration]이 현재 세대와 다르면 아무것도 하지 않아
   /// 동시에 여러 요청이 401을 받아도 만료 콜백은 한 번만 호출된다.
   Future<void> _expireSessionOnce(int expectedGeneration) async {
@@ -739,6 +782,7 @@ class ApiClient {
     await _mutateToken(() async {
       if (_sessionExpired || expectedGeneration != _authGeneration) return;
       _sessionExpired = true;
+      _boundEmployeeId = null;
       expiredGeneration = ++_authGeneration;
       await _storage.delete(key: _tokenKey);
       await _storage.delete(key: _sessionMarkerKey);
@@ -762,6 +806,7 @@ class ApiClient {
           await _storage.read(key: _sessionMarkerKey);
       _authGeneration++;
       _sessionExpired = false;
+      _boundEmployeeId = null;
       _explicitlyLoggedOut = true;
 
       // 저장소 일부 단계가 실패해도 로컬 토큰 삭제와 서버 revoke 시도는 계속한다.
