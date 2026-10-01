@@ -246,7 +246,10 @@ void main() {
     });
 
     test('refresh 응답의 사용자가 현재 access token과 다르면 세션을 만료한다', () async {
-      await ApiClient().saveToken(_validAccessToken);
+      await ApiClient().saveToken(
+        _validAccessToken,
+        sessionMarker: 'session-a',
+      );
       var expiredCount = 0;
       ApiClient().setUnauthorizedHandler((_) async {
         expiredCount++;
@@ -262,6 +265,7 @@ void main() {
           'employeeId': 8,
           'name': 'Other',
           'role': 'EMPLOYEE',
+          'ssoSessionMarker': 'session-a',
         }),
       );
 
@@ -324,10 +328,6 @@ void main() {
       );
       ApiClient().dio.interceptors.add(captureRefreshHeader);
 
-      dioAdapter.onGet(
-        '/api/employees/me',
-        (server) => server.reply(401, {'message': 'access token 만료'}),
-      );
       dioAdapter.onPost(
         '/api/auth/session-marker',
         (server) => server.reply(200, {'sessionMarker': 'bootstrapped'}),
