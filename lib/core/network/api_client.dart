@@ -851,8 +851,9 @@ class ApiClient {
 
       final storedToken = await _storage.read(key: _tokenKey);
       final storedMarker = await _storage.read(key: _sessionMarkerKey);
-      final storedEmployeeId =
-          LoginResponse.tryFromAccessToken(storedToken)?.employeeId;
+      final storedEmployeeId = storedToken == null
+          ? null
+          : LoginResponse.tryFromAccessToken(storedToken)?.employeeId;
 
       final subjectReplaced = _boundEmployeeId != null &&
           storedEmployeeId != null &&
@@ -887,25 +888,6 @@ class ApiClient {
       _sessionExpired = true;
       _boundEmployeeId = null;
       expiredGeneration = ++_authGeneration;
-    });
-
-    final generation = expiredGeneration;
-    if (generation != null && generation == _authGeneration) {
-      await _unauthorizedHandler?.call(generation);
-    }
-  }
-
-  /// 세션을 만료 처리한다. 이미 만료됐거나 [expectedGeneration]이 현재 세대와 다르면 아무것도 하지 않아
-  /// 동시에 여러 요청이 401을 받아도 만료 콜백은 한 번만 호출된다.
-  Future<void> _expireSessionOnce(int expectedGeneration) async {
-    int? expiredGeneration;
-    await _mutateToken(() async {
-      if (_sessionExpired || expectedGeneration != _authGeneration) return;
-      _sessionExpired = true;
-      _boundEmployeeId = null;
-      expiredGeneration = ++_authGeneration;
-      await _storage.delete(key: _tokenKey);
-      await _storage.delete(key: _sessionMarkerKey);
     });
 
     final generation = expiredGeneration;
