@@ -824,31 +824,24 @@ void main() {
       });
     }
 
-    test('사유를 비워 두면 leaveReason이 null로 전송된다', () async {
+    test('사유 필수 휴가는 빈 사유면 제출하지 않는다', () async {
       final vm = buildVm();
       vm.setLeaveType(LeaveType.other);
       selectRange(vm, DateTime(2026, 8, 10), DateTime(2026, 8, 11));
 
-      // 발견한 문제: 사유가 필수인 종류인데도 VM은 빈 사유를 그대로 제출한다.
-      expect(await vm.submit(), isTrue);
-      expect(fake.submittedRequests.single.leaveReason, isNull);
+      expect(await vm.submit(), isFalse);
+      expect(vm.errorMessage, '휴가 사유를 입력해주세요.');
+      expect(fake.submittedRequests, isEmpty);
     });
 
-    test('종료일이 없으면 시작일이 종료일로 채워진다', () async {
+    test('기간이 확정되지 않아 사용일수가 0이면 제출하지 않는다', () async {
       final vm = buildVm();
       vm.selectDay(DateTime(2026, 8, 10), DateTime(2026, 8, 10)); // 시작일만 선택
 
       expect(vm.endDate, isNull);
-      // 발견한 문제: 이 상태의 useDays는 0이지만 VM은 제출을 막지 않는다.
-      // (화면에서만 useDays <= 0 을 검사한다)
-      expect(await vm.submit(), isTrue);
-      expect(fake.submittedRequests.single.toJson(), {
-        'leaveType': 'FULL',
-        'startDate': '2026-08-10',
-        'endDate': '2026-08-10',
-        'useDays': 0.0,
-        'leaveReason': null,
-      });
+      expect(await vm.submit(), isFalse);
+      expect(vm.errorMessage, '사용 일수는 0보다 커야 합니다.');
+      expect(fake.submittedRequests, isEmpty);
     });
 
     test('제출 성공 후 갱신이 실패해도 true를 돌려주고 폼을 초기화한다', () async {
