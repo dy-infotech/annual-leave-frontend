@@ -11,7 +11,10 @@ import 'package:annual_leave_frontend/features/leave/usecases/submit_leave_reque
 import 'package:annual_leave_frontend/features/auth/state/auth_session.dart';
 import 'package:flutter/material.dart';
 
-// 휴가 신청 입력과 기간 검증 상태를 관리한다
+/// 휴가 신청 화면(LVE001_M01)의 ViewModel.
+///
+/// 기존 LeaveRequestListProvider(내 신청 목록, 중복 검증, 캘린더 별표 상태)와
+/// PublicHolidayProvider(공휴일 판정)의 로직을 흡수했다.
 class LeaveRequestViewModel extends ChangeNotifier {
   LeaveRequestViewModel({
     required AuthSession authProvider,
@@ -31,7 +34,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
   DateTime focusedDay = DateTime.now();
 
-  // 서버 기간 조회 실패 시에만 현재 회계연도를 사용한다
+  // /my/period 조회 실패 시에만 현재 회계연도를 fallback으로 사용한다.
+  // 정상 응답이 있으면 정책 종류와 무관하게 서버가 준 범위가 정본이다.
   DateTime _leavePeriodStart = DateTime(DateTime.now().year, 1, 1);
   DateTime _leavePeriodEnd = DateTime(DateTime.now().year, 12, 31);
 
@@ -46,7 +50,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
   String? _submitIdempotencyKey;
   String? _submitPayloadSignature;
 
-  // 휴가 사유 입력값을 화면과 함께 관리한다
+  /// 사유 입력값. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
   final TextEditingController reasonController = TextEditingController();
 
   List<LeaveRequestListItem> _myRequests = [];
@@ -68,7 +72,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
     return text.isEmpty ? null : text;
   }
 
-  // 휴가 종류에 따라 사유 입력 여부를 결정한다
+  // 사유 입력란 필요 여부 (연차, 반차 제외한 나머지)
   bool get needsReason => ![
         LeaveType.full,
         LeaveType.amHalf,
@@ -107,14 +111,14 @@ class LeaveRequestViewModel extends ChangeNotifier {
     );
   }
 
-  // 화면 진입 시 신청 기간과 휴가 정보를 준비한다
+  /// 화면 진입 시 1회 호출한다.
   Future<void> load() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
     try {
       await _authProvider.fetchMyInfo();
     } catch (_) {
-      // 내 정보 갱신 실패 시 기존 세션 정보를 유지한다
+      // 내 정보 갱신 실패 시 기존 세션 정보를 유지한다.
     }
 
     try {
@@ -122,34 +126,34 @@ class LeaveRequestViewModel extends ChangeNotifier {
       if (_disposed || seq != _requestSeq) return;
       _applyLeavePeriod(period);
     } catch (_) {
-      // 기간 조회 실패 시 현재 회계연도를 유지한다
+      // 서버 기간 조회가 실패하면 초기 fallback(현재 회계연도)을 유지한다.
     }
 
     try {
-      // 캘린더 표시용 내 휴가 신청 목록을 조회한다
+      // 캘린더에 별표를 표시하기 위한 내 휴가 신청 목록 조회
       final requests = await _fetchMyRequestsForLeavePeriod();
       if (_disposed || seq != _requestSeq) return;
       _myRequests = requests;
     } catch (_) {
-      // 신청 목록 조회 실패 시 빈 목록을 유지한다
+      // 기존 provider와 동일하게 조회 실패 시 빈 목록을 유지한다.
     }
     try {
       final holidays = await _holidayRepository.fetchPublicHolidays();
       if (_disposed || seq != _requestSeq) return;
       _holidays = holidays;
     } catch (_) {
-      // 공휴일 조회 실패 시 기존 정보로 계속 진행한다
+      // 공휴일 조회 실패 시 공휴일 없이 동작한다. (기존 provider와 동일)
     }
     if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
-  // 선택한 날짜를 휴가 기간에 반영한다
+  /// 날짜 선택 처리. 종료일(또는 반차 단일일)이 확정되면 true를 돌려준다.
   bool selectDay(DateTime selectedDay, DateTime newFocusedDay) {
     bool rangeConfirmed = false;
 
     focusedDay = newFocusedDay;
 
-    // 날짜 변경 시 이전 오류를 지운다
+    // 날짜를 새로 선택하면 이전 에러 메시지 제거
     _errorMessage = null;
 
     final isHalfDay = _selectedLeaveType == LeaveType.amHalf ||
@@ -185,7 +189,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
     return rangeConfirmed;
   }
 
-  // 휴가 종류에 맞춰 기간과 사용 일수를 다시 계산한다
+  /// 휴가 종류 변경 처리. 사유 입력란이 새로 표시되면 true를 돌려준다.
   bool setLeaveType(LeaveType value) {
     final wasHalfDay = _selectedLeaveType == LeaveType.amHalf ||
         _selectedLeaveType == LeaveType.pmHalf;
@@ -199,23 +203,23 @@ class LeaveRequestViewModel extends ChangeNotifier {
     _selectedLeaveType = value;
 
     if (isHalfDay) {
-      // 반차는 하루만 선택할 수 있도록 기간을 초기화한다
+      // 시작일과 종료일이 다르면 (1일 초과 선택된 상태라면) 초기화
       if (_startDate != null && _endDate != null && _startDate != _endDate) {
         _startDate = null;
         _endDate = null;
         _useDaysText = '0';
       }
-      // 하루가 선택되어 있으면 반차 기간으로 맞춘다
+      // 정확히 하루만 선택되어 있었다면 반차(0.5일) 기간으로 동기화
       else if (_startDate != null) {
-        _endDate = _startDate; // 반차는 시작일과 종료일을 같게 맞춘다
+        _endDate = _startDate; // 시작일과 종료일을 같게 설정
         _useDaysText = '0.5';
       }
-      // 날짜가 없으면 반차 사용 일수만 먼저 반영한다
+      // 날짜가 아예 선택되지 않은 상태라면 사용일수만 0.5로 설정
       else {
         _useDaysText = '0.5';
       }
     } else if (wasHalfDay) {
-      // 일반 휴가로 바꾸면 선택 기간의 사용 일수를 다시 계산한다
+      // 반차에서 일반 휴가로 바꿀 때, 기존에 선택된 날짜가 있다면 사용일수 재계산
       if (_startDate != null) {
         _useDaysText = _calculateUsableDays().toString();
       } else {
@@ -232,7 +236,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 주말과 공휴일을 제외해 사용 일수를 계산한다
+  // 주말 + 공휴일 제외하고 계산
   int _calculateUsableDays() {
     if (_startDate == null || _endDate == null) return 0;
     int count = 0;
@@ -286,7 +290,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
     return !day.isBefore(_startDate!) && !day.isAfter(end);
   }
 
-  // 현재 선택 기간과 기존 신청의 중복 여부를 확인한다
+  /// 현재 선택된 기간이 기존 대기/승인 신청과 겹치는지 확인한다.
+  /// refresh가 true면 목록을 다시 조회한 뒤 판정한다.
   Future<bool> hasOverlapForSelection({bool refresh = false}) async {
     if (_disposed || _startDate == null) return false;
 
@@ -392,7 +397,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
 
       if (_disposed || seq != _requestSeq) return true;
 
-      // 신청 성공 후 화면에 필요한 데이터를 다시 불러온다
+      // 신청 자체는 이미 성공했다. 이후 화면 갱신 실패는 신청 실패로 바꾸지 않는다.
       try {
         await _authProvider.fetchMyInfo();
         if (_disposed || seq != _requestSeq) return true;
@@ -401,7 +406,7 @@ class LeaveRequestViewModel extends ChangeNotifier {
         if (_disposed || seq != _requestSeq) return true;
         _myRequests = requests;
       } catch (_) {
-        // 후속 조회 실패는 다음 새로고침에서 복구한다
+        // 다음 명시적 새로고침에서 복구한다.
       }
 
       if (_disposed || seq != _requestSeq) return true;
@@ -422,7 +427,8 @@ class LeaveRequestViewModel extends ChangeNotifier {
     }
   }
 
-  // 특정 날짜의 오전과 오후 신청 상태를 계산한다
+  // 특정 날짜의 휴가 신청 상태 (오전/오후 각각의 상태)
+  // 반환값 status: null(없음) / 'PENDING' / 'APPROVED'
   ({String? amStatus, String? pmStatus}) halfDayStatus(DateTime dateTime) {
     DateTime normalize(DateTime d) {
       final local = d.toLocal();
@@ -442,13 +448,13 @@ class LeaveRequestViewModel extends ChangeNotifier {
       if (!inRange) continue;
 
       if (item.leaveType == LeaveType.amHalf.code) {
-        // 오전 반차 상태를 반영한다
+        // 오전
         amStatus = item.status;
       } else if (item.leaveType == LeaveType.pmHalf.code) {
-        // 오후 반차 상태를 반영한다
+        // 오후
         pmStatus = item.status;
       } else {
-        // 일반 휴가는 오전과 오후를 모두 사용한다
+        // 종일 등 반차가 아닌 신청은 오전/오후 모두 점유
         amStatus = item.status;
         pmStatus = item.status;
       }

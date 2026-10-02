@@ -6,14 +6,17 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:dio/dio.dart';
 
-// 휴가 신청 검증과 제출 흐름을 처리한다
+/// 휴가 신청 유스케이스.
+///
+/// 화면과 무관하게 성립하는 신청 규칙(기간 중복 판정, 잔여 연차 초과 판정)을
+/// 순수 함수로 담고, 제출 결과를 Result로 돌려준다.
 class SubmitLeaveRequest {
   SubmitLeaveRequest({LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();
 
   final LeaveRepository _repository;
 
-  // 검증된 휴가 신청을 서버에 제출한다
+  /// 휴가 신청 제출.
   Future<Result<void>> call(
     LeaveRequestCreate request, {
     String? idempotencyKey,
@@ -36,14 +39,15 @@ class SubmitLeaveRequest {
     }
   }
 
-  // 새 신청 기간이 기존 대기 또는 승인 신청과 겹치는지 확인한다
+  /// 새 신청의 기간(start~end)과 종류(newLeaveType)가 기존 대기/승인 신청과
+  /// 겹치는지 판정한다. 같은 날이라도 서로 다른 시간대 반차끼리는 허용한다.
   static bool hasOverlap(
     List<LeaveRequestListItem> existingRequests,
     DateTime start,
     DateTime end,
     String newLeaveType,
   ) {
-    // 비교 전에 날짜 단위로 값을 맞춘다
+    // 시간 정보를 제거하고 순수 날짜(연/월/일)만 남긴 로컬 DateTime으로 정규화
     DateTime normalize(DateTime dateTime) {
       final local = dateTime.toLocal();
       return DateTime(local.year, local.month, local.day);
@@ -60,29 +64,30 @@ class SubmitLeaveRequest {
       final itemStart = normalize(DateTime.parse(item.startDate));
       final itemEnd = normalize(DateTime.parse(item.endDate));
 
-      // 날짜 범위가 다르면 다음 신청을 확인한다
+      // 날짜 범위가 겹치지 않으면 중복 신청이 아니다
       final dateOverlaps = !normalizedStart.isAfter(itemEnd) &&
           !normalizedEnd.isBefore(itemStart);
       if (!dateOverlaps) return false;
 
-      // 서로 다른 시간대의 반차는 같은 날에도 허용한다
+      // 날짜가 같아도 두 신청이 서로 다른 시간대의 반차라면 중복으로 보지 않는다.
+      // 예: 기존 오전 반차와 신규 오후 반차는 함께 허용한다.
       if (isHalf(newLeaveType) && isHalf(item.leaveType)) {
-        // 반차 시간대가 다르면 다음 신청을 확인한다
+        // 서로 다른 반차 시간대면 겹치지 않음
         if (newLeaveType != item.leaveType) return false;
       }
 
-      // 그 외 같은 날짜 사용은 중복으로 처리한다
+      // 그 외(종일이 하나라도 끼거나, 같은 시간대 반차끼리)는 겹침
       return true;
     });
   }
 
-  // 반차 종류인지 확인한다
+  /// 반차(오전/오후) 여부
   static bool isHalf(String leaveType) {
     return (leaveType == LeaveType.amHalf.code) ||
         (leaveType == LeaveType.pmHalf.code);
   }
 
-  // 신청 일수가 잔여 연차를 넘는지 확인한다
+  /// 사용 일수가 잔여 연차를 초과하는지 판정한다.
   static bool exceedsRemaining({
     required double useDays,
     required double remainingLeaveDays,

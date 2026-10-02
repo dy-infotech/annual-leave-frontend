@@ -5,7 +5,10 @@ import 'package:annual_leave_frontend/features/leave/models/public_holiday.dart'
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 
-// 현재 연도와 다음 연도 공휴일을 조회하고 캐시한다
+/// 공휴일(당해년도 + 내년) 조회.
+///
+/// 캐시는 연도와 TTL을 함께 기록한다. 같은 시점의 중복 호출은 하나의
+/// in-flight Future를 공유하고, 당해년도/차년도 API는 병렬 조회한다.
 class PublicHolidayRepository {
   PublicHolidayRepository({
     Dio? dio,
@@ -68,7 +71,7 @@ class PublicHolidayRepository {
       ),
     ];
 
-    // 조회 중 연도가 바뀌면 결과를 캐시하지 않는다
+    // 조회 도중 해가 바뀌었다면 다음 호출이 다시 동기화하도록 캐시하지 않는다.
     if (_now().year == year) {
       _cache = result;
       _cachedYear = year;
