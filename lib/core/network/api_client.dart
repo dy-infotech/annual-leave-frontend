@@ -666,13 +666,14 @@ class ApiClient {
     final sessionMarker = logout.sessionMarker;
     if (sessionMarker != null && sessionMarker.isNotEmpty) {
       if (logout.fencePersisted) {
-        // 저장된 로그아웃 상태를 기준으로 서버 정리를 이어서 수행한다
+        // 정상 경로는 UI를 막지 않는다. 영속 fence가 재시작 후 자동복구를 막는다.
         unawaited(_revokeLoggedOutSession(
           fcmToken: fcmToken,
           sessionMarker: sessionMarker,
         ));
       } else {
-        // 로그아웃 상태 저장 실패 시 서버 세션 정리를 완료한다
+        // fence 저장에 실패한 예외 경로에서는 서버 revoke까지 성공해야
+        // 재시작 뒤 같은 cookie로 세션이 부활하지 않는다.
         await _revokeLoggedOutSession(
           fcmToken: fcmToken,
           sessionMarker: sessionMarker,
