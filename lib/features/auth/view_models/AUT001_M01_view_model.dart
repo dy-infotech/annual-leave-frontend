@@ -5,7 +5,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// 로그인 입력과 세션 요청 상태를 관리한다
+/// 로그인 화면(AUT001_M01)의 ViewModel.
+///
+/// 입력 검증, 로그인 요청, 사번 저장/자동 로그인 환경설정 저장을 담당한다.
+/// 비밀번호는 저장하지 않으며 실제 인증과 세션 상태는 [AuthSession]에 위임한다.
 class LoginViewModel extends ChangeNotifier {
   LoginViewModel({
     required AuthSession authSession,
@@ -18,7 +21,7 @@ class LoginViewModel extends ChangeNotifier {
   final AuthSession _authSession;
   final PublicHolidayRepository _holidayRepository;
 
-  // 이전 버전 비밀번호 저장값을 정리할 때 사용한다
+  // 비밀번호 전용 안전 저장소
   final FlutterSecureStorage _secureStorage;
 
   final employeeNumberController = TextEditingController();
@@ -30,7 +33,8 @@ class LoginViewModel extends ChangeNotifier {
   bool _isAutoLoginEnabled = AuthPreferences.autoLoginDefault;
   bool _disposed = false;
 
-  // 늦게 끝난 요청이 현재 화면 상태를 덮지 않도록 순번을 관리한다
+  /// 요청 순번. 저장 정보 불러오기나 로그인이 끝나기 전에 화면이 닫히거나 새 요청이 시작되면
+  /// 늦게 도착한 결과가 상태를 덮어쓰지 않도록 비교하는 데 쓴다.
   int _requestSeq = 0;
 
   bool get isLoading => _isLoading;
@@ -58,7 +62,7 @@ class LoginViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 저장된 사번과 자동 로그인 설정을 불러온다
+  // 로컬 저장소에서 저장된 사번만 불러온다. 비밀번호는 refresh session으로 대체하고 장기 저장하지 않는다.
   Future<void> loadSavedAccountInfo() async {
     if (_disposed) return;
     final seq = ++_requestSeq;
@@ -72,7 +76,7 @@ class LoginViewModel extends ChangeNotifier {
     if (_isRememberMe) {
       employeeNumberController.text =
           prefs.getString(AuthPreferences.savedEmployeeNumberKey) ?? '';
-      // 이전 버전의 저장 비밀번호가 남아 있으면 삭제한다
+      // 이전 버전이 저장해 둔 원문 비밀번호는 마이그레이션 시 즉시 폐기한다.
       try {
         await _secureStorage.delete(key: 'savedPassword');
       } catch (e) {
@@ -83,7 +87,8 @@ class LoginViewModel extends ChangeNotifier {
     if (!_disposed && seq == _requestSeq) notifyListeners();
   }
 
-  // 로그인 후 계정 기억과 자동 로그인 설정을 저장한다
+  // 로그인 성공 시 사번 저장 여부와 다음 실행의 자동 로그인 여부를 반영한다.
+  // 자동 로그인은 refresh session을 재사용할지 여부만 저장하며 비밀번호는 저장하지 않는다.
   Future<void> _saveAccountInfoPreference() async {
     final prefs = await SharedPreferences.getInstance();
     if (_isRememberMe) {
@@ -102,11 +107,14 @@ class LoginViewModel extends ChangeNotifier {
       _isAutoLoginEnabled,
     );
 
-    // 기존 비밀번호 저장값은 항상 제거한다
+    // 어느 경로에서도 원문 비밀번호를 장기 저장하지 않는다.
     await _secureStorage.delete(key: 'savedPassword');
   }
 
-  // 로그인 후 부가 설정과 초기 데이터를 준비한다
+  /// 로그인. 성공하면 true를 돌려준다. (화면은 대시보드로 이동)
+  ///
+  /// 실패하면 false를 돌려주고 [errorMessage]에 사유를 담는다.
+  /// 로그인 이후의 계정 저장과 공휴일 미리 불러오기는 부가 작업이라 실패해도 로그인 결과에 영향을 주지 않는다.
   Future<bool> login() async {
     if (_disposed || _isLoading) return false;
     if (employeeNumberController.text.isEmpty ||
@@ -128,10 +136,12 @@ class LoginViewModel extends ChangeNotifier {
       );
 
       if (_disposed || seq != _requestSeq) return false;
-      // 로그인 직후 세션 세대를 고정해 뒤늦은 화면 전환을 막는다
+      // 로그인 완료 직후의 AuthSession 소유권을 고정한다. 이후 부가 비동기 작업 중
+      // cross-tab 로그인/세션 만료가 발생하면 성공한 과거 로그인으로 화면 전환하지 않는다.
       final sessionGeneration = _authSession.captureGeneration();
 
-      // 계정 설정 저장 실패는 로그인 결과와 분리한다
+      // 계정 기억하기는 로그인 자체와 분리된 부가 기능이다.
+      // 저장소 실패가 이미 확정된 인증 세션까지 실패로 보이게 만들지 않는다.
       try {
         await _saveAccountInfoPreference();
       } catch (e) {
@@ -143,14 +153,16 @@ class LoginViewModel extends ChangeNotifier {
         return false;
       }
 
-      // 로그인 후 공휴일 정보를 미리 불러온다
+      // 휴가 신청 화면에서 바로 쓸 수 있도록 공휴일을 미리 조회해 캐시한다.
       try {
         await _holidayRepository.fetchPublicHolidays();
       } catch (_) {
-        // 공휴일 조회 실패는 로그인 결과에 반영하지 않는다
+        // 공휴일 조회 자체의 실패는 로그인 흐름을 막지 않는다.
       }
 
-      // 초기 조회 중 세션이 바뀌면 이전 로그인 결과를 폐기한다
+      // prefetch가 인증 요청을 수행하는 동안 다른 탭 세션으로 교체되면 ApiClient의
+      // unauthorized handler가 AuthSession generation을 올린다. 이 경우에는 이미
+      // 만료된 로그인 성공값으로 대시보드 이동을 허용하지 않는다.
       if (_disposed ||
           seq != _requestSeq ||
           !_authSession.isCurrentGeneration(sessionGeneration)) {

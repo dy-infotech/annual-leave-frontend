@@ -3,7 +3,7 @@ import 'package:annual_leave_frontend/features/admin/repositories/admin_employee
 import 'package:annual_leave_frontend/features/admin/repositories/common_code_repository.dart';
 import 'package:flutter/material.dart';
 
-// 사원 조회 조건과 목록 상태를 관리한다
+/// 사원 사번 조회 화면(ADM004_M01)의 ViewModel.
 class SearchEmployeeNumberViewModel extends ChangeNotifier {
   SearchEmployeeNumberViewModel({
     AdminEmployeeRepository? repository,
@@ -29,14 +29,14 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
   String _appliedStatus = 'ALL';
   String _appliedTeamFilter = '전체';
 
-  // 등록 상태 검색 조건을 관리한다
+  // 등록 상태 검색 조건 ('ALL', 'REGISTERED', 'UNREGISTERED')
   String _selectedStatus = 'ALL';
 
-  // 팀 검색 조건을 관리한다
+  // 팀 검색조건
   final List<String> _filterTeamList = ['전체'];
   String _selectedTeamFilter = '전체';
 
-  // 사번과 성명 검색어를 화면과 함께 관리한다
+  /// 사번/성명 검색어. 조회 시점의 입력값을 그대로 읽기 위해 컨트롤러를 VM이 소유한다.
   final TextEditingController searchParamController = TextEditingController();
 
   List<Employee> get items => _items;
@@ -62,7 +62,7 @@ class SearchEmployeeNumberViewModel extends ChangeNotifier {
     fetch();
   }
 
-  // 필요할 때 기초 코드에서 팀 목록을 불러온다
+  /// 기초 코드에서 팀 목록 조회. (현재 화면 진입 시에는 사용하지 않음, 기존 코드 유지)
   Future<void> fetchCommonTeams() async {
     final seq = ++_teamRequestSeq;
     try {
