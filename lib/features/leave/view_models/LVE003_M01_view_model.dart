@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 enum ApprovalMutationResult { failed, succeeded, succeededRefreshFailed }
 
+/// 결재 대기 목록과 승인 및 반려 처리 상태를 관리한다.
 class PendingApprovalViewModel extends ChangeNotifier {
   PendingApprovalViewModel({LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();

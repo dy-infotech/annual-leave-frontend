@@ -7,7 +7,7 @@ import 'package:annual_leave_frontend/features/auth/models/enums/RoleType.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// 사용자 등록 입력과 기초 코드 상태를 관리한다
+/// 사용자 등록 관리 화면(ADM002_M01)의 ViewModel.
 class SignupManageViewModel extends ChangeNotifier {
   SignupManageViewModel({
     SignupManageRepository? repository,
@@ -23,27 +23,27 @@ class SignupManageViewModel extends ChangeNotifier {
   final emailController = TextEditingController();
   final hireDateController = TextEditingController();
 
-  DateTime? selectedDate; // 선택한 입사일을 보관한다
+  DateTime? selectedDate; // 선택된 날짜
   bool _isLoading = false;
   bool _disposed = false;
   int _requestSeq = 0;
-  String? _errorMessage; // 공통 오류를 보관한다
-  String? _employeeNumberError; // 사번 오류를 보관한다
-  String? _employeeNameError; // 사용자명 오류를 보관한다
-  String? _departmentError; // 부서 오류를 보관한다
-  String? _teamError; // 팀 오류를 보관한다
-  String? _positionError; // 직급 오류를 보관한다
-  String? _emailError; // 이메일 오류를 보관한다
-  String? _hireDateError; // 입사일 오류를 보관한다
+  String? _errorMessage; //공통에러
+  String? _employeeNumberError; //사번에러
+  String? _employeeNameError; //사용자명에러
+  String? _departmentError; //부서에러
+  String? _teamError; //팀에러
+  String? _positionError; //직급에러
+  String? _emailError; //이메일에러
+  String? _hireDateError; //입사일에러
 
-  final List<String> teamList = []; // 기존 화면용 팀명 목록을 유지한다
-  final List<AccessibleTeamOption> teamOptions = []; // 부서 관계를 포함한 팀 목록이다
-  final List<String> departmentList = []; // 부서 목록을 보관한다
-  final List<String> positionList = []; // 직급 목록을 보관한다
-  String? selectedTeam; // 선택한 팀을 보관한다
-  String? selectedDepartment; // 선택한 부서를 보관한다
-  String? selectedPosition; // 선택한 직급을 보관한다
-  RoleType? selectedManagerYn = RoleType.employee; // 선택한 역할을 보관한다
+  final List<String> teamList = []; // 하위 호환용 팀명 목록
+  final List<AccessibleTeamOption> teamOptions = []; // 팀-부서 관계 포함
+  final List<String> departmentList = []; //부서
+  final List<String> positionList = []; //직급
+  String? selectedTeam; //선택된 팀
+  String? selectedDepartment; //선택된 부서
+  String? selectedPosition; //선택된 직급
+  RoleType? selectedManagerYn = RoleType.employee; //선택된 관리자여부
   String? formatDate;
 
   bool get isLoading => _isLoading;
@@ -67,11 +67,14 @@ class SignupManageViewModel extends ChangeNotifier {
           .toList();
     }
 
-    // 현재 팀 정보가 없을 때 기존 팀 목록을 보조로 사용한다
+    // 구버전 서버와의 일시적 호환. 새 v2 서버에서는 accessibleTeamInfo를 사용한다.
     return List<String>.unmodifiable(teamList);
   }
 
-  // 현재 인사권 기준으로 관리자 역할 부여 가능 여부를 확인한다
+  /// 관리자(PM) 역할 부여 가능 여부.
+  ///
+  /// 현재 인사권 구현은 CEO에게 귀속되어 있으며 PM 여부와는 별개다.
+  /// 향후 서버가 별도 인사권 필드를 제공하면 그 명시 권한으로 교체한다.
   static bool canAssignAdminRole({Employee? currentUser}) {
     return currentUser?.isCeo ?? false;
   }
@@ -89,7 +92,7 @@ class SignupManageViewModel extends ChangeNotifier {
         DateTime today = DateTime.now();
         selectedDate = selectedDate ?? today;
 
-        // 초기 입사일을 서버 전송 형식으로 맞춘다
+        // 초기 로딩 시 서버 전송용 날짜 변수(formatDate) 세팅
         formatDate = DateFormat('yyyy-MM-dd').format(selectedDate!);
 
         hireDateController.text =
@@ -118,7 +121,7 @@ class SignupManageViewModel extends ChangeNotifier {
 
         positionList.addAll(List<String>.from(data['position']));
       } else {
-        // 기초 코드 형식이 다르면 빈 목록을 유지한다
+        // 데이터가 이상할 때 대비한 예외처리
         _errorMessage = '기초데이터 조회에 실패했습니다.';
       }
       notifyListeners();
@@ -130,7 +133,7 @@ class SignupManageViewModel extends ChangeNotifier {
     }
   }
 
-  // 입력값을 순서대로 확인하고 첫 오류에서 중단한다
+  /// 입력 검증. 기존 화면과 동일하게 첫 오류에서 중단한다.
   bool validateInputs() {
     if (employeeNumberController.text.isEmpty) {
       _employeeNumberError = '사번을 입력해 주세요.';
@@ -177,7 +180,7 @@ class SignupManageViewModel extends ChangeNotifier {
     return true;
   }
 
-  // 검증된 입력값으로 사용자 등록을 요청한다
+  /// 사용자 등록. 성공 여부를 돌려준다.
   Future<bool> register() async {
     if (_disposed || _isLoading) return false;
     _isLoading = true;
@@ -211,7 +214,7 @@ class SignupManageViewModel extends ChangeNotifier {
     selectedDate = picked;
     formatDate = DateFormat('yyyy-MM-dd').format(picked);
     hireDateController.text = '${picked.year}년 ${picked.month}월 ${picked.day}일';
-    _errorMessage = null; // 날짜 변경 시 이전 오류를 지운다
+    _errorMessage = null; // 날짜 선택 시 오류 초기화
     notifyListeners();
   }
 
@@ -238,7 +241,7 @@ class SignupManageViewModel extends ChangeNotifier {
   void selectDepartment(String? value) {
     selectedDepartment = value;
     _departmentError = null;
-    selectedTeam = null; // 부서 변경 시 기존 팀 선택을 지운다
+    selectedTeam = null; // 부서 변경 시 하위 팀 선택 값 강제 리셋
     notifyListeners();
   }
 

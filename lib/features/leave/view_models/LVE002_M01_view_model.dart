@@ -10,7 +10,7 @@ enum CancelResult {
   succeededRefreshFailed,
 }
 
-// 내 휴가 신청 목록과 취소 상태를 관리한다
+/// 내 휴가 신청 목록 화면(LVE002_M01)의 ViewModel.
 class MyLeaveRequestsViewModel extends ChangeNotifier {
   MyLeaveRequestsViewModel({this.initialStatus, LeaveRepository? repository})
       : _repository = repository ?? LeaveRepository();

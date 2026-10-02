@@ -2,7 +2,7 @@ import 'package:annual_leave_frontend/features/leave/models/leave_request_models
 import 'package:annual_leave_frontend/features/leave/repositories/leave_repository.dart';
 import 'package:flutter/foundation.dart';
 
-// 휴가 신청 상세 조회 상태를 관리한다
+/// 휴가 신청 상세 화면(LVE002_D01)의 ViewModel.
 class LeaveRequestDetailViewModel extends ChangeNotifier {
   LeaveRequestDetailViewModel({
     required this.requestId,

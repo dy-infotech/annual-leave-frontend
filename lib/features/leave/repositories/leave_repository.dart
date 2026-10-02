@@ -2,7 +2,7 @@ import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/leave/models/leave_request_models.dart';
 import 'package:dio/dio.dart';
 
-// 휴가 신청 조회와 변경 요청을 담당한다
+/// 휴가 신청 관련 API 호출 모음.
 class LeaveRepository {
   LeaveRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
@@ -77,7 +77,8 @@ class LeaveRepository {
     return _parseLeavePage(response.data);
   }
 
-  // 캘린더와 중복 검사에 필요한 내 신청 목록을 끝까지 수집한다
+  /// 캘린더/중복 검사처럼 범위 내 전체 내역이 필요한 내부 호출용.
+  /// OFFSET 대신 마지막 (requestedAt, requestId) cursor를 이어서 수집한다.
   Future<List<LeaveRequestListItem>> fetchMyLeaveRequests({
     String? status,
     String? startDate,
@@ -95,7 +96,7 @@ class LeaveRepository {
     });
   }
 
-  // 조직 전체 신청 목록을 끝까지 수집한다
+  /// 목록 UI는 fetchAllLeaveRequestsPage를 사용한다.
   Future<List<LeaveRequestListItem>> fetchAllLeaveRequests({
     String? status,
     String? startDate,

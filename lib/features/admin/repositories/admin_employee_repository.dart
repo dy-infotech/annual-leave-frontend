@@ -2,7 +2,7 @@ import 'package:annual_leave_frontend/core/network/api_client.dart';
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:dio/dio.dart';
 
-// 관리자용 사원 조회와 수정 요청을 담당한다
+/// 관리자용 사원 정보 API 호출 모음. (ADM001, ADM004 계열 화면에서 사용)
 class AdminEmployeeRepository {
   AdminEmployeeRepository({Dio? dio}) : _dio = dio ?? ApiClient().dio;
 
@@ -11,7 +11,8 @@ class AdminEmployeeRepository {
   static const int _pageSize = 100;
   static const int _maxPages = 201;
 
-  // 화면에 필요한 사원 목록을 서버 페이지 끝까지 수집한다
+  /// 기존 화면은 전체 결과를 기대하므로 bounded 서버 page를 끝까지 수집한다.
+  /// 필터가 있으면 서버에 함께 전달해 불필요한 row 전송을 줄인다.
   Future<List<Employee>> fetchEmployees({
     String? searchParam,
     String? team,
@@ -58,7 +59,9 @@ class AdminEmployeeRepository {
         .toList();
   }
 
-  // 사원 정보를 수정하고 응답 상태를 그대로 반환한다
+  /// 사원 정보 수정. PUT /api/admin/employees/{employeeNumber}
+  ///
+  /// 호출부가 상태코드로 성공 여부를 판단하므로 statusCode를 그대로 돌려준다.
   Future<int?> updateEmployee(
       String employeeNumber, Map<String, dynamic> data) async {
     final response =
@@ -66,7 +69,7 @@ class AdminEmployeeRepository {
     return response.statusCode;
   }
 
-  // 마지막 조회 상태를 기준으로 담당 팀 변경을 저장한다
+  /// 관리팀 최종 상태를 compare-and-set 방식으로 저장한다.
   Future<int?> updateManagedTeams(
     String employeeNumber, {
     required List<String> expectedManagedTeams,
