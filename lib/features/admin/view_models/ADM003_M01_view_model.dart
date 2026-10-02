@@ -5,7 +5,7 @@ import 'package:annual_leave_frontend/features/admin/models/department_team_mode
 import 'package:annual_leave_frontend/features/admin/models/employee.dart';
 import 'package:annual_leave_frontend/features/admin/repositories/department_team_repository.dart';
 
-// 부서와 팀 목록 및 변경 요청 상태를 관리한다
+/// 부서 및 팀 관리 화면(ADM003_M01)의 ViewModel.
 class DepartmentTeamViewModel extends ChangeNotifier {
   DepartmentTeamViewModel({DepartmentTeamRepository? repository})
       : _repository = repository ?? DepartmentTeamRepository();
@@ -23,7 +23,7 @@ class DepartmentTeamViewModel extends ChangeNotifier {
   int _teamRequestSeq = 0;
   bool _disposed = false;
 
-  // 선택한 부서 기준으로 팀 목록을 필터링한다
+  /// 팀 탭의 부서 필터. null 이면 전체.
   int? _teamFilterDeptId;
 
   List<Department> get departments => _departments;
